@@ -10,6 +10,7 @@ import (
 func init() {
 	workflow.Register("IsolateOrder", OrderWorkflow)
 	workflow.Register("IsolateEcho", EchoWorkflow)
+	workflow.RegisterTyped2("IsolateTypedEcho", TypedEchoWorkflow)
 }
 
 func main() {
@@ -33,4 +34,16 @@ func OrderWorkflow(input []byte) ([]byte, error) {
 
 func EchoWorkflow(input []byte) ([]byte, error) {
 	return append([]byte("registered:"), input...), nil
+}
+
+type TypedEchoRequest struct {
+	Name string
+}
+
+type TypedEchoResult struct {
+	Message string
+}
+
+func TypedEchoWorkflow(request TypedEchoRequest, suffix string) (TypedEchoResult, error) {
+	return TypedEchoResult{Message: "hello " + request.Name + suffix}, nil
 }

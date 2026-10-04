@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"fmt"
 	"isolate"
+	"strings"
 	"time"
 
 	"github.com/mfateev/sdk-go-poc/temporalbridge"
@@ -65,6 +66,9 @@ func main() {
 	}
 	d.Execute(e, nil, input)
 	d.OnWorkflowTaskStarted(time.Second * 5)
+	if e.err != nil {
+		panic(e.err)
+	}
 	if e.activity == nil {
 		panic("activity not scheduled")
 	}
@@ -92,6 +96,8 @@ func main() {
 	}
 	d.Close()
 	runEcho(program)
+	runTypedEcho(program)
+	runUnsupportedProto(program)
 	runSignal()
 	runClock()
 	fmt.Println("temporal isolate serial path passed")
@@ -115,6 +121,43 @@ func runEcho(program isolate.Program) {
 	}
 	if !bytes.Equal(result, []byte("registered:hello")) {
 		panic(fmt.Sprintf("echo result = %q", result))
+	}
+	d.Close()
+}
+
+func runTypedEcho(program isolate.Program) {
+	d := (temporalbridge.Factory{Program: program, EntryName: "IsolateTypedEcho"}).NewWorkflowDefinition()
+	e := &environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}
+	input, err := e.GetDataConverter().ToPayloads(struct{ Name string }{Name: "world"}, "!")
+	if err != nil {
+		panic(err)
+	}
+	d.Execute(e, nil, input)
+	d.OnWorkflowTaskStarted(5 * time.Second)
+	if e.err != nil {
+		panic(e.err)
+	}
+	var result struct{ Message string }
+	if err := e.GetDataConverter().FromPayloads(e.result, &result); err != nil {
+		panic(err)
+	}
+	if result.Message != "hello world!" {
+		panic(fmt.Sprintf("typed echo result = %+v", result))
+	}
+	d.Close()
+}
+
+func runUnsupportedProto(program isolate.Program) {
+	d := (temporalbridge.Factory{Program: program, EntryName: "IsolateTypedEcho"}).NewWorkflowDefinition()
+	e := &environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}
+	input, err := e.GetDataConverter().ToPayloads(&commonpb.Payload{Data: []byte("hello")})
+	if err != nil {
+		panic(err)
+	}
+	d.Execute(e, nil, input)
+	d.OnWorkflowTaskStarted(5 * time.Second)
+	if e.err == nil || !strings.Contains(e.err.Error(), "outside the isolate POC subset") || e.result != nil {
+		panic(fmt.Sprintf("unsupported proto input result = %v, error = %v", e.result, e.err))
 	}
 	d.Close()
 }

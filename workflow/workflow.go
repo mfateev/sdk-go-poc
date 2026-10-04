@@ -1,6 +1,7 @@
 // Package workflow exposes host-mediated Temporal operations to a statically
-// linked isolate program. Its byte-oriented API keeps the Temporal Go SDK on
-// the host side of the isolate boundary.
+// linked isolate program. Host operations use a copied-byte boundary; typed
+// workflow arguments and results use Temporal's default data converter here.
+// The POC currently accepts nil, byte, and ordinary JSON payload encodings.
 package workflow
 
 import (
@@ -9,16 +10,24 @@ import (
 	"fmt"
 	"isolate"
 	"time"
+
+	gogoproto "github.com/gogo/protobuf/proto"
+	"github.com/mfateev/sdk-go-poc/internal/payloadwire"
+	commonpb "go.temporal.io/api/common/v1"
+	"go.temporal.io/sdk/converter"
+	"google.golang.org/protobuf/proto"
 )
 
 // Operation numbers are a wire contract. Never renumber an existing operation.
 const (
-	OpInput    uint32 = 1
-	OpActivity uint32 = 2
-	OpSleep    uint32 = 3
-	OpSignal   uint32 = 4
-	OpComplete uint32 = 5
-	OpStart    uint32 = 6
+	OpInput            uint32 = 1
+	OpActivity         uint32 = 2
+	OpSleep            uint32 = 3
+	OpSignal           uint32 = 4
+	OpComplete         uint32 = 5
+	OpStart            uint32 = 6
+	OpStartPayloads    uint32 = 7
+	OpCompletePayloads uint32 = 8
 )
 
 // Handler is a named workflow function. Each execution receives its own
@@ -26,6 +35,10 @@ const (
 type Handler func([]byte) ([]byte, error)
 
 var handlers = make(map[string]Handler)
+
+type typedHandler func(*commonpb.Payloads) (*commonpb.Payloads, error)
+
+var typedHandlers = make(map[string]typedHandler)
 
 // Register associates a workflow entry name with a function. Call it from the
 // isolate program's init function. Registration must not perform host work.
@@ -36,7 +49,129 @@ func Register(name string, handler Handler) {
 	if _, exists := handlers[name]; exists {
 		panic("workflow: duplicate registration: " + name)
 	}
+	if _, exists := typedHandlers[name]; exists {
+		panic("workflow: duplicate registration: " + name)
+	}
 	handlers[name] = handler
+}
+
+func registerTyped(name string, handler typedHandler) {
+	if name == "" || handler == nil {
+		panic("workflow: typed registration requires a name and function")
+	}
+	if _, exists := handlers[name]; exists {
+		panic("workflow: duplicate registration: " + name)
+	}
+	if _, exists := typedHandlers[name]; exists {
+		panic("workflow: duplicate registration: " + name)
+	}
+	typedHandlers[name] = handler
+}
+
+// RegisterTyped0 registers a typed workflow without arguments. The result is
+// converted inside the isolate using Temporal's default converter.
+func RegisterTyped0[R any](name string, handler func() (R, error)) {
+	if handler == nil {
+		panic("workflow: nil typed handler")
+	}
+	registerTyped(name, func(payloads *commonpb.Payloads) (*commonpb.Payloads, error) {
+		if err := checkArgumentCount(payloads, 0); err != nil {
+			return nil, err
+		}
+		result, err := handler()
+		return encodeTypedResult(result, err)
+	})
+}
+
+// RegisterTyped registers a typed workflow with one argument.
+func RegisterTyped[A, R any](name string, handler func(A) (R, error)) {
+	if handler == nil {
+		panic("workflow: nil typed handler")
+	}
+	registerTyped(name, func(payloads *commonpb.Payloads) (*commonpb.Payloads, error) {
+		if err := checkArgumentCount(payloads, 1); err != nil {
+			return nil, err
+		}
+		var arg A
+		if isProtoValue(any(arg)) || isProtoValue(any(&arg)) {
+			return nil, errors.New("workflow: protobuf values are outside the isolate POC subset")
+		}
+		if err := converter.GetDefaultDataConverter().FromPayloads(payloads, &arg); err != nil {
+			return nil, fmt.Errorf("workflow: decode arguments: %w", err)
+		}
+		result, err := handler(arg)
+		return encodeTypedResult(result, err)
+	})
+}
+
+// RegisterTyped2 registers a typed workflow with two arguments.
+func RegisterTyped2[A, B, R any](name string, handler func(A, B) (R, error)) {
+	if handler == nil {
+		panic("workflow: nil typed handler")
+	}
+	registerTyped(name, func(payloads *commonpb.Payloads) (*commonpb.Payloads, error) {
+		if err := checkArgumentCount(payloads, 2); err != nil {
+			return nil, err
+		}
+		var first A
+		var second B
+		if isProtoValue(any(first)) || isProtoValue(any(&first)) ||
+			isProtoValue(any(second)) || isProtoValue(any(&second)) {
+			return nil, errors.New("workflow: protobuf values are outside the isolate POC subset")
+		}
+		if err := converter.GetDefaultDataConverter().FromPayloads(payloads, &first, &second); err != nil {
+			return nil, fmt.Errorf("workflow: decode arguments: %w", err)
+		}
+		result, err := handler(first, second)
+		return encodeTypedResult(result, err)
+	})
+}
+
+func checkArgumentCount(payloads *commonpb.Payloads, want int) error {
+	if got := len(payloads.GetPayloads()); got != want {
+		return fmt.Errorf("workflow: got %d arguments, want %d", got, want)
+	}
+	return nil
+}
+
+func encodeTypedResult[R any](result R, cause error) (*commonpb.Payloads, error) {
+	if cause != nil {
+		return nil, cause
+	}
+	// Protobuf's lazy descriptor caches still cross isolate owners in this POC.
+	// Check both R and *R because generated messages commonly implement their
+	// message interface only on a pointer receiver.
+	if isProtoValue(any(result)) || isProtoValue(any(&result)) {
+		return nil, errors.New("workflow: protobuf values are outside the isolate POC subset")
+	}
+	payloads, err := converter.GetDefaultDataConverter().ToPayloads(result)
+	if err != nil {
+		return nil, fmt.Errorf("workflow: encode result: %w", err)
+	}
+	return payloads, nil
+}
+
+func isProtoValue(value any) bool {
+	if _, ok := value.(proto.Message); ok {
+		return true
+	}
+	_, ok := value.(gogoproto.Message)
+	return ok
+}
+
+func checkPOCEncodings(payloads *commonpb.Payloads) error {
+	for i, payload := range payloads.GetPayloads() {
+		if payload == nil {
+			return fmt.Errorf("workflow: nil payload at argument %d", i)
+		}
+		encoding := string(payload.GetMetadata()[converter.MetadataEncoding])
+		switch encoding {
+		case converter.MetadataEncodingNil, converter.MetadataEncodingBinary, converter.MetadataEncodingJSON:
+		default:
+			return fmt.Errorf("workflow: payload encoding %q is outside the isolate POC subset", encoding)
+		}
+	}
+	return nil
 }
 
 // Start is the host-provided entry name and input for one execution.
@@ -45,23 +180,79 @@ type Start struct {
 	Input []byte `json:"input"`
 }
 
+// PayloadStart carries the entry name and serialized Temporal Payloads. The
+// bytes cross the isolate boundary; Go argument values do not.
+type PayloadStart struct {
+	Name     string `json:"name"`
+	Payloads []byte `json:"payloads"`
+}
+
 // Run selects the registered function, calls it, and reports its result to the
 // host. The isolate program's main function can simply call Run.
 func Run() error {
-	payload, err := isolate.Call(OpStart, nil)
+	payload, err := isolate.Call(OpStartPayloads, nil)
 	if err != nil {
 		return err
 	}
-	var start Start
+	var start PayloadStart
 	if err := json.Unmarshal(payload, &start); err != nil {
 		return Complete(nil, fmt.Errorf("workflow: decode start: %w", err))
+	}
+	if handler, ok := typedHandlers[start.Name]; ok {
+		payloads, err := decodePayloads(start.Payloads)
+		if err != nil {
+			return completePayloads(nil, fmt.Errorf("workflow: decode input payloads: %w", err))
+		}
+		result, err := handler(payloads)
+		return completePayloads(result, err)
 	}
 	handler, ok := handlers[start.Name]
 	if !ok {
 		return Complete(nil, fmt.Errorf("workflow: unknown entry %q", start.Name))
 	}
-	result, err := handler(start.Input)
+	input, err := decodeBytes(start.Payloads)
+	if err != nil {
+		return Complete(nil, fmt.Errorf("workflow: decode input: %w", err))
+	}
+	result, err := handler(input)
 	return Complete(result, err)
+}
+
+func decodeBytes(data []byte) ([]byte, error) {
+	if len(data) == 0 {
+		return nil, nil
+	}
+	var payloads commonpb.Payloads
+	decoded, err := payloadwire.Decode(data)
+	if err != nil {
+		return nil, err
+	}
+	payloads = *decoded
+	if len(payloads.Payloads) != 1 {
+		return nil, fmt.Errorf("got %d arguments, want 1", len(payloads.Payloads))
+	}
+	if err := checkPOCEncodings(&payloads); err != nil {
+		return nil, err
+	}
+	var value []byte
+	if err := converter.GetDefaultDataConverter().FromPayloads(&payloads, &value); err != nil {
+		return nil, err
+	}
+	return value, nil
+}
+
+func decodePayloads(data []byte) (*commonpb.Payloads, error) {
+	if len(data) == 0 {
+		return new(commonpb.Payloads), nil
+	}
+	payloads, err := payloadwire.Decode(data)
+	if err != nil {
+		return nil, err
+	}
+	if err := checkPOCEncodings(payloads); err != nil {
+		return nil, err
+	}
+	return payloads, nil
 }
 
 // ActivityRequest is the wire representation of a host activity call.
@@ -93,6 +284,13 @@ type ActivityResult struct {
 type Completion struct {
 	Result []byte `json:"result"`
 	Error  string `json:"error,omitempty"`
+}
+
+// PayloadCompletion carries serialized Temporal Payloads produced by a typed
+// handler, or its error. The host forwards these payloads without conversion.
+type PayloadCompletion struct {
+	Payloads []byte `json:"payloads"`
+	Error    string `json:"error,omitempty"`
 }
 
 // Input returns the workflow's first byte-slice argument.
@@ -182,5 +380,24 @@ func Complete(result []byte, cause error) error {
 		return err
 	}
 	_, err = isolate.Call(OpComplete, payload)
+	return err
+}
+
+func completePayloads(result *commonpb.Payloads, cause error) error {
+	completion := PayloadCompletion{}
+	if cause != nil {
+		completion.Error = cause.Error()
+	} else if result != nil {
+		var err error
+		completion.Payloads, err = payloadwire.Encode(result)
+		if err != nil {
+			return err
+		}
+	}
+	payload, err := json.Marshal(completion)
+	if err != nil {
+		return err
+	}
+	_, err = isolate.Call(OpCompletePayloads, payload)
 	return err
 }

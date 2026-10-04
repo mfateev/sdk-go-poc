@@ -10,9 +10,16 @@ import (
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
+	goWorkflow "go.temporal.io/sdk/workflow"
 )
 
 func echo(_ context.Context, input []byte) ([]byte, error) { return input, nil }
+
+// PlainEcho is a normal Temporal workflow. It shares the worker with isolate
+// workflows and keeps the usual worker.RegisterWorkflow path.
+func PlainEcho(_ goWorkflow.Context, input string) (string, error) {
+	return "plain:" + input, nil
+}
 
 func main() {
 	program, ok := isolate.LookupProgram("temporal-order")
@@ -39,8 +46,10 @@ func main() {
 	w := worker.New(c, "isolate-poc", worker.Options{})
 	temporalbridge.Register(w, "IsolateOrder", program)
 	temporalbridge.Register(w, "IsolateEcho", program)
+	temporalbridge.Register(w, "IsolateTypedEcho", program)
 	temporalbridge.Register(w, "IsolateSignal", signalProgram)
 	temporalbridge.Register(w, "IsolateClock", clockProgram)
+	w.RegisterWorkflow(PlainEcho)
 	w.RegisterActivityWithOptions(echo, activity.RegisterOptions{Name: "echo"})
 	if err := w.Run(worker.InterruptCh()); err != nil {
 		log.Fatal(err)

@@ -28,13 +28,17 @@ Build the example from this directory:
 ```
 
 Run `./worker` against a local Temporal server (or set `TEMPORAL_ADDRESS`). It
-registers workflow types `IsolateOrder`, `IsolateEcho`, `IsolateSignal`, and
-`IsolateClock`, task queue `isolate-poc`, and the host activity `echo`.
-`IsolateOrder` and `IsolateEcho` are separate named functions in the same
-`example/order` isolate program. Each execution has its own isolate state.
+registers workflow types `IsolateOrder`, `IsolateEcho`, `IsolateTypedEcho`,
+`IsolateSignal`, `IsolateClock`, and `PlainEcho` on task queue `isolate-poc`,
+plus the host activity `echo`.
+`IsolateOrder`, `IsolateEcho`, and `IsolateTypedEcho` are separate named
+functions in the same `example/order` isolate program. Each execution has its
+own isolate state. The worker also registers an ordinary `PlainEcho` workflow
+with Temporal's unchanged `worker.RegisterWorkflow` API.
 `IsolateOrder` takes one `[]byte` argument and returns it after an activity and a
 durable one-second timer.
 `IsolateEcho` prefixes its input with `registered:`.
+`IsolateTypedEcho` takes a struct and a string and returns a struct.
 `IsolateSignal` returns the bytes from its next signal.
 `IsolateOrder` uses native `time.Sleep` and checks elapsed isolate time after
 the host delivers its durable timer event.
@@ -44,12 +48,17 @@ with the completion payload in history byte for byte.
 
 The order, signal, and clock examples completed on Temporal CLI 1.9.1's local
 development server, and their exported histories replayed in fresh processes.
+The typed isolate workflow and ordinary `PlainEcho` workflow also completed on
+that server together; the typed workflow's exported history replayed in a fresh
+process.
 To repeat the live check, start `temporal server start-dev --headless` and run
 `./worker` in another terminal. Then run:
 
 ```sh
 temporal workflow execute --workflow-id isolate-poc-order --type IsolateOrder --task-queue isolate-poc --input aGVsbG8= --input-base64 --input-meta encoding=binary/plain
 temporal workflow execute --workflow-id isolate-poc-echo --type IsolateEcho --task-queue isolate-poc --input aGVsbG8= --input-base64 --input-meta encoding=binary/plain
+temporal workflow execute --workflow-id isolate-poc-typed-echo --type IsolateTypedEcho --task-queue isolate-poc --input '{"Name":"world"}' --input '"!"'
+temporal workflow execute --workflow-id isolate-poc-plain-echo --type PlainEcho --task-queue isolate-poc --input '"hello"'
 temporal workflow start --workflow-id isolate-poc-signal --type IsolateSignal --task-queue isolate-poc
 temporal workflow signal --workflow-id isolate-poc-signal --name ready --input c2lnbmFsLXJlc3VsdA== --input-base64 --input-meta encoding=binary/plain
 temporal workflow result --workflow-id isolate-poc-signal
@@ -79,15 +88,19 @@ serial workflow programs only. The fork still needs a native quiescence barrier
 and deterministic scheduling for concurrent workflow goroutines and replay.
 See [the implementation plan](https://github.com/mfateev/golang-go/blob/task/modify-go-runtime-for-isolates/doc/isolates/TEMPORAL_POC.md).
 
-The POC assumes Temporal's default data converter on the worker. The current
-byte-oriented bridge converts payloads in the host. For typed workflow
-functions, the intended next step is to pass protobuf-serialized Temporal
-`Payloads` through the isolate byte boundary and use
-`converter.GetDefaultDataConverter()` inside the isolate to decode arguments
-and encode the result. This needs no gob format or separate converter config.
-Custom worker data converters are outside the POC scope. Supporting them,
-including payload codecs and serialization context, is a TODO; so is
-validating typed boundary values and reporting conversion failures clearly.
+The isolate adapter requires Temporal's default data converter on the worker
+and rejects a custom converter when an isolate workflow task starts. Byte handlers
+remain supported. Typed handlers receive protobuf-serialized Temporal
+`Payloads` through the isolate byte boundary, decode their arguments with
+`converter.GetDefaultDataConverter()` inside the isolate, and encode their
+result there. The host forwards typed result payloads without converting them.
+The isolate's small protobuf wire codec accepts ordinary payload metadata and
+data. Its supported encodings are `binary/null`, `binary/plain`, and
+`json/plain`; protobuf message encodings and external payload references fail
+with a workflow error. Custom worker converters, payload codecs, serialization
+context, and a full boundary type check remain TODOs. The compiler currently
+treats the default converter's external dependency graph as process-owned for
+this trusted POC; its mutable caches and effects need an ownership audit.
 
 An isolate directory can register several named workflow functions from `init`:
 
@@ -95,6 +108,7 @@ An isolate directory can register several named workflow functions from `init`:
 func init() {
     workflow.Register("IsolateOrder", OrderWorkflow)
     workflow.Register("IsolateEcho", EchoWorkflow)
+    workflow.RegisterTyped2("IsolateTypedEcho", TypedEchoWorkflow)
 }
 
 func main() {
@@ -102,13 +116,19 @@ func main() {
 }
 ```
 
-Handlers have the signature `func([]byte) ([]byte, error)`. `Run` obtains the
+Byte handlers have the signature `func([]byte) ([]byte, error)`. `Run` obtains the
 workflow name and input from the host, calls the registered handler, and sends
 its result or error back. `temporalbridge.Register` uses its Temporal workflow
 name as the handler name; `temporalbridge.RegisterEntry` allows the two names to
 differ. Registration only fills isolate-owned state and must not call the host.
 The static build still requires a small `main` dispatcher in each isolate
 directory; workflow logic belongs in named functions.
+
+Typed handlers return `(R, error)` and use `RegisterTyped0`, `RegisterTyped`, or
+`RegisterTyped2` for zero, one, or two arguments. These helpers invoke the Go
+function directly. Compiler-generated registration for arbitrary signatures
+and automatic `worker.RegisterWorkflow(fn)` routing are future work; ordinary
+non-isolate registrations already use that API unchanged.
 
 `workflow.GetSignalChannel(name)` provides a channel for signals with that
 name. It wraps the existing host `Call` in an isolate-owned goroutine and

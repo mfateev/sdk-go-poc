@@ -12,9 +12,11 @@ import (
 
 	"github.com/mfateev/sdk-go-poc/workflow"
 	commonpb "go.temporal.io/api/common/v1"
+	"go.temporal.io/sdk/converter"
 	bindings "go.temporal.io/sdk/internalbindings"
 	"go.temporal.io/sdk/worker"
 	goWorkflow "go.temporal.io/sdk/workflow"
+	"google.golang.org/protobuf/proto"
 )
 
 // Register makes a configured isolate program available as a Temporal workflow.
@@ -82,6 +84,11 @@ func (d *definition) Execute(env bindings.WorkflowEnvironment, _ *commonpb.Heade
 
 func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 	if d.completed {
+		return
+	}
+	configured, ok := d.env.GetDataConverter().(*converter.CompositeDataConverter)
+	if !ok || configured != converter.GetDefaultDataConverter() {
+		d.fail(errors.New("isolate POC requires Temporal's default data converter"))
 		return
 	}
 	clock, ok := d.env.(interface{ Now() time.Time })
@@ -177,6 +184,23 @@ func (d *definition) handle(command *isolate.Command) (bool, error) {
 			return false, err
 		}
 		command.Reply(payload, nil)
+	case workflow.OpStartPayloads:
+		if d.entryName == "" {
+			return false, errors.New("workflow entry name is not configured")
+		}
+		var input []byte
+		if d.input != nil {
+			var err error
+			input, err = proto.MarshalOptions{Deterministic: true}.Marshal(d.input)
+			if err != nil {
+				return false, err
+			}
+		}
+		payload, err := json.Marshal(workflow.PayloadStart{Name: d.entryName, Payloads: input})
+		if err != nil {
+			return false, err
+		}
+		command.Reply(payload, nil)
 	case workflow.OpActivity:
 		var request workflow.ActivityRequest
 		if err := json.Unmarshal(command.Payload, &request); err != nil {
@@ -247,6 +271,25 @@ func (d *definition) handle(command *isolate.Command) (bool, error) {
 			return true, nil
 		}
 		return false, err
+	case workflow.OpCompletePayloads:
+		var completion workflow.PayloadCompletion
+		if err := json.Unmarshal(command.Payload, &completion); err != nil {
+			return false, err
+		}
+		var result *commonpb.Payloads
+		var err error
+		if completion.Error != "" {
+			err = errors.New(completion.Error)
+		} else if len(completion.Payloads) != 0 {
+			result = new(commonpb.Payloads)
+			if err := proto.Unmarshal(completion.Payloads, result); err != nil {
+				return false, fmt.Errorf("decode workflow result payloads: %w", err)
+			}
+		}
+		d.env.Complete(result, err)
+		d.completed = true
+		command.Reply(nil, nil)
+		return true, nil
 	default:
 		return false, fmt.Errorf("unknown isolate operation %d", command.Op)
 	}
