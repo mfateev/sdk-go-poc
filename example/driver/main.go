@@ -57,7 +57,7 @@ func main() {
 	if !ok {
 		panic("missing program")
 	}
-	d := (temporalbridge.Factory{Program: program}).NewWorkflowDefinition()
+	d := (temporalbridge.Factory{Program: program, EntryName: "IsolateOrder"}).NewWorkflowDefinition()
 	e := &environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}
 	input, err := e.GetDataConverter().ToPayloads([]byte("hello"))
 	if err != nil {
@@ -91,9 +91,32 @@ func main() {
 		panic(fmt.Sprintf("result = %q", result))
 	}
 	d.Close()
+	runEcho(program)
 	runSignal()
 	runClock()
 	fmt.Println("temporal isolate serial path passed")
+}
+
+func runEcho(program isolate.Program) {
+	d := (temporalbridge.Factory{Program: program, EntryName: "IsolateEcho"}).NewWorkflowDefinition()
+	e := &environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}
+	input, err := e.GetDataConverter().ToPayloads([]byte("hello"))
+	if err != nil {
+		panic(err)
+	}
+	d.Execute(e, nil, input)
+	d.OnWorkflowTaskStarted(5 * time.Second)
+	if e.err != nil {
+		panic(e.err)
+	}
+	var result []byte
+	if err := e.GetDataConverter().FromPayloads(e.result, &result); err != nil {
+		panic(err)
+	}
+	if !bytes.Equal(result, []byte("registered:hello")) {
+		panic(fmt.Sprintf("echo result = %q", result))
+	}
+	d.Close()
 }
 
 func runClock() {
@@ -101,7 +124,7 @@ func runClock() {
 	if !ok {
 		panic("missing clock program")
 	}
-	d := (temporalbridge.Factory{Program: program}).NewWorkflowDefinition()
+	d := (temporalbridge.Factory{Program: program, EntryName: "IsolateClock"}).NewWorkflowDefinition()
 	e := &environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}
 	d.Execute(e, nil, nil)
 	d.OnWorkflowTaskStarted(5 * time.Second)
@@ -130,7 +153,7 @@ func runSignal() {
 	if !ok {
 		panic("missing signal program")
 	}
-	d := (temporalbridge.Factory{Program: program}).NewWorkflowDefinition()
+	d := (temporalbridge.Factory{Program: program, EntryName: "IsolateSignal"}).NewWorkflowDefinition()
 	e := &environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}
 	input, err := e.GetDataConverter().ToPayloads([]byte("signal result"))
 	if err != nil {

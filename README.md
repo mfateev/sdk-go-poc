@@ -28,9 +28,13 @@ Build the example from this directory:
 ```
 
 Run `./worker` against a local Temporal server (or set `TEMPORAL_ADDRESS`). It
-registers workflow types `IsolateOrder`, `IsolateSignal`, and `IsolateClock`, task queue
-`isolate-poc`, and the host activity `echo`. `IsolateOrder` takes one `[]byte`
-argument and returns it after an activity and a durable one-second timer.
+registers workflow types `IsolateOrder`, `IsolateEcho`, `IsolateSignal`, and
+`IsolateClock`, task queue `isolate-poc`, and the host activity `echo`.
+`IsolateOrder` and `IsolateEcho` are separate named functions in the same
+`example/order` isolate program. Each execution has its own isolate state.
+`IsolateOrder` takes one `[]byte` argument and returns it after an activity and a
+durable one-second timer.
+`IsolateEcho` prefixes its input with `registered:`.
 `IsolateSignal` returns the bytes from its next signal.
 `IsolateOrder` uses native `time.Sleep` and checks elapsed isolate time after
 the host delivers its durable timer event.
@@ -45,6 +49,7 @@ To repeat the live check, start `temporal server start-dev --headless` and run
 
 ```sh
 temporal workflow execute --workflow-id isolate-poc-order --type IsolateOrder --task-queue isolate-poc --input aGVsbG8= --input-base64 --input-meta encoding=binary/plain
+temporal workflow execute --workflow-id isolate-poc-echo --type IsolateEcho --task-queue isolate-poc --input aGVsbG8= --input-base64 --input-meta encoding=binary/plain
 temporal workflow start --workflow-id isolate-poc-signal --type IsolateSignal --task-queue isolate-poc
 temporal workflow signal --workflow-id isolate-poc-signal --name ready --input c2lnbmFsLXJlc3VsdA== --input-base64 --input-meta encoding=binary/plain
 temporal workflow result --workflow-id isolate-poc-signal
@@ -56,9 +61,9 @@ Export and replay a completed history with a fresh isolate process:
 ```sh
 ../golang-go/bin/go build -isolate-dir=./example/order -isolate-dir=./example/signal -isolate-dir=./example/clock -o replay ./example/replay
 temporal workflow show --workflow-id isolate-poc-order --output json > /tmp/isolate-order-history.json
-./replay temporal-order /tmp/isolate-order-history.json
+./replay temporal-order IsolateOrder /tmp/isolate-order-history.json
 temporal workflow show --workflow-id isolate-poc-clock --output json > /tmp/isolate-clock-history.json
-./replay temporal-clock /tmp/isolate-clock-history.json
+./replay temporal-clock IsolateClock /tmp/isolate-clock-history.json
 ```
 
 Run the local bridge driver without a server:
@@ -73,6 +78,27 @@ host and depends on the pinned Temporal Go SDK. This initial adapter accepts
 serial workflow programs only. The fork still needs a native quiescence barrier
 and deterministic scheduling for concurrent workflow goroutines and replay.
 See [the implementation plan](https://github.com/mfateev/golang-go/blob/task/modify-go-runtime-for-isolates/doc/isolates/TEMPORAL_POC.md).
+
+An isolate directory can register several named workflow functions from `init`:
+
+```go
+func init() {
+    workflow.Register("IsolateOrder", OrderWorkflow)
+    workflow.Register("IsolateEcho", EchoWorkflow)
+}
+
+func main() {
+    if err := workflow.Run(); err != nil { panic(err) }
+}
+```
+
+Handlers have the signature `func([]byte) ([]byte, error)`. `Run` obtains the
+workflow name and input from the host, calls the registered handler, and sends
+its result or error back. `temporalbridge.Register` uses its Temporal workflow
+name as the handler name; `temporalbridge.RegisterEntry` allows the two names to
+differ. Registration only fills isolate-owned state and must not call the host.
+The static build still requires a small `main` dispatcher in each isolate
+directory; workflow logic belongs in named functions.
 
 `workflow.GetSignalChannel(name)` provides a channel for signals with that
 name. It wraps the existing host `Call` in an isolate-owned goroutine and

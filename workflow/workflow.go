@@ -6,6 +6,7 @@ package workflow
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"isolate"
 	"time"
 )
@@ -17,7 +18,51 @@ const (
 	OpSleep    uint32 = 3
 	OpSignal   uint32 = 4
 	OpComplete uint32 = 5
+	OpStart    uint32 = 6
 )
+
+// Handler is a named workflow function. Each execution receives its own
+// isolate instance, including a fresh copy of the registration table.
+type Handler func([]byte) ([]byte, error)
+
+var handlers = make(map[string]Handler)
+
+// Register associates a workflow entry name with a function. Call it from the
+// isolate program's init function. Registration must not perform host work.
+func Register(name string, handler Handler) {
+	if name == "" || handler == nil {
+		panic("workflow: registration requires a name and handler")
+	}
+	if _, exists := handlers[name]; exists {
+		panic("workflow: duplicate registration: " + name)
+	}
+	handlers[name] = handler
+}
+
+// Start is the host-provided entry name and input for one execution.
+type Start struct {
+	Name  string `json:"name"`
+	Input []byte `json:"input"`
+}
+
+// Run selects the registered function, calls it, and reports its result to the
+// host. The isolate program's main function can simply call Run.
+func Run() error {
+	payload, err := isolate.Call(OpStart, nil)
+	if err != nil {
+		return err
+	}
+	var start Start
+	if err := json.Unmarshal(payload, &start); err != nil {
+		return Complete(nil, fmt.Errorf("workflow: decode start: %w", err))
+	}
+	handler, ok := handlers[start.Name]
+	if !ok {
+		return Complete(nil, fmt.Errorf("workflow: unknown entry %q", start.Name))
+	}
+	result, err := handler(start.Input)
+	return Complete(result, err)
+}
 
 // ActivityRequest is the wire representation of a host activity call.
 type ActivityRequest struct {

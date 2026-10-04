@@ -2,12 +2,15 @@ package main
 
 import "github.com/mfateev/sdk-go-poc/workflow"
 
+func init() { workflow.Register("IsolateSignal", SignalWorkflow) }
+
 func main() {
-	_, err := workflow.Input()
-	if err != nil {
-		_ = workflow.Complete(nil, err)
-		return
+	if err := workflow.Run(); err != nil {
+		panic(err)
 	}
+}
+
+func SignalWorkflow(_ []byte) ([]byte, error) {
 	signal, err := workflow.NextSignal()
-	_ = workflow.Complete(signal.Input, err)
+	return signal.Input, err
 }

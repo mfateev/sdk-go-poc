@@ -18,16 +18,29 @@ import (
 )
 
 // Register makes a configured isolate program available as a Temporal workflow.
-// The Temporal workflow name may differ from the isolate program name.
+// A workflow.Run dispatcher selects a handler registered under the Temporal
+// workflow name. Programs with their own main may ignore that entry name.
 func Register(w worker.Worker, name string, program isolate.Program) {
-	w.RegisterWorkflowWithOptions(Factory{Program: program}, goWorkflow.RegisterOptions{Name: name})
+	RegisterEntry(w, name, program, name)
+}
+
+// RegisterEntry maps a Temporal workflow name to a possibly different handler
+// name in the isolate program. Several names may use the same program.
+func RegisterEntry(w worker.Worker, name string, program isolate.Program, entryName string) {
+	if entryName == "" {
+		panic("temporalbridge: workflow entry name is empty")
+	}
+	w.RegisterWorkflowWithOptions(Factory{Program: program, EntryName: entryName}, goWorkflow.RegisterOptions{Name: name})
 }
 
 // Factory creates one definition, and therefore one isolate, per execution.
-type Factory struct{ Program isolate.Program }
+type Factory struct {
+	Program   isolate.Program
+	EntryName string
+}
 
 func (f Factory) NewWorkflowDefinition() bindings.WorkflowDefinition {
-	return &definition{program: f.Program}
+	return &definition{program: f.Program, entryName: f.EntryName}
 }
 
 type reply struct {
@@ -43,6 +56,7 @@ type signalWaiter struct {
 
 type definition struct {
 	program     isolate.Program
+	entryName   string
 	env         bindings.WorkflowEnvironment
 	input       *commonpb.Payloads
 	instance    *isolate.Isolate
@@ -145,13 +159,24 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 func (d *definition) handle(command *isolate.Command) (bool, error) {
 	switch command.Op {
 	case workflow.OpInput:
-		var input []byte
-		if d.input != nil {
-			if err := d.env.GetDataConverter().FromPayloads(d.input, &input); err != nil {
-				return false, err
-			}
+		input, err := d.inputBytes()
+		if err != nil {
+			return false, err
 		}
 		command.Reply(input, nil)
+	case workflow.OpStart:
+		if d.entryName == "" {
+			return false, errors.New("workflow entry name is not configured")
+		}
+		input, err := d.inputBytes()
+		if err != nil {
+			return false, err
+		}
+		payload, err := json.Marshal(workflow.Start{Name: d.entryName, Input: input})
+		if err != nil {
+			return false, err
+		}
+		command.Reply(payload, nil)
 	case workflow.OpActivity:
 		var request workflow.ActivityRequest
 		if err := json.Unmarshal(command.Payload, &request); err != nil {
@@ -226,6 +251,16 @@ func (d *definition) handle(command *isolate.Command) (bool, error) {
 		return false, fmt.Errorf("unknown isolate operation %d", command.Op)
 	}
 	return false, nil
+}
+
+func (d *definition) inputBytes() ([]byte, error) {
+	var input []byte
+	if d.input != nil {
+		if err := d.env.GetDataConverter().FromPayloads(d.input, &input); err != nil {
+			return nil, err
+		}
+	}
+	return input, nil
 }
 
 func (d *definition) signalIndex(name string) int {

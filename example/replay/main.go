@@ -15,8 +15,8 @@ import (
 )
 
 func main() {
-	if len(os.Args) != 3 {
-		fmt.Fprintln(os.Stderr, "usage: replay <program-name> <history.json>")
+	if len(os.Args) != 4 {
+		fmt.Fprintln(os.Stderr, "usage: replay <program-name> <workflow-type> <history.json>")
 		os.Exit(2)
 	}
 	program, ok := isolate.LookupProgram(os.Args[1])
@@ -24,23 +24,19 @@ func main() {
 		fmt.Fprintln(os.Stderr, "unknown isolate program:", os.Args[1])
 		os.Exit(2)
 	}
-	workflowName := map[string]string{
-		"temporal-order":  "IsolateOrder",
-		"temporal-signal": "IsolateSignal",
-		"temporal-clock":  "IsolateClock",
-	}[os.Args[1]]
+	workflowName := os.Args[2]
 	if workflowName == "" {
-		fmt.Fprintln(os.Stderr, "no workflow type for:", os.Args[1])
+		fmt.Fprintln(os.Stderr, "workflow type is empty")
 		os.Exit(2)
 	}
 	replayer := worker.NewWorkflowReplayer()
-	replayer.RegisterWorkflowWithOptions(temporalbridge.Factory{Program: program}, goWorkflow.RegisterOptions{Name: workflowName})
-	if err := replayer.ReplayWorkflowHistoryFromJSONFile(nil, os.Args[2]); err != nil {
+	replayer.RegisterWorkflowWithOptions(temporalbridge.Factory{Program: program, EntryName: workflowName}, goWorkflow.RegisterOptions{Name: workflowName})
+	if err := replayer.ReplayWorkflowHistoryFromJSONFile(nil, os.Args[3]); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	if os.Args[1] == "temporal-clock" {
-		if err := compareClockResult(replayer, os.Args[2]); err != nil {
+	if workflowName == "IsolateClock" {
+		if err := compareClockResult(replayer, os.Args[3]); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}

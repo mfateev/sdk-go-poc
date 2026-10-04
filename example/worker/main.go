@@ -38,6 +38,7 @@ func main() {
 	defer c.Close()
 	w := worker.New(c, "isolate-poc", worker.Options{})
 	temporalbridge.Register(w, "IsolateOrder", program)
+	temporalbridge.Register(w, "IsolateEcho", program)
 	temporalbridge.Register(w, "IsolateSignal", signalProgram)
 	temporalbridge.Register(w, "IsolateClock", clockProgram)
 	w.RegisterActivityWithOptions(echo, activity.RegisterOptions{Name: "echo"})
