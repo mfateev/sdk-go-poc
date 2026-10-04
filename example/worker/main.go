@@ -23,6 +23,10 @@ func main() {
 	if !ok {
 		log.Fatal("missing temporal-signal isolate; build with -isolate-dir=./example/signal")
 	}
+	clockProgram, ok := isolate.LookupProgram("temporal-clock")
+	if !ok {
+		log.Fatal("missing temporal-clock isolate; build with -isolate-dir=./example/clock")
+	}
 	address := os.Getenv("TEMPORAL_ADDRESS")
 	if address == "" {
 		address = "localhost:7233"
@@ -35,6 +39,7 @@ func main() {
 	w := worker.New(c, "isolate-poc", worker.Options{})
 	temporalbridge.Register(w, "IsolateOrder", program)
 	temporalbridge.Register(w, "IsolateSignal", signalProgram)
+	temporalbridge.Register(w, "IsolateClock", clockProgram)
 	w.RegisterActivityWithOptions(echo, activity.RegisterOptions{Name: "echo"})
 	if err := w.Run(worker.InterruptCh()); err != nil {
 		log.Fatal(err)

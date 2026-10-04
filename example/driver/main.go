@@ -24,6 +24,7 @@ type environment struct {
 	err      error
 	info     goWorkflow.Info
 	seq      int64
+	now      time.Time
 }
 
 func (e *environment) RegisterSignalHandler(h func(string, *commonpb.Payloads, *commonpb.Header) error) {
@@ -33,6 +34,7 @@ func (e *environment) GetDataConverter() converter.DataConverter {
 	return converter.GetDefaultDataConverter()
 }
 func (e *environment) WorkflowInfo() *goWorkflow.Info { return &e.info }
+func (e *environment) Now() time.Time                 { return e.now }
 func (e *environment) GenerateSequence() int64        { e.seq++; return e.seq }
 func (e *environment) ExecuteActivity(p bindings.ExecuteActivityParams, cb bindings.ResultHandler) bindings.ActivityID {
 	if p.ActivityType.Name != "echo" || p.StartToCloseTimeout != time.Minute {
@@ -56,7 +58,7 @@ func main() {
 		panic("missing program")
 	}
 	d := (temporalbridge.Factory{Program: program}).NewWorkflowDefinition()
-	e := &environment{}
+	e := &environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}
 	input, err := e.GetDataConverter().ToPayloads([]byte("hello"))
 	if err != nil {
 		panic(err)
@@ -76,6 +78,7 @@ func main() {
 		panic("timer not scheduled")
 	}
 	e.timer(nil, nil)
+	e.now = e.now.Add(time.Second)
 	d.OnWorkflowTaskStarted(time.Second * 5)
 	if e.err != nil {
 		panic(e.err)
@@ -89,7 +92,37 @@ func main() {
 	}
 	d.Close()
 	runSignal()
+	runClock()
 	fmt.Println("temporal isolate serial path passed")
+}
+
+func runClock() {
+	program, ok := isolate.LookupProgram("temporal-clock")
+	if !ok {
+		panic("missing clock program")
+	}
+	d := (temporalbridge.Factory{Program: program}).NewWorkflowDefinition()
+	e := &environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}
+	d.Execute(e, nil, nil)
+	d.OnWorkflowTaskStarted(5 * time.Second)
+	if e.timer == nil {
+		panic("clock timer not scheduled")
+	}
+	e.now = e.now.Add(time.Second)
+	e.timer(nil, nil)
+	d.OnWorkflowTaskStarted(5 * time.Second)
+	if e.err != nil {
+		panic(e.err)
+	}
+	var result []byte
+	if err := e.GetDataConverter().FromPayloads(e.result, &result); err != nil {
+		panic(err)
+	}
+	const want = "2025-01-02T00:00:00Z|2025-01-02T00:00:01Z|2025-01-02T00:00:01Z"
+	if string(result) != want {
+		panic(fmt.Sprintf("clock result = %q, want %q", result, want))
+	}
+	d.Close()
 }
 
 func runSignal() {
@@ -98,7 +131,7 @@ func runSignal() {
 		panic("missing signal program")
 	}
 	d := (temporalbridge.Factory{Program: program}).NewWorkflowDefinition()
-	e := &environment{}
+	e := &environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}
 	input, err := e.GetDataConverter().ToPayloads([]byte("signal result"))
 	if err != nil {
 		panic(err)

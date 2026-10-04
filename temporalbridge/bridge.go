@@ -36,16 +36,21 @@ type reply struct {
 	err     error
 }
 
+type signalWaiter struct {
+	name    string
+	command *isolate.Command
+}
+
 type definition struct {
-	program    isolate.Program
-	env        bindings.WorkflowEnvironment
-	input      *commonpb.Payloads
-	instance   *isolate.Isolate
-	started    bool
-	completed  bool
-	pending    []reply
-	signals    []workflow.Signal
-	wantSignal *isolate.Command
+	program     isolate.Program
+	env         bindings.WorkflowEnvironment
+	input       *commonpb.Payloads
+	instance    *isolate.Isolate
+	started     bool
+	completed   bool
+	pending     []reply
+	signals     []workflow.Signal
+	wantSignals []signalWaiter
 }
 
 // Execute must be asynchronous. History callbacks only queue data here.
@@ -65,12 +70,18 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 	if d.completed {
 		return
 	}
-	resuming := len(d.pending) != 0 || (d.wantSignal != nil && len(d.signals) != 0)
+	clock, ok := d.env.(interface{ Now() time.Time })
+	if !ok {
+		d.fail(errors.New("Temporal workflow environment does not expose history time"))
+		return
+	}
+	now := clock.Now()
+	resuming := len(d.pending) != 0 || d.hasDeliverableSignal()
 	newInstance := !d.started
 	if !d.started {
 		d.started = true
 		var err error
-		d.instance, err = isolate.New(isolate.Config{Program: d.program})
+		d.instance, err = isolate.New(isolate.Config{Program: d.program, InitialTime: &now, TimerOp: workflow.OpSleep})
 		if err == nil {
 			err = d.instance.Start()
 		}
@@ -78,6 +89,9 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 			d.fail(err)
 			return
 		}
+	} else if err := d.instance.AdvanceTime(now); err != nil {
+		d.fail(err)
+		return
 	}
 	if !newInstance && !resuming {
 		// A signal or unrelated history event need not wake a serial workflow.
@@ -87,12 +101,7 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 		r.command.Reply(r.payload, r.err)
 	}
 	d.pending = nil
-	if d.wantSignal != nil && len(d.signals) != 0 {
-		payload, _ := json.Marshal(d.signals[0])
-		d.signals = d.signals[1:]
-		d.wantSignal.Reply(payload, nil)
-		d.wantSignal = nil
-	}
+	d.deliverWaitingSignals()
 	// This timeout detects a broken serial adapter. A native quiescence barrier
 	// must replace the one-command-at-a-time assumption for concurrent code.
 	if deadline <= 0 {
@@ -185,12 +194,14 @@ func (d *definition) handle(command *isolate.Command) (bool, error) {
 		})
 		return true, nil
 	case workflow.OpSignal:
-		if len(d.signals) == 0 {
-			d.wantSignal = command
+		name := string(command.Payload)
+		index := d.signalIndex(name)
+		if index < 0 {
+			d.wantSignals = append(d.wantSignals, signalWaiter{name: name, command: command})
 			return true, nil
 		}
-		payload, _ := json.Marshal(d.signals[0])
-		d.signals = d.signals[1:]
+		payload, _ := json.Marshal(d.signals[index])
+		d.signals = append(d.signals[:index], d.signals[index+1:]...)
 		command.Reply(payload, nil)
 	case workflow.OpComplete:
 		var completion workflow.Completion
@@ -215,6 +226,47 @@ func (d *definition) handle(command *isolate.Command) (bool, error) {
 		return false, fmt.Errorf("unknown isolate operation %d", command.Op)
 	}
 	return false, nil
+}
+
+func (d *definition) signalIndex(name string) int {
+	for index, signal := range d.signals {
+		if name == "" || signal.Name == name {
+			return index
+		}
+	}
+	return -1
+}
+
+func (d *definition) hasDeliverableSignal() bool {
+	for _, signal := range d.signals {
+		if d.waiterIndex(signal.Name) >= 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func (d *definition) waiterIndex(name string) int {
+	for index, waiter := range d.wantSignals {
+		if waiter.name == "" || waiter.name == name {
+			return index
+		}
+	}
+	return -1
+}
+
+func (d *definition) deliverWaitingSignals() {
+	for signalIndex := 0; signalIndex < len(d.signals); {
+		waiterIndex := d.waiterIndex(d.signals[signalIndex].Name)
+		if waiterIndex < 0 {
+			signalIndex++
+			continue
+		}
+		payload, _ := json.Marshal(d.signals[signalIndex])
+		d.wantSignals[waiterIndex].command.Reply(payload, nil)
+		d.wantSignals = append(d.wantSignals[:waiterIndex], d.wantSignals[waiterIndex+1:]...)
+		d.signals = append(d.signals[:signalIndex], d.signals[signalIndex+1:]...)
+	}
 }
 
 func (d *definition) queueResult(command *isolate.Command, result *commonpb.Payloads, cause error) {

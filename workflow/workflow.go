@@ -32,6 +32,18 @@ type Signal struct {
 	Input []byte `json:"input"`
 }
 
+// SignalResult carries one signal or an error from its host call.
+type SignalResult struct {
+	Signal Signal
+	Err    error
+}
+
+// ActivityResult carries the completed activity result or its error.
+type ActivityResult struct {
+	Result []byte
+	Err    error
+}
+
 // Completion is the wire representation of a workflow result.
 type Completion struct {
 	Result []byte `json:"result"`
@@ -53,6 +65,22 @@ func ExecuteActivity(name string, input []byte, timeout time.Duration) ([]byte, 
 	return isolate.Call(OpActivity, request)
 }
 
+// ExecuteActivityAsync starts an activity call in an isolate-owned goroutine.
+// The returned channel receives one result and then closes. It is buffered so
+// the call can finish if the workflow selects another event first.
+func ExecuteActivityAsync(name string, input []byte, timeout time.Duration) <-chan ActivityResult {
+	results := make(chan ActivityResult, 1)
+	go func() {
+		defer close(results)
+		result, err := ExecuteActivity(name, input, timeout)
+		if err != nil {
+			result = nil
+		}
+		results <- ActivityResult{Result: result, Err: err}
+	}()
+	return results
+}
+
 // Sleep waits on a durable Temporal timer. Do not use time.Sleep for this POC.
 func Sleep(duration time.Duration) error {
 	if duration < 0 {
@@ -66,15 +94,36 @@ func Sleep(duration time.Duration) error {
 	return err
 }
 
-// NextSignal waits for one incoming signal.
-func NextSignal() (Signal, error) {
+// NextSignal waits for the next incoming signal, regardless of its name.
+func NextSignal() (Signal, error) { return nextSignal("") }
+
+func nextSignal(name string) (Signal, error) {
 	var signal Signal
-	payload, err := isolate.Call(OpSignal, nil)
+	payload, err := isolate.Call(OpSignal, []byte(name))
 	if err != nil {
 		return signal, err
 	}
 	err = json.Unmarshal(payload, &signal)
 	return signal, err
+}
+
+// GetSignalChannel receives signals with the given name. An empty name receives
+// all signals. Each call starts an isolate-owned goroutine that waits through
+// Call; its channel is buffered so a completed call can finish if the workflow
+// has selected another case. A host error is sent once, then the channel closes.
+func GetSignalChannel(name string) <-chan SignalResult {
+	results := make(chan SignalResult, 1)
+	go func() {
+		defer close(results)
+		for {
+			signal, err := nextSignal(name)
+			results <- SignalResult{Signal: signal, Err: err}
+			if err != nil {
+				return
+			}
+		}
+	}()
+	return results
 }
 
 // Complete finishes the workflow. The program should return from main next.
