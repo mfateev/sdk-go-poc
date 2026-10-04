@@ -11,11 +11,15 @@ Clone that fork and this repository as siblings, then build with the fork's
 git clone --branch task/modify-go-runtime-for-isolates https://github.com/mfateev/golang-go.git
 git clone --branch task/modify-go-runtime-for-isolates https://github.com/mfateev/sdk-go-poc.git
 cd golang-go/src && ./make.bash && cd ../../sdk-go-poc
+export GOCACHE="$(cd .. && pwd)/go-build-cache"
+mkdir -p "$GOCACHE"
 ```
 
 The Go fork needs a Go 1.26 or newer bootstrap toolchain. The
 [`samples-go-poc` README](https://github.com/mfateev/samples-go-poc/tree/task/modify-go-runtime-for-isolates)
-has complete setup instructions for a new Linux machine.
+has complete setup instructions for a new Linux or macOS machine. The source
+build manages its own bootstrap cache; `GOCACHE` keeps subsequent POC builds
+separate from your usual Go cache for targeted cleanup.
 
 Build the example from this directory:
 
