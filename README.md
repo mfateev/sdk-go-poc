@@ -79,6 +79,16 @@ serial workflow programs only. The fork still needs a native quiescence barrier
 and deterministic scheduling for concurrent workflow goroutines and replay.
 See [the implementation plan](https://github.com/mfateev/golang-go/blob/task/modify-go-runtime-for-isolates/doc/isolates/TEMPORAL_POC.md).
 
+The POC assumes Temporal's default data converter on the worker. The current
+byte-oriented bridge converts payloads in the host. For typed workflow
+functions, the intended next step is to pass protobuf-serialized Temporal
+`Payloads` through the isolate byte boundary and use
+`converter.GetDefaultDataConverter()` inside the isolate to decode arguments
+and encode the result. This needs no gob format or separate converter config.
+Custom worker data converters are outside the POC scope. Supporting them,
+including payload codecs and serialization context, is a TODO; so is
+validating typed boundary values and reporting conversion failures clearly.
+
 An isolate directory can register several named workflow functions from `init`:
 
 ```go
