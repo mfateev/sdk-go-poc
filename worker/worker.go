@@ -6,9 +6,13 @@ package worker
 import (
 	"fmt"
 	"isolate"
+	"reflect"
 	"strings"
+	"sync"
 
+	"github.com/mfateev/sdk-go-poc/internal/activityref"
 	"github.com/mfateev/sdk-go-poc/temporalbridge"
+	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
 	goWorker "go.temporal.io/sdk/worker"
 	goWorkflow "go.temporal.io/sdk/workflow"
@@ -16,16 +20,25 @@ import (
 
 type Worker = goWorker.Worker
 type Options = goWorker.Options
-type WorkflowReplayer = goWorker.WorkflowReplayer
+
+// WorkflowReplayer accepts activity registrations as alias metadata for replay.
+// Replay never executes these activity functions.
+type WorkflowReplayer interface {
+	goWorker.WorkflowReplayer
+	RegisterActivity(any)
+	RegisterActivityWithOptions(any, activity.RegisterOptions)
+}
 type WorkflowReplayerOptions = goWorker.WorkflowReplayerOptions
 
 // New constructs a normal Temporal worker with isolate-aware registration.
 func New(c client.Client, taskQueue string, options Options) Worker {
-	return Wrap(goWorker.New(c, taskQueue, options))
+	return &isolateWorker{Worker: goWorker.New(c, taskQueue, options), activities: activityAliases{disabled: options.DisableRegistrationAliasing}}
 }
 
 // Wrap adds isolate registration to an existing worker. All lifecycle,
 // activity, dynamic workflow, and service methods retain their SDK behavior.
+// The wrapped worker must use the default registration aliasing setting; use
+// New to configure DisableRegistrationAliasing.
 func Wrap(w Worker) Worker {
 	if _, ok := w.(*isolateWorker); ok {
 		return w
@@ -33,18 +46,68 @@ func Wrap(w Worker) Worker {
 	return &isolateWorker{Worker: w}
 }
 
-type isolateWorker struct{ Worker }
+type isolateWorker struct {
+	Worker
+	activities activityAliases
+}
+
+// Match Temporal's short-name alias rules. This table stays on the host, and
+// the resolver observes registrations made after workflow registration too.
+type activityAliases struct {
+	mu       sync.RWMutex
+	names    map[string]string
+	disabled bool
+}
+
+func (a *activityAliases) register(fn any, options activity.RegisterOptions) {
+	// Struct registration uses prefix+method names, not SDK function aliases.
+	// Such prefixed methods must be called by name, as in the standard SDK.
+	if typ := reflect.TypeOf(fn); typ != nil && typ.Kind() != reflect.Func {
+		return
+	}
+	name, err := activityref.Name(fn)
+	if err != nil {
+		panic(err)
+	}
+	if options.Name == "" || a.disabled {
+		return
+	}
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.names == nil {
+		a.names = make(map[string]string)
+	}
+	a.names[name] = options.Name
+}
+
+func (a *activityAliases) resolve(name string) string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	if alias := a.names[name]; alias != "" {
+		return alias
+	}
+	return name
+}
+
+func (w *isolateWorker) RegisterActivity(fn any) {
+	w.RegisterActivityWithOptions(fn, activity.RegisterOptions{})
+}
+
+func (w *isolateWorker) RegisterActivityWithOptions(fn any, options activity.RegisterOptions) {
+	w.Worker.RegisterActivityWithOptions(fn, options)
+	w.activities.register(fn, options)
+}
 
 func (w *isolateWorker) RegisterWorkflow(fn any) {
 	w.RegisterWorkflowWithOptions(fn, goWorkflow.RegisterOptions{})
 }
 
 func (w *isolateWorker) RegisterWorkflowWithOptions(fn any, options goWorkflow.RegisterOptions) {
-	fn, options = registration(fn, options)
+	fn, options = registration(fn, options, w.activities.resolve)
 	w.Worker.RegisterWorkflowWithOptions(fn, options)
 }
 
-func registration(fn any, options goWorkflow.RegisterOptions) (any, goWorkflow.RegisterOptions) {
+func registration(fn any, options goWorkflow.RegisterOptions, resolve func(string) string) (any, goWorkflow.RegisterOptions) {
 	handle, ok := isolate.LookupFunction(fn)
 	if !ok {
 		return fn, options
@@ -53,17 +116,28 @@ func registration(fn any, options goWorkflow.RegisterOptions) (any, goWorkflow.R
 		name := handle.Name()
 		options.Name = name[strings.LastIndex(name, ".")+1:]
 	}
-	return temporalbridge.Factory{Function: handle}, options
+	return temporalbridge.Factory{Function: handle, ResolveActivity: resolve}, options
 }
 
-type isolateReplayer struct{ WorkflowReplayer }
+type isolateReplayer struct {
+	goWorker.WorkflowReplayer
+	activities activityAliases
+}
+
+func (r *isolateReplayer) RegisterActivity(fn any) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{})
+}
+
+func (r *isolateReplayer) RegisterActivityWithOptions(fn any, options activity.RegisterOptions) {
+	r.activities.register(fn, options)
+}
 
 func (r *isolateReplayer) RegisterWorkflow(fn any) {
 	r.RegisterWorkflowWithOptions(fn, goWorkflow.RegisterOptions{})
 }
 
 func (r *isolateReplayer) RegisterWorkflowWithOptions(fn any, options goWorkflow.RegisterOptions) {
-	fn, options = registration(fn, options)
+	fn, options = registration(fn, options, r.activities.resolve)
 	r.WorkflowReplayer.RegisterWorkflowWithOptions(fn, options)
 }
 
@@ -86,7 +160,7 @@ func NewWorkflowReplayerWithOptions(options WorkflowReplayerOptions) (WorkflowRe
 	if err != nil {
 		return nil, err
 	}
-	return &isolateReplayer{WorkflowReplayer: r}, nil
+	return &isolateReplayer{WorkflowReplayer: r, activities: activityAliases{disabled: options.DisableRegistrationAliasing}}, nil
 }
 
 func InterruptCh() <-chan any { return goWorker.InterruptCh() }

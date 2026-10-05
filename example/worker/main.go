@@ -46,9 +46,9 @@ func main() {
 	w.RegisterActivityWithOptions(func(_ context.Context, name string, count int) (order.ActivityDetails, error) {
 		return order.ActivityDetails{Message: "hello " + name, Count: count}, nil
 	}, activity.RegisterOptions{Name: "details"})
-	w.RegisterActivityWithOptions(func(_ context.Context, value string) (int, error) {
-		return len(value), nil
-	}, activity.RegisterOptions{Name: "length"})
+	w.RegisterActivityWithOptions(order.ActivityLength, activity.RegisterOptions{Name: "length"})
+	w.RegisterWorkflowWithOptions(order.InferredActivityWorkflow, goWorkflow.RegisterOptions{Name: "IsolateInferredActivity"})
+	w.RegisterActivityWithOptions(order.FormatNumber, activity.RegisterOptions{Name: "format-number"})
 	if err := w.Run(worker.InterruptCh()); err != nil {
 		log.Fatal(err)
 	}

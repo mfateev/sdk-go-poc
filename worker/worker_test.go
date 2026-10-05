@@ -1,7 +1,9 @@
 package worker
 
 import (
+	"go.temporal.io/sdk/activity"
 	"testing"
+	"time"
 
 	"go.temporal.io/sdk/converter"
 	"go.temporal.io/sdk/testsuite"
@@ -38,5 +40,64 @@ func TestOrdinaryWorkflowPreservesWorkerOptionsAndCustomConverter(t *testing.T) 
 	}
 	if result != "ordinary:hello" {
 		t.Fatalf("result = %q", result)
+	}
+}
+
+func (w *testWorker) RegisterActivityWithOptions(fn any, options activity.RegisterOptions) {
+	w.env.RegisterActivityWithOptions(fn, options)
+}
+func testActivity(input int) (string, error) { return "host", nil }
+
+type testActivities struct{}
+
+func (*testActivities) Method(input int) (string, error) { panic("must not execute while registering") }
+
+func TestActivityAliasesAndOrdinaryActivities(t *testing.T) {
+	var suite testsuite.WorkflowTestSuite
+	env := suite.NewTestWorkflowEnvironment()
+	w := Wrap(&testWorker{env: env}).(*isolateWorker)
+	// The resolver is captured before registration and must observe later aliases.
+	resolve := w.activities.resolve
+	w.RegisterActivityWithOptions(testActivity, activity.RegisterOptions{Name: "alias"})
+	if got := resolve("testActivity"); got != "alias" {
+		t.Fatalf("alias = %q", got)
+	}
+	if got := resolve("unregistered"); got != "unregistered" {
+		t.Fatalf("default name = %q", got)
+	}
+	env.ExecuteWorkflow(func(ctx goWorkflow.Context) (string, error) {
+		ctx = goWorkflow.WithActivityOptions(ctx, goWorkflow.ActivityOptions{StartToCloseTimeout: time.Second})
+		var result string
+		err := goWorkflow.ExecuteActivity(ctx, testActivity, 5).Get(ctx, &result)
+		return result, err
+	})
+	if err := env.GetWorkflowError(); err != nil {
+		t.Fatal(err)
+	}
+	var got string
+	if err := env.GetWorkflowResult(&got); err != nil || got != "host" {
+		t.Fatalf("ordinary activity result: %q, %v", got, err)
+	}
+	var receiver *testActivities
+	w.RegisterActivityWithOptions(receiver.Method, activity.RegisterOptions{Name: "method-alias"})
+	if got := resolve("Method"); got != "method-alias" {
+		t.Fatalf("method alias = %q", got)
+	}
+}
+
+func TestReplayActivityAliasesAndDisabledAliasing(t *testing.T) {
+	for _, disabled := range []bool{false, true} {
+		r, err := NewWorkflowReplayerWithOptions(WorkflowReplayerOptions{DisableRegistrationAliasing: disabled})
+		if err != nil {
+			t.Fatal(err)
+		}
+		r.RegisterActivityWithOptions(testActivity, activity.RegisterOptions{Name: "alias"})
+		want := "alias"
+		if disabled {
+			want = "testActivity"
+		}
+		if got := r.(*isolateReplayer).activities.resolve("testActivity"); got != want {
+			t.Fatalf("disabled=%t: got %q, want %q", disabled, got, want)
+		}
 	}
 }

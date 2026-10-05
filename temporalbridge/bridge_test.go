@@ -1,6 +1,9 @@
 package temporalbridge
 
 import (
+	"encoding/json"
+	goWorkflow "go.temporal.io/sdk/workflow"
+	"isolate"
 	"strings"
 	"testing"
 	"time"
@@ -51,5 +54,50 @@ func TestNamedSignalMatching(t *testing.T) {
 	d.signals = d.signals[:1]
 	if d.hasDeliverableSignal() {
 		t.Fatal("unrelated signal should remain queued")
+	}
+}
+
+// Exercise the request flag: a literal name must not be rewritten even if it
+// happens to match a registered function alias key.
+type activityEnvironment struct {
+	bindings.WorkflowEnvironment
+	name string
+}
+
+func (e *activityEnvironment) WorkflowInfo() *goWorkflow.Info {
+	return &goWorkflow.Info{TaskQueueName: "test"}
+}
+func (e *activityEnvironment) GenerateSequence() int64 { return 1 }
+func (e *activityEnvironment) ExecuteActivity(p bindings.ExecuteActivityParams, _ bindings.ResultHandler) bindings.ActivityID {
+	e.name = p.ActivityType.Name
+	return bindings.ActivityID{}
+}
+func TestOnlyFunctionReferencesResolveActivityAliases(t *testing.T) {
+	for _, function := range []bool{false, true} {
+		env := new(activityEnvironment)
+		calls := 0
+		d := &definition{env: env, resolveActivity: func(name string) string {
+			calls++
+			if name != "Foo" {
+				t.Fatalf("resolver received %q", name)
+			}
+			return "custom-name"
+		}}
+		request, err := json.Marshal(workflow.ActivityPayloadRequest{Name: "Foo", Function: function, StartToCloseTimeout: time.Minute})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := d.handle(&isolate.Command{Op: workflow.OpActivityPayloads, Payload: request}); err != nil {
+			t.Fatal(err)
+		}
+		want := "Foo"
+		wantCalls := 0
+		if function {
+			want = "custom-name"
+			wantCalls = 1
+		}
+		if env.name != want || calls != wantCalls {
+			t.Fatalf("function=%t: name=%q, resolver calls=%d", function, env.name, calls)
+		}
 	}
 }

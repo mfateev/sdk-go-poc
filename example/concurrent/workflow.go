@@ -11,8 +11,8 @@ import (
 
 //go:isolate
 func ConcurrentWorkflow() ([]byte, error) {
-	first := workflow.ExecuteActivityAsync[[]byte]("echo", time.Minute, []byte("one"))
-	second := workflow.ExecuteActivityAsync[[]byte]("echo", time.Minute, []byte("two"))
+	first := workflow.ExecuteActivityAsyncByName[[]byte]("echo", time.Minute, []byte("one"))
+	second := workflow.ExecuteActivityAsyncByName[[]byte]("echo", time.Minute, []byte("two"))
 	timer := time.After(time.Second)
 	var events []string
 	for first != nil || second != nil || timer != nil {

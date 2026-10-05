@@ -1,6 +1,7 @@
 package workflow
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
@@ -12,7 +13,7 @@ import (
 )
 
 func TestExecuteActivityAsyncReturnsOneErrorAndCloses(t *testing.T) {
-	results := ExecuteActivityAsync[[]byte]("", time.Second)
+	results := ExecuteActivityAsyncByName[[]byte]("", time.Second)
 	select {
 	case result, ok := <-results:
 		if !ok || result.Err == nil || result.Result != nil {
@@ -131,7 +132,7 @@ func TestTypedActivityArgumentsAndResults(t *testing.T) {
 }
 
 func TestTypedActivityFailuresReturnZero(t *testing.T) {
-	if got, err := ExecuteActivity[string]("", time.Second); err == nil || got != "" {
+	if got, err := ExecuteActivityByName[string]("", time.Second); err == nil || got != "" {
 		t.Fatalf("invalid call = %q, %v", got, err)
 	}
 	payloads, err := converter.GetDefaultDataConverter().ToPayloads("not an integer")
@@ -164,10 +165,44 @@ func TestTypedActivityFailuresReturnZero(t *testing.T) {
 			t.Fatal("protobuf activity argument accepted")
 		}
 	}
-	if _, err := ExecuteActivity[*commonpb.Payload]("unsupported", time.Second); err == nil || !strings.Contains(err.Error(), "protobuf values") {
+	if _, err := ExecuteActivityByName[*commonpb.Payload]("unsupported", time.Second); err == nil || !strings.Contains(err.Error(), "protobuf values") {
 		t.Fatalf("protobuf activity result: %v", err)
 	}
 	if _, err := encodeActivityArgs([]any{make(chan int)}); err == nil {
 		t.Fatal("unsupported JSON argument accepted")
+	}
+}
+
+func TestInferredActivityRejectsNilAndNeverInvokesFunction(t *testing.T) {
+	var fn func(int) (string, error)
+	var got string
+	var err error
+	// Assignment to string also checks inferred result type at compile time.
+	got, err = ExecuteActivity(fn, time.Second, 5)
+	if got != "" || err == nil {
+		t.Fatalf("nil activity: %q, %v", got, err)
+	}
+	fn = func(int) (string, error) { panic("activity executed in workflow") }
+	got, err = ExecuteActivity(fn, 0, 5)
+	if got != "" || err == nil {
+		t.Fatalf("invalid timeout: %q, %v", got, err)
+	}
+	results := ExecuteActivityAsync(fn, 0, 5)
+	result := <-results
+	got = result.Result
+	if result.Err == nil || got != "" {
+		t.Fatalf("async invalid timeout: %+v", result)
+	}
+	if _, open := <-results; open {
+		t.Fatal("async result channel stayed open")
+	}
+	var contextFn func(context.Context, int) (string, error)
+	got, err = ExecuteActivityWithContext(contextFn, time.Second, 5)
+	if got != "" || err == nil {
+		t.Fatalf("nil context activity: %q, %v", got, err)
+	}
+	contextResult := <-ExecuteActivityAsyncWithContext(contextFn, time.Second, 5)
+	if contextResult.Err == nil {
+		t.Fatal("async nil context activity accepted")
 	}
 }

@@ -58,6 +58,7 @@ To repeat the live check, start `temporal server start-dev --headless` and run
 temporal workflow execute --workflow-id isolate-poc-order --type IsolateOrder --task-queue isolate-poc --input aGVsbG8= --input-base64 --input-meta encoding=binary/plain
 temporal workflow execute --workflow-id isolate-poc-echo --type IsolateEcho --task-queue isolate-poc --input aGVsbG8= --input-base64 --input-meta encoding=binary/plain
 temporal workflow execute --workflow-id isolate-poc-typed-echo --type IsolateTypedEcho --task-queue isolate-poc --input '{"Name":"world"}' --input '"!"'
+temporal workflow execute --workflow-id isolate-poc-inferred-activity --type IsolateInferredActivity --task-queue isolate-poc --input 5
 temporal workflow execute --workflow-id isolate-poc-typed-activity --type IsolateTypedActivity --task-queue isolate-poc --input '"world"'
 temporal workflow execute --workflow-id isolate-poc-plain-echo --type PlainEcho --task-queue isolate-poc --input '"hello"'
 temporal workflow start --workflow-id isolate-poc-signal --type IsolateSignal --task-queue isolate-poc
@@ -159,22 +160,55 @@ queued for their matching channels.
 `workflow.ExecuteActivityAsync` wraps `ExecuteActivity` the same way and returns
 a channel with one `workflow.ActivityResult[R]` before closing.
 
-Activity calls now have typed results and variadic typed arguments:
+Activity calls infer input and result types from a function with one input and
+one result plus an error:
 
 ```go
-greeting, err := workflow.ExecuteActivity[string]("Greet", 10*time.Second, name)
-result := <-workflow.ExecuteActivityAsync[MyResult]("Compute", time.Minute, input, options)
-_, err = workflow.ExecuteActivity[struct{}]("SendEmail", time.Minute, message)
+func FormatNumber(input int) (string, error) {
+    return fmt.Sprintf("number:%d", input), nil
+}
+
+text, err := workflow.ExecuteActivity(FormatNumber, time.Minute, 5) // text is string
+result := <-workflow.ExecuteActivityAsync(FormatNumber, time.Minute, 5)
+// result.Result is string; result.Err is error.
 ```
 
-The result type must be explicit; Go does not infer it from assignment targets.
-Arguments and results use the default Temporal converter inside the isolate and
-cross `Call` as protobuf-serialized `Payloads`. The host forwards them to native
-activity functions without byte/string wrappers. Zero arguments are supported.
-Use `struct{}` for an activity returning only an error. Activity errors and
-conversion errors return the zero result with an error. The supported values
-are the same JSON/bytes/null subset as workflow arguments; custom converters
-and protobuf message values remain TODOs. Existing byte callers now write
-`ExecuteActivity[[]byte](name, timeout, input)`.
+For an activity with a leading `context.Context`, use
+`ExecuteActivityWithContext` or `ExecuteActivityAsyncWithContext`. The host
+worker supplies the context; the isolate sends only the input value. These
+APIs identify the function without executing it inside the isolate. Function
+names and bound methods follow Temporal's short-name convention. Function
+registrations with `activity.RegisterOptions{Name: ...}` are resolved by the
+host, including registrations made after the workflow was registered.
+`worker.New` honors `DisableRegistrationAliasing`; `worker.Wrap` assumes the
+wrapped SDK worker uses the default aliasing setting.
+
+Name-based calls support zero or multiple inputs and error-only activities:
+
+```go
+text, err := workflow.ExecuteActivityByName[string]("Greet", time.Minute, name)
+result := <-workflow.ExecuteActivityAsyncByName[MyResult]("Compute", time.Minute, input, options)
+_, err = workflow.ExecuteActivityByName[struct{}]("SendEmail", time.Minute, message)
+```
+
+For these calls the result type is explicit. Use `struct{}` for an activity
+returning only an error. Prefixed struct registrations should be called by
+name, matching the standard SDK. Name-based calls are passed through exactly
+and are not rewritten by the function alias table.
+
+When replaying a workflow that references aliased activity functions, call
+`replayer.RegisterActivityWithOptions(fn, options)` with the same aliases as
+the worker. These registrations supply metadata only; replay never executes
+activities. Unaliased functions need no activity registration on the replayer.
+
+Arguments and results use the default Temporal converter inside the isolate
+and cross `Call` as protobuf-serialized `Payloads`. The host forwards them to
+native activity functions without byte/string wrappers. Activity and converter
+errors return the zero result with an error. Values remain restricted to the
+same JSON/bytes/null subset as workflow arguments; custom converters and
+protobuf message values remain TODOs. Previous `ExecuteActivity[R](name, ...)`
+callers now use `ExecuteActivityByName[R](name, ...)`, and the previous async
+name API becomes `ExecuteActivityAsyncByName[R]`.
+
 When the host configures an isolate clock and timer operation, native
 `time.After`, `time.NewTimer`, and `time.Sleep` use durable host timers.

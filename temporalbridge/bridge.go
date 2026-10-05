@@ -41,14 +41,19 @@ type Factory struct {
 	Program   isolate.Program
 	EntryName string
 	Function  isolate.Handle
+	// ResolveActivity maps function references to host registration aliases.
+	// It runs only on the host and is never passed into an isolate.
+	ResolveActivity func(string) string
 }
 
 func (f Factory) NewWorkflowDefinition() bindings.WorkflowDefinition {
 	if f.Function.Name() != "" {
-		f.Program = f.Function.Program(func() { _ = workflow.RunFunction(f.Function) })
+		handle := f.Function
+		// Capture only immutable function metadata, never the host resolver.
+		f.Program = handle.Program(func() { _ = workflow.RunFunction(handle) })
 		f.EntryName = f.Function.Name()
 	}
-	return &definition{program: f.Program, entryName: f.EntryName}
+	return &definition{program: f.Program, entryName: f.EntryName, resolveActivity: f.ResolveActivity}
 }
 
 type reply struct {
@@ -63,17 +68,18 @@ type signalWaiter struct {
 }
 
 type definition struct {
-	program     isolate.Program
-	entryName   string
-	env         bindings.WorkflowEnvironment
-	input       *commonpb.Payloads
-	instance    *isolate.Isolate
-	started     bool
-	completed   bool
-	pending     []reply
-	immediate   []reply
-	signals     []workflow.Signal
-	wantSignals []signalWaiter
+	resolveActivity func(string) string
+	program         isolate.Program
+	entryName       string
+	env             bindings.WorkflowEnvironment
+	input           *commonpb.Payloads
+	instance        *isolate.Isolate
+	started         bool
+	completed       bool
+	pending         []reply
+	immediate       []reply
+	signals         []workflow.Signal
+	wantSignals     []signalWaiter
 }
 
 // Execute must be asynchronous. History callbacks only queue data here.
@@ -300,6 +306,9 @@ func (d *definition) handle(command *isolate.Command) error {
 		}
 		if request.Name == "" || request.StartToCloseTimeout <= 0 {
 			return errors.New("invalid activity request")
+		}
+		if request.Function && d.resolveActivity != nil {
+			request.Name = d.resolveActivity(request.Name)
 		}
 		var input *commonpb.Payloads
 		if len(request.Payloads) != 0 {

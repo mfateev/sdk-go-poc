@@ -64,7 +64,12 @@ func definitionFor(fn any) bindings.WorkflowDefinition {
 	if !ok {
 		panic("missing marked function")
 	}
-	return (temporalbridge.Factory{Function: handle}).NewWorkflowDefinition()
+	return (temporalbridge.Factory{Function: handle, ResolveActivity: func(name string) string {
+		if name == "ActivityLength" {
+			return "length"
+		}
+		return name
+	}}).NewWorkflowDefinition()
 }
 
 func main() {
@@ -108,6 +113,7 @@ func main() {
 	runEcho()
 	runTypedEcho()
 	runTypedActivity()
+	runInferredActivity()
 	runUnsupportedProto()
 	runSignal()
 	runClock()
@@ -419,6 +425,78 @@ func runTypedActivity() {
 			if got != result {
 				panic(fmt.Sprintf("typed activity result = %+v", got))
 			}
+		}
+		d.Close()
+	}
+}
+
+// Fake host callbacks prove the function reference schedules work instead of
+// calling FormatNumber in the isolate, and that the host alias is applied.
+type inferredActivityEnvironment struct{ environment }
+
+func (e *inferredActivityEnvironment) ExecuteActivity(p bindings.ExecuteActivityParams, cb bindings.ResultHandler) bindings.ActivityID {
+	if p.ActivityType.Name != "format-number" || p.StartToCloseTimeout != time.Minute || len(p.Input.GetPayloads()) != 1 {
+		panic("incorrect inferred activity command")
+	}
+	var input int
+	if err := e.GetDataConverter().FromPayloads(p.Input, &input); err != nil {
+		panic(err)
+	}
+	if input != 5 {
+		panic("incorrect inferred activity input")
+	}
+	e.activity = cb
+	return bindings.ActivityID{}
+}
+func runInferredActivity() {
+	for _, scenario := range []string{"success", "failed", "wrong-type"} {
+		handle, ok := isolate.LookupFunction(order.InferredActivityWorkflow)
+		if !ok {
+			panic("missing inferred activity workflow")
+		}
+		d := (temporalbridge.Factory{Function: handle, ResolveActivity: func(name string) string {
+			if name != "FormatNumber" {
+				panic("wrong function name")
+			}
+			return "format-number"
+		}}).NewWorkflowDefinition()
+		e := &inferredActivityEnvironment{environment: environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}}
+		input, err := e.GetDataConverter().ToPayloads(5)
+		if err != nil {
+			panic(err)
+		}
+		d.Execute(e, nil, input)
+		d.OnWorkflowTaskStarted(5 * time.Second)
+		if e.err != nil || e.activity == nil {
+			panic("inferred call did not schedule host activity")
+		}
+		var result any = "host result differs from activity body"
+		var cause error
+		if scenario == "failed" {
+			cause = errors.New("inferred activity failed")
+		}
+		if scenario == "wrong-type" {
+			result = 42
+		}
+		payloads, err := e.GetDataConverter().ToPayloads(result)
+		if err != nil {
+			panic(err)
+		}
+		e.activity(payloads, cause)
+		d.OnWorkflowTaskStarted(5 * time.Second)
+		if scenario == "success" {
+			var got string
+			if e.err != nil {
+				panic(e.err)
+			}
+			if err := e.GetDataConverter().FromPayloads(e.result, &got); err != nil {
+				panic(err)
+			}
+			if got != result {
+				panic("inferred call used local function result")
+			}
+		} else if e.err == nil {
+			panic("inferred call accepted failed/wrong-type response")
 		}
 		d.Close()
 	}
