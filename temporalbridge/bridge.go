@@ -39,9 +39,14 @@ func RegisterEntry(w worker.Worker, name string, program isolate.Program, entryN
 type Factory struct {
 	Program   isolate.Program
 	EntryName string
+	Function  isolate.Handle
 }
 
 func (f Factory) NewWorkflowDefinition() bindings.WorkflowDefinition {
+	if f.Function.Name() != "" {
+		f.Program = f.Function.Program(func() { _ = workflow.RunFunction(f.Function) })
+		f.EntryName = f.Function.Name()
+	}
 	return &definition{program: f.Program, entryName: f.EntryName}
 }
 

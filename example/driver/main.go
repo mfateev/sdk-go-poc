@@ -9,6 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mfateev/sdk-go-poc/example/clock"
+	"github.com/mfateev/sdk-go-poc/example/order"
+	"github.com/mfateev/sdk-go-poc/example/signal"
 	"github.com/mfateev/sdk-go-poc/temporalbridge"
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/converter"
@@ -53,12 +56,16 @@ func (e *environment) NewTimer(d time.Duration, _ goWorkflow.TimerOptions, cb bi
 }
 func (e *environment) Complete(result *commonpb.Payloads, err error) { e.result, e.err = result, err }
 
-func main() {
-	program, ok := isolate.LookupProgram("temporal-order")
+func definitionFor(fn any) bindings.WorkflowDefinition {
+	handle, ok := isolate.LookupFunction(fn)
 	if !ok {
-		panic("missing program")
+		panic("missing marked function")
 	}
-	d := (temporalbridge.Factory{Program: program, EntryName: "IsolateOrder"}).NewWorkflowDefinition()
+	return (temporalbridge.Factory{Function: handle}).NewWorkflowDefinition()
+}
+
+func main() {
+	d := definitionFor(order.OrderWorkflow)
 	e := &environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}
 	input, err := e.GetDataConverter().ToPayloads([]byte("hello"))
 	if err != nil {
@@ -95,16 +102,16 @@ func main() {
 		panic(fmt.Sprintf("result = %q", result))
 	}
 	d.Close()
-	runEcho(program)
-	runTypedEcho(program)
-	runUnsupportedProto(program)
+	runEcho()
+	runTypedEcho()
+	runUnsupportedProto()
 	runSignal()
 	runClock()
 	fmt.Println("temporal isolate serial path passed")
 }
 
-func runEcho(program isolate.Program) {
-	d := (temporalbridge.Factory{Program: program, EntryName: "IsolateEcho"}).NewWorkflowDefinition()
+func runEcho() {
+	d := definitionFor(order.EchoWorkflow)
 	e := &environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}
 	input, err := e.GetDataConverter().ToPayloads([]byte("hello"))
 	if err != nil {
@@ -125,8 +132,8 @@ func runEcho(program isolate.Program) {
 	d.Close()
 }
 
-func runTypedEcho(program isolate.Program) {
-	d := (temporalbridge.Factory{Program: program, EntryName: "IsolateTypedEcho"}).NewWorkflowDefinition()
+func runTypedEcho() {
+	d := definitionFor(order.TypedEchoWorkflow)
 	e := &environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}
 	input, err := e.GetDataConverter().ToPayloads(struct{ Name string }{Name: "world"}, "!")
 	if err != nil {
@@ -147,8 +154,8 @@ func runTypedEcho(program isolate.Program) {
 	d.Close()
 }
 
-func runUnsupportedProto(program isolate.Program) {
-	d := (temporalbridge.Factory{Program: program, EntryName: "IsolateTypedEcho"}).NewWorkflowDefinition()
+func runUnsupportedProto() {
+	d := definitionFor(order.TypedEchoWorkflow)
 	e := &environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}
 	input, err := e.GetDataConverter().ToPayloads(&commonpb.Payload{Data: []byte("hello")})
 	if err != nil {
@@ -163,14 +170,13 @@ func runUnsupportedProto(program isolate.Program) {
 }
 
 func runClock() {
-	program, ok := isolate.LookupProgram("temporal-clock")
-	if !ok {
-		panic("missing clock program")
-	}
-	d := (temporalbridge.Factory{Program: program, EntryName: "IsolateClock"}).NewWorkflowDefinition()
+	d := definitionFor(clock.ClockWorkflow)
 	e := &environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}
 	d.Execute(e, nil, nil)
 	d.OnWorkflowTaskStarted(5 * time.Second)
+	if e.err != nil {
+		panic(e.err)
+	}
 	if e.timer == nil {
 		panic("clock timer not scheduled")
 	}
@@ -192,11 +198,7 @@ func runClock() {
 }
 
 func runSignal() {
-	program, ok := isolate.LookupProgram("temporal-signal")
-	if !ok {
-		panic("missing signal program")
-	}
-	d := (temporalbridge.Factory{Program: program, EntryName: "IsolateSignal"}).NewWorkflowDefinition()
+	d := definitionFor(signal.SignalWorkflow)
 	e := &environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}
 	input, err := e.GetDataConverter().ToPayloads([]byte("signal result"))
 	if err != nil {

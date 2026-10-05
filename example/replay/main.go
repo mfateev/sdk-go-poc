@@ -4,39 +4,47 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"isolate"
 	"os"
 
-	"github.com/mfateev/sdk-go-poc/temporalbridge"
+	"github.com/mfateev/sdk-go-poc/example/clock"
+	"github.com/mfateev/sdk-go-poc/example/order"
+	"github.com/mfateev/sdk-go-poc/example/signal"
+	"github.com/mfateev/sdk-go-poc/worker"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/converter"
-	"go.temporal.io/sdk/worker"
 	goWorkflow "go.temporal.io/sdk/workflow"
 )
 
 func main() {
-	if len(os.Args) != 4 {
-		fmt.Fprintln(os.Stderr, "usage: replay <program-name> <workflow-type> <history.json>")
+	if len(os.Args) != 3 {
+		fmt.Fprintln(os.Stderr, "usage: replay <workflow-type> <history.json>")
 		os.Exit(2)
 	}
-	program, ok := isolate.LookupProgram(os.Args[1])
+	functions := map[string]any{
+		"IsolateOrder":     order.OrderWorkflow,
+		"IsolateEcho":      order.EchoWorkflow,
+		"IsolateTypedEcho": order.TypedEchoWorkflow,
+		"IsolateSignal":    signal.SignalWorkflow,
+		"IsolateClock":     clock.ClockWorkflow,
+	}
+	fn, ok := functions[os.Args[1]]
 	if !ok {
-		fmt.Fprintln(os.Stderr, "unknown isolate program:", os.Args[1])
+		fmt.Fprintln(os.Stderr, "unknown workflow type:", os.Args[1])
 		os.Exit(2)
 	}
-	workflowName := os.Args[2]
+	workflowName := os.Args[1]
 	if workflowName == "" {
 		fmt.Fprintln(os.Stderr, "workflow type is empty")
 		os.Exit(2)
 	}
 	replayer := worker.NewWorkflowReplayer()
-	replayer.RegisterWorkflowWithOptions(temporalbridge.Factory{Program: program, EntryName: workflowName}, goWorkflow.RegisterOptions{Name: workflowName})
-	if err := replayer.ReplayWorkflowHistoryFromJSONFile(nil, os.Args[3]); err != nil {
+	replayer.RegisterWorkflowWithOptions(fn, goWorkflow.RegisterOptions{Name: workflowName})
+	if err := replayer.ReplayWorkflowHistoryFromJSONFile(nil, os.Args[2]); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	if workflowName == "IsolateClock" {
-		if err := compareClockResult(replayer, os.Args[3]); err != nil {
+		if err := compareClockResult(replayer, os.Args[2]); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}

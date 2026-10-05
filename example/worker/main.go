@@ -2,14 +2,15 @@ package main
 
 import (
 	"context"
-	"isolate"
 	"log"
 	"os"
 
-	"github.com/mfateev/sdk-go-poc/temporalbridge"
+	"github.com/mfateev/sdk-go-poc/example/clock"
+	"github.com/mfateev/sdk-go-poc/example/order"
+	"github.com/mfateev/sdk-go-poc/example/signal"
+	"github.com/mfateev/sdk-go-poc/worker"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
-	"go.temporal.io/sdk/worker"
 	goWorkflow "go.temporal.io/sdk/workflow"
 )
 
@@ -22,18 +23,6 @@ func PlainEcho(_ goWorkflow.Context, input string) (string, error) {
 }
 
 func main() {
-	program, ok := isolate.LookupProgram("temporal-order")
-	if !ok {
-		log.Fatal("missing temporal-order isolate; build with -isolate-dir=./example/order")
-	}
-	signalProgram, ok := isolate.LookupProgram("temporal-signal")
-	if !ok {
-		log.Fatal("missing temporal-signal isolate; build with -isolate-dir=./example/signal")
-	}
-	clockProgram, ok := isolate.LookupProgram("temporal-clock")
-	if !ok {
-		log.Fatal("missing temporal-clock isolate; build with -isolate-dir=./example/clock")
-	}
 	address := os.Getenv("TEMPORAL_ADDRESS")
 	if address == "" {
 		address = "localhost:7233"
@@ -44,11 +33,11 @@ func main() {
 	}
 	defer c.Close()
 	w := worker.New(c, "isolate-poc", worker.Options{})
-	temporalbridge.Register(w, "IsolateOrder", program)
-	temporalbridge.Register(w, "IsolateEcho", program)
-	temporalbridge.Register(w, "IsolateTypedEcho", program)
-	temporalbridge.Register(w, "IsolateSignal", signalProgram)
-	temporalbridge.Register(w, "IsolateClock", clockProgram)
+	w.RegisterWorkflowWithOptions(order.OrderWorkflow, goWorkflow.RegisterOptions{Name: "IsolateOrder"})
+	w.RegisterWorkflowWithOptions(order.EchoWorkflow, goWorkflow.RegisterOptions{Name: "IsolateEcho"})
+	w.RegisterWorkflowWithOptions(order.TypedEchoWorkflow, goWorkflow.RegisterOptions{Name: "IsolateTypedEcho"})
+	w.RegisterWorkflowWithOptions(signal.SignalWorkflow, goWorkflow.RegisterOptions{Name: "IsolateSignal"})
+	w.RegisterWorkflowWithOptions(clock.ClockWorkflow, goWorkflow.RegisterOptions{Name: "IsolateClock"})
 	w.RegisterWorkflow(PlainEcho)
 	w.RegisterActivityWithOptions(echo, activity.RegisterOptions{Name: "echo"})
 	if err := w.Run(worker.InterruptCh()); err != nil {

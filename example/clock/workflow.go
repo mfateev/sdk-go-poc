@@ -1,21 +1,13 @@
-package main
+package clock
 
 import (
 	"time"
-
-	"github.com/mfateev/sdk-go-poc/workflow"
 )
 
-func init() { workflow.Register("IsolateClock", ClockWorkflow) }
-
-func main() {
-	if err := workflow.Run(); err != nil {
-		panic(err)
-	}
-}
-
 // ClockWorkflow makes every clock read observable to history replay.
-func ClockWorkflow(_ []byte) ([]byte, error) {
+//
+//go:isolate
+func ClockWorkflow() ([]byte, error) {
 	started := time.Now().UTC()
 	timer := time.NewTimer(time.Second)
 	fired := (<-timer.C).UTC()

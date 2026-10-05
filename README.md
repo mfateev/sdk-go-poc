@@ -24,7 +24,7 @@ separate from your usual Go cache for targeted cleanup.
 Build the example from this directory:
 
 ```sh
-../golang-go/bin/go build -isolate-dir=./example/order -isolate-dir=./example/signal -isolate-dir=./example/clock -o worker ./example/worker
+../golang-go/bin/go build -o worker ./example/worker
 ```
 
 Run `./worker` against a local Temporal server (or set `TEMPORAL_ADDRESS`). It
@@ -32,7 +32,7 @@ registers workflow types `IsolateOrder`, `IsolateEcho`, `IsolateTypedEcho`,
 `IsolateSignal`, `IsolateClock`, and `PlainEcho` on task queue `isolate-poc`,
 plus the host activity `echo`.
 `IsolateOrder`, `IsolateEcho`, and `IsolateTypedEcho` are separate named
-functions in the same `example/order` isolate program. Each execution has its
+functions in the same `example/order` package. Each execution has its
 own isolate state. The worker also registers an ordinary `PlainEcho` workflow
 with Temporal's unchanged `worker.RegisterWorkflow` API.
 `IsolateOrder` takes one `[]byte` argument and returns it after an activity and a
@@ -68,17 +68,17 @@ temporal workflow execute --workflow-id isolate-poc-clock --type IsolateClock --
 Export and replay a completed history with a fresh isolate process:
 
 ```sh
-../golang-go/bin/go build -isolate-dir=./example/order -isolate-dir=./example/signal -isolate-dir=./example/clock -o replay ./example/replay
+../golang-go/bin/go build -o replay ./example/replay
 temporal workflow show --workflow-id isolate-poc-order --output json > /tmp/isolate-order-history.json
-./replay temporal-order IsolateOrder /tmp/isolate-order-history.json
+./replay IsolateOrder /tmp/isolate-order-history.json
 temporal workflow show --workflow-id isolate-poc-clock --output json > /tmp/isolate-clock-history.json
-./replay temporal-clock IsolateClock /tmp/isolate-clock-history.json
+./replay IsolateClock /tmp/isolate-clock-history.json
 ```
 
 Run the local bridge driver without a server:
 
 ```sh
-../golang-go/bin/go build -isolate-dir=./example/order -isolate-dir=./example/signal -isolate-dir=./example/clock -o /tmp/isolate-temporal-driver ./example/driver
+../golang-go/bin/go build -o /tmp/isolate-temporal-driver ./example/driver
 /tmp/isolate-temporal-driver
 ```
 
@@ -102,33 +102,42 @@ context, and a full boundary type check remain TODOs. The compiler currently
 treats the default converter's external dependency graph as process-owned for
 this trusted POC; its mutable caches and effects need an ownership audit.
 
-An isolate directory can register several named workflow functions from `init`:
+Mark each workflow function and register it through the POC worker package:
 
 ```go
-func init() {
-    workflow.Register("IsolateOrder", OrderWorkflow)
-    workflow.Register("IsolateEcho", EchoWorkflow)
-    workflow.RegisterTyped2("IsolateTypedEcho", TypedEchoWorkflow)
+// In an ordinary workflow package:
+//go:isolate
+func TypedEchoWorkflow(request TypedEchoRequest, suffix string) (TypedEchoResult, error) {
+    return TypedEchoResult{Message: "hello " + request.Name + suffix}, nil
 }
 
-func main() {
-    if err := workflow.Run(); err != nil { panic(err) }
-}
+// In the host, using github.com/mfateev/sdk-go-poc/worker:
+w := worker.New(client, taskQueue, worker.Options{})
+w.RegisterWorkflow(order.TypedEchoWorkflow)
+w.RegisterWorkflow(PlainEcho) // An ordinary Temporal workflow remains ordinary.
 ```
 
-Byte handlers have the signature `func([]byte) ([]byte, error)`. `Run` obtains the
-workflow name and input from the host, calls the registered handler, and sends
-its result or error back. `temporalbridge.Register` uses its Temporal workflow
-name as the handler name; `temporalbridge.RegisterEntry` allows the two names to
-differ. Registration only fills isolate-owned state and must not call the host.
-The static build still requires a small `main` dispatcher in each isolate
-directory; workflow logic belongs in named functions.
+`go build` discovers marked functions in the host's import graph, retains their
+original Go signatures, and generates direct typed invokers. No `isolate.json`,
+workflow `main`, or `-isolate-dir` is needed. A package can contain several
+marked functions and ordinary functions. Each execution gets fresh selected
+package state. `isolate.LookupFunction(fn)` exposes the generated handle and
+its original signature; the worker registers a `WorkflowDefinitionFactory`
+for marked functions and forwards unmarked functions to the usual Go SDK.
+`RegisterWorkflowWithOptions` preserves aliases and registration options.
+Ordinary workflows may still use custom converters.
+Register marked functions from the host's `main`, after startup; the generated
+function table is populated after imported package initializers run.
 
-Typed handlers return `(R, error)` and use `RegisterTyped0`, `RegisterTyped`, or
-`RegisterTyped2` for zero, one, or two arguments. These helpers invoke the Go
-function directly. Compiler-generated registration for arbitrary signatures
-and automatic `worker.RegisterWorkflow(fn)` routing are future work; ordinary
-non-isolate registrations already use that API unchanged.
+Marked functions accept any number of ordinary Go arguments and return either
+nothing, `error`, or `(result, error)`. They do not take a host-owned Temporal
+`workflow.Context`. Generic or variadic functions, methods, cgo source, and dot
+imports are rejected. Automatic entry generation currently applies to a
+single executable `go build`; `go run`, `go install`, and test binaries remain
+future work. Initialization and state selection still operate at package level,
+so selected package initializers run for every instance. Finer function-level
+dependency selection remains TODO. The older directory-program and explicit
+registration helpers remain available for runtime probes.
 
 `workflow.GetSignalChannel(name)` provides a channel for signals with that
 name. It wraps the existing host `Call` in an isolate-owned goroutine and

@@ -255,6 +255,56 @@ func decodePayloads(data []byte) (*commonpb.Payloads, error) {
 	return payloads, nil
 }
 
+// RunFunction is the dispatcher used by the worker for compiler-discovered
+// //go:isolate functions. Typed invocation and default-converter operations
+// execute here, behind the isolate's copied-byte boundary.
+func RunFunction(handle isolate.Handle) error {
+	startBytes, err := isolate.Call(OpStartPayloads, nil)
+	if err != nil {
+		return err
+	}
+	var start PayloadStart
+	if err := json.Unmarshal(startBytes, &start); err != nil {
+		return completePayloads(nil, fmt.Errorf("workflow: decode start: %w", err))
+	}
+	payloads, err := decodePayloads(start.Payloads)
+	if err != nil {
+		return completePayloads(nil, fmt.Errorf("workflow: decode input payloads: %w", err))
+	}
+	var result *commonpb.Payloads
+	err = handle.Invoke(func(args ...isolate.Value) error {
+		if err := checkArgumentCount(payloads, len(args)); err != nil {
+			return err
+		}
+		pointers := make([]any, len(args))
+		for i, arg := range args {
+			if isProtoValue(arg.Value) || isProtoValue(arg.Pointer) {
+				return errors.New("workflow: protobuf values are outside the isolate POC subset")
+			}
+			pointers[i] = arg.Pointer
+		}
+		if err := converter.GetDefaultDataConverter().FromPayloads(payloads, pointers...); err != nil {
+			return fmt.Errorf("workflow: decode arguments: %w", err)
+		}
+		return nil
+	}, func(values ...isolate.Value) error {
+		if len(values) == 0 {
+			return nil
+		}
+		value := values[0]
+		if isProtoValue(value.Value) || isProtoValue(value.Pointer) {
+			return errors.New("workflow: protobuf values are outside the isolate POC subset")
+		}
+		var err error
+		result, err = converter.GetDefaultDataConverter().ToPayloads(value.Value)
+		if err != nil {
+			return fmt.Errorf("workflow: encode result: %w", err)
+		}
+		return nil
+	})
+	return completePayloads(result, err)
+}
+
 // ActivityRequest is the wire representation of a host activity call.
 type ActivityRequest struct {
 	Name                string        `json:"name"`

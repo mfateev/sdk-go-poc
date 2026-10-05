@@ -1,4 +1,4 @@
-package main
+package order
 
 import (
 	"errors"
@@ -7,18 +7,7 @@ import (
 	"github.com/mfateev/sdk-go-poc/workflow"
 )
 
-func init() {
-	workflow.Register("IsolateOrder", OrderWorkflow)
-	workflow.Register("IsolateEcho", EchoWorkflow)
-	workflow.RegisterTyped2("IsolateTypedEcho", TypedEchoWorkflow)
-}
-
-func main() {
-	if err := workflow.Run(); err != nil {
-		panic(err)
-	}
-}
-
+//go:isolate
 func OrderWorkflow(input []byte) ([]byte, error) {
 	var err error
 	input, err = workflow.ExecuteActivity("echo", input, time.Minute)
@@ -32,6 +21,7 @@ func OrderWorkflow(input []byte) ([]byte, error) {
 	return input, err
 }
 
+//go:isolate
 func EchoWorkflow(input []byte) ([]byte, error) {
 	return append([]byte("registered:"), input...), nil
 }
@@ -44,6 +34,7 @@ type TypedEchoResult struct {
 	Message string
 }
 
+//go:isolate
 func TypedEchoWorkflow(request TypedEchoRequest, suffix string) (TypedEchoResult, error) {
 	return TypedEchoResult{Message: "hello " + request.Name + suffix}, nil
 }
