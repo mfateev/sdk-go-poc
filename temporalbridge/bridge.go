@@ -1,5 +1,6 @@
 // Package temporalbridge connects one statically linked isolate program to
-// Temporal's Go workflow worker. It is a trusted, serial POC adapter.
+// Temporal's Go workflow worker. It is a trusted POC adapter using native
+// deterministic dispatch and an exact runtime suspension barrier.
 package temporalbridge
 
 import (
@@ -70,6 +71,7 @@ type definition struct {
 	started     bool
 	completed   bool
 	pending     []reply
+	immediate   []reply
 	signals     []workflow.Signal
 	wantSignals []signalWaiter
 }
@@ -107,7 +109,7 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 	if !d.started {
 		d.started = true
 		var err error
-		d.instance, err = isolate.New(isolate.Config{Program: d.program, InitialTime: &now, TimerOp: workflow.OpSleep})
+		d.instance, err = isolate.New(isolate.Config{Program: d.program, Deterministic: true, InitialTime: &now, TimerOp: workflow.OpSleep})
 		if err == nil {
 			err = d.instance.Start()
 		}
@@ -120,7 +122,7 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 		return
 	}
 	if !newInstance && !resuming {
-		// A signal or unrelated history event need not wake a serial workflow.
+		// An unrelated history event does not need to resume the instance.
 		return
 	}
 	for _, r := range d.pending {
@@ -128,95 +130,155 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 	}
 	d.pending = nil
 	d.deliverWaitingSignals()
-	// This timeout detects a broken serial adapter. A native quiescence barrier
-	// must replace the one-command-at-a-time assumption for concurrent code.
+	// History replies above are batched while the previous task is suspended.
+	// Service commands while the runtime seeks idle; after suspension drain
+	// pending sends, then resume their transport handshakes. Return only after
+	// a pass reaches idle without producing another command.
 	if deadline <= 0 {
 		deadline = time.Second
 	}
 	timer := time.NewTimer(deadline)
 	defer timer.Stop()
-	for !d.completed {
-		select {
-		case command := <-d.instance.Commands():
-			if command == nil {
-				d.fail(errors.New("isolate command stream closed"))
-				return
-			}
-			blocked, err := d.handle(command)
-			if err != nil {
-				command.Reply(nil, err)
-				d.fail(err)
-				return
-			}
-			if blocked {
-				return
-			}
-		case <-d.instance.Done():
-			if !d.completed {
-				if err := d.instance.Wait(); err != nil {
-					d.fail(fmt.Errorf("isolate returned without workflow.Complete: %w", err))
-				} else {
-					d.fail(errors.New("isolate returned without workflow.Complete"))
-				}
-			}
+	handleCommand := func(command *isolate.Command) bool {
+		if command == nil {
+			d.fail(errors.New("isolate command stream closed"))
+			return false
+		}
+		err := d.handle(command)
+		if err != nil {
+			command.Reply(nil, err)
+			d.fail(err)
+			return false
+		}
+		return true
+	}
+	for {
+		if err := d.instance.Resume(); err != nil {
+			d.fail(err)
 			return
-		case <-timer.C:
-			d.fail(errors.New("isolate did not reach a host operation before the workflow task deadline"))
+		}
+		suspended := make(chan error, 1)
+		go func() { suspended <- d.instance.Suspend() }()
+		handled := false
+		waiting := true
+		for waiting {
+			select {
+			case command := <-d.instance.Commands():
+				if !handleCommand(command) {
+					return
+				}
+				handled = true
+			case err := <-suspended:
+				if err != nil {
+					if !d.completed {
+						d.fail(err)
+					}
+					return
+				}
+				waiting = false
+			case <-d.instance.Done():
+				if !d.completed {
+					err := d.instance.Wait()
+					if err == nil {
+						err = errors.New("missing workflow completion")
+					}
+					d.fail(fmt.Errorf("isolate returned without workflow.Complete: %w", err))
+				}
+				return
+			case <-timer.C:
+				d.fail(errors.New("isolate did not suspend before the workflow task deadline"))
+				return
+			}
+		}
+		// A blocked command sender itself makes the group idle. Receiving it
+		// while dispatch is fenced queues its continuation, so the next pass
+		// can park that continuation on its reply without missing the command.
+	drain:
+		for {
+			select {
+			case command := <-d.instance.Commands():
+				if !handleCommand(command) {
+					return
+				}
+				handled = true
+			default:
+				break drain
+			}
+		}
+		// Replies for inputs and already available signals also wait for
+		// the suspension fence. Host processing speed must not affect which
+		// workflow goroutine becomes ready during a task.
+		for _, r := range d.immediate {
+			r.command.Reply(r.payload, r.err)
+		}
+		d.immediate = nil
+		if d.completed {
+			_ = d.instance.Resume() // Let the completion call finish naturally.
+			return
+		}
+		if !handled {
+			if d.instance.PendingCalls() == 0 {
+				d.fail(errors.New("isolate deadlocked without a pending host operation"))
+			}
 			return
 		}
 	}
 }
 
-// handle returns true when the isolate is waiting for a future history event.
-func (d *definition) handle(command *isolate.Command) (bool, error) {
+func (d *definition) replyWhenSuspended(command *isolate.Command, payload []byte, err error) {
+	d.immediate = append(d.immediate, reply{command: command, payload: payload, err: err})
+}
+
+// handle emits or answers one host command. Replies are held until suspension.
+func (d *definition) handle(command *isolate.Command) error {
 	switch command.Op {
 	case workflow.OpInput:
 		input, err := d.inputBytes()
 		if err != nil {
-			return false, err
+			return err
 		}
-		command.Reply(input, nil)
+		d.replyWhenSuspended(command, input, nil)
 	case workflow.OpStart:
 		if d.entryName == "" {
-			return false, errors.New("workflow entry name is not configured")
+			return errors.New("workflow entry name is not configured")
 		}
 		input, err := d.inputBytes()
 		if err != nil {
-			return false, err
+			return err
 		}
 		payload, err := json.Marshal(workflow.Start{Name: d.entryName, Input: input})
 		if err != nil {
-			return false, err
+			return err
 		}
-		command.Reply(payload, nil)
+		d.replyWhenSuspended(command, payload, nil)
 	case workflow.OpStartPayloads:
 		if d.entryName == "" {
-			return false, errors.New("workflow entry name is not configured")
+			return errors.New("workflow entry name is not configured")
 		}
 		var input []byte
 		if d.input != nil {
 			var err error
 			input, err = proto.MarshalOptions{Deterministic: true}.Marshal(d.input)
 			if err != nil {
-				return false, err
+				return err
 			}
 		}
 		payload, err := json.Marshal(workflow.PayloadStart{Name: d.entryName, Payloads: input})
 		if err != nil {
-			return false, err
+			return err
 		}
-		command.Reply(payload, nil)
+		d.replyWhenSuspended(command, payload, nil)
 	case workflow.OpActivity:
 		var request workflow.ActivityRequest
 		if err := json.Unmarshal(command.Payload, &request); err != nil {
-			return false, err
+			return err
 		}
 		if request.Name == "" || request.StartToCloseTimeout <= 0 {
-			return false, errors.New("invalid activity request")
+			return errors.New("invalid activity request")
 		}
 		input, err := d.env.GetDataConverter().ToPayloads(request.Input)
 		if err != nil {
-			return false, err
+			return err
 		}
 		params := bindings.ExecuteActivityParams{
 			ExecuteActivityOptions: bindings.ExecuteActivityOptions{
@@ -230,37 +292,37 @@ func (d *definition) handle(command *isolate.Command) (bool, error) {
 		d.env.ExecuteActivity(params, func(result *commonpb.Payloads, cause error) {
 			d.queueResult(command, result, cause)
 		})
-		return true, nil
+		return nil
 	case workflow.OpSleep:
 		var duration time.Duration
 		if err := json.Unmarshal(command.Payload, &duration); err != nil {
-			return false, err
+			return err
 		}
 		if duration < 0 {
-			return false, errors.New("negative timer duration")
+			return errors.New("negative timer duration")
 		}
 		if duration == 0 {
-			command.Reply(nil, nil)
-			return false, nil
+			d.replyWhenSuspended(command, nil, nil)
+			return nil
 		}
 		d.env.NewTimer(duration, goWorkflow.TimerOptions{}, func(result *commonpb.Payloads, cause error) {
 			d.pending = append(d.pending, reply{command: command, err: cause})
 		})
-		return true, nil
+		return nil
 	case workflow.OpSignal:
 		name := string(command.Payload)
 		index := d.signalIndex(name)
 		if index < 0 {
 			d.wantSignals = append(d.wantSignals, signalWaiter{name: name, command: command})
-			return true, nil
+			return nil
 		}
 		payload, _ := json.Marshal(d.signals[index])
 		d.signals = append(d.signals[:index], d.signals[index+1:]...)
-		command.Reply(payload, nil)
+		d.replyWhenSuspended(command, payload, nil)
 	case workflow.OpComplete:
 		var completion workflow.Completion
 		if err := json.Unmarshal(command.Payload, &completion); err != nil {
-			return false, err
+			return err
 		}
 		var result *commonpb.Payloads
 		var err error
@@ -272,14 +334,14 @@ func (d *definition) handle(command *isolate.Command) (bool, error) {
 		if err == nil || completion.Error != "" {
 			d.env.Complete(result, err)
 			d.completed = true
-			command.Reply(nil, nil)
-			return true, nil
+			d.replyWhenSuspended(command, nil, nil)
+			return nil
 		}
-		return false, err
+		return err
 	case workflow.OpCompletePayloads:
 		var completion workflow.PayloadCompletion
 		if err := json.Unmarshal(command.Payload, &completion); err != nil {
-			return false, err
+			return err
 		}
 		var result *commonpb.Payloads
 		var err error
@@ -288,17 +350,17 @@ func (d *definition) handle(command *isolate.Command) (bool, error) {
 		} else if len(completion.Payloads) != 0 {
 			result = new(commonpb.Payloads)
 			if err := proto.Unmarshal(completion.Payloads, result); err != nil {
-				return false, fmt.Errorf("decode workflow result payloads: %w", err)
+				return fmt.Errorf("decode workflow result payloads: %w", err)
 			}
 		}
 		d.env.Complete(result, err)
 		d.completed = true
-		command.Reply(nil, nil)
-		return true, nil
+		d.replyWhenSuspended(command, nil, nil)
+		return nil
 	default:
-		return false, fmt.Errorf("unknown isolate operation %d", command.Op)
+		return fmt.Errorf("unknown isolate operation %d", command.Op)
 	}
-	return false, nil
+	return nil
 }
 
 func (d *definition) inputBytes() ([]byte, error) {
@@ -366,6 +428,7 @@ func (d *definition) fail(err error) {
 	}
 	d.completed = true
 	d.env.Complete(nil, err)
+	d.Close() // Revoke dispatch and release any host suspension waiter.
 }
 
 func (d *definition) StackTrace() string { return "isolate workflow stack trace unavailable" }

@@ -63,6 +63,7 @@ temporal workflow start --workflow-id isolate-poc-signal --type IsolateSignal --
 temporal workflow signal --workflow-id isolate-poc-signal --name ready --input c2lnbmFsLXJlc3VsdA== --input-base64 --input-meta encoding=binary/plain
 temporal workflow result --workflow-id isolate-poc-signal
 temporal workflow execute --workflow-id isolate-poc-clock --type IsolateClock --task-queue isolate-poc
+temporal workflow execute --workflow-id isolate-poc-concurrent --type IsolateConcurrent --task-queue isolate-poc
 ```
 
 Export and replay a completed history with a fresh isolate process:
@@ -83,9 +84,19 @@ Run the local bridge driver without a server:
 ```
 
 `workflow` is the API imported by isolate code. `temporalbridge` stays in the
-host and depends on the pinned Temporal Go SDK. This initial adapter accepts
-serial workflow programs only. The fork still needs a native quiescence barrier
-and deterministic scheduling for concurrent workflow goroutines and replay.
+host and depends on the pinned Temporal Go SDK. The adapter enables
+`isolate.Config.Deterministic`: native goroutines share a FIFO execution token,
+select polling is reproducible, and string/integer map range is canonical.
+An exact suspend fence batches history replies and services all concurrent
+commands before ending each workflow task. Unsupported map key kinds,
+`sync.Map.Range`, and `iter.Pull` fail closed in this mode. General I/O
+containment and native cross-architecture replay remain release work.
+
+The driver includes two concurrent activity result channels, a native timer,
+ordered callback batching, repeatability across GOMAXPROCS 1/2/8, and deadlock
+reporting. `IsolateConcurrent` is registered by the example worker and replayer;
+it completed on the local server and replayed in fresh processes. Ordinary
+`PlainEcho` continued to work on the same worker.
 See [the implementation plan](https://github.com/mfateev/golang-go/blob/task/modify-go-runtime-for-isolates/doc/isolates/TEMPORAL_POC.md).
 
 The isolate adapter requires Temporal's default data converter on the worker

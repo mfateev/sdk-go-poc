@@ -6,10 +6,12 @@ import (
 	"bytes"
 	"fmt"
 	"isolate"
+	"runtime"
 	"strings"
 	"time"
 
 	"github.com/mfateev/sdk-go-poc/example/clock"
+	"github.com/mfateev/sdk-go-poc/example/concurrent"
 	"github.com/mfateev/sdk-go-poc/example/order"
 	"github.com/mfateev/sdk-go-poc/example/signal"
 	"github.com/mfateev/sdk-go-poc/temporalbridge"
@@ -107,7 +109,90 @@ func main() {
 	runUnsupportedProto()
 	runSignal()
 	runClock()
-	fmt.Println("temporal isolate serial path passed")
+	runConcurrent()
+	runDeadlock()
+	runDeadline()
+	fmt.Println("temporal isolate serial and concurrent paths passed")
+}
+
+type concurrentEnvironment struct {
+	environment
+	activities map[string]bindings.ResultHandler
+}
+
+func (e *concurrentEnvironment) ExecuteActivity(p bindings.ExecuteActivityParams, cb bindings.ResultHandler) bindings.ActivityID {
+	if p.ActivityType.Name != "echo" || p.StartToCloseTimeout != time.Minute {
+		panic("unexpected concurrent activity")
+	}
+	var input []byte
+	if err := e.GetDataConverter().FromPayloads(p.Input, &input); err != nil {
+		panic(err)
+	}
+	e.activities[string(input)] = cb
+	return bindings.ActivityID{}
+}
+
+func runConcurrent() {
+	old := runtime.GOMAXPROCS(1)
+	defer runtime.GOMAXPROCS(old)
+	var baseline string
+	for _, procs := range []int{1, 2, 8} {
+		runtime.GOMAXPROCS(procs)
+		for repetition := 0; repetition < 10; repetition++ {
+			d := definitionFor(concurrent.ConcurrentWorkflow)
+			e := &concurrentEnvironment{
+				environment: environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)},
+				activities:  make(map[string]bindings.ResultHandler),
+			}
+			d.Execute(e, nil, nil)
+			d.OnWorkflowTaskStarted(5 * time.Second)
+			if e.err != nil {
+				panic(e.err)
+			}
+			if len(e.activities) != 2 || e.timer == nil {
+				panic("concurrent commands were missed")
+			}
+			for _, value := range []string{"two", "one"} {
+				payloads, err := e.GetDataConverter().ToPayloads([]byte(value))
+				if err != nil {
+					panic(err)
+				}
+				e.activities[value](payloads, nil)
+			}
+			e.now = e.now.Add(time.Second)
+			e.timer(nil, nil)
+			d.OnWorkflowTaskStarted(5 * time.Second)
+			if e.err != nil {
+				panic(e.err)
+			}
+			var result []byte
+			if err := e.GetDataConverter().FromPayloads(e.result, &result); err != nil {
+				panic(err)
+			}
+			stream := string(result)
+			if !strings.HasPrefix(stream, "two|") || !strings.Contains(stream, "one") || !strings.Contains(stream, "timer") {
+				panic("lost concurrent result: " + stream)
+			}
+			if baseline == "" {
+				baseline = stream
+			}
+			if stream != baseline {
+				panic(fmt.Sprintf("concurrent replay differs at GOMAXPROCS=%d: %q, want %q", procs, stream, baseline))
+			}
+			d.Close()
+		}
+	}
+}
+
+func runDeadlock() {
+	d := definitionFor(concurrent.DeadlockWorkflow)
+	defer d.Close()
+	e := &environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}
+	d.Execute(e, nil, nil)
+	d.OnWorkflowTaskStarted(5 * time.Second)
+	if e.err == nil || !strings.Contains(e.err.Error(), "deadlocked") {
+		panic(fmt.Sprintf("deadlock error = %v", e.err))
+	}
 }
 
 func runEcho() {
@@ -224,4 +309,15 @@ func runSignal() {
 		panic(fmt.Sprintf("signal result = %q", result))
 	}
 	d.Close()
+}
+
+func runDeadline() {
+	d := definitionFor(concurrent.YieldForeverWorkflow)
+	defer d.Close()
+	e := &environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}
+	d.Execute(e, nil, nil)
+	d.OnWorkflowTaskStarted(20 * time.Millisecond)
+	if e.err == nil || !strings.Contains(e.err.Error(), "deadline") {
+		panic(fmt.Sprintf("deadline error = %v", e.err))
+	}
 }

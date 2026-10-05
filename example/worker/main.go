@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/mfateev/sdk-go-poc/example/clock"
+	"github.com/mfateev/sdk-go-poc/example/concurrent"
 	"github.com/mfateev/sdk-go-poc/example/order"
 	"github.com/mfateev/sdk-go-poc/example/signal"
 	"github.com/mfateev/sdk-go-poc/worker"
@@ -38,6 +39,7 @@ func main() {
 	w.RegisterWorkflowWithOptions(order.TypedEchoWorkflow, goWorkflow.RegisterOptions{Name: "IsolateTypedEcho"})
 	w.RegisterWorkflowWithOptions(signal.SignalWorkflow, goWorkflow.RegisterOptions{Name: "IsolateSignal"})
 	w.RegisterWorkflowWithOptions(clock.ClockWorkflow, goWorkflow.RegisterOptions{Name: "IsolateClock"})
+	w.RegisterWorkflowWithOptions(concurrent.ConcurrentWorkflow, goWorkflow.RegisterOptions{Name: "IsolateConcurrent"})
 	w.RegisterWorkflow(PlainEcho)
 	w.RegisterActivityWithOptions(echo, activity.RegisterOptions{Name: "echo"})
 	if err := w.Run(worker.InterruptCh()); err != nil {

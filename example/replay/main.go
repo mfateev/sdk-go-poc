@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/mfateev/sdk-go-poc/example/clock"
+	"github.com/mfateev/sdk-go-poc/example/concurrent"
 	"github.com/mfateev/sdk-go-poc/example/order"
 	"github.com/mfateev/sdk-go-poc/example/signal"
 	"github.com/mfateev/sdk-go-poc/worker"
@@ -21,11 +22,12 @@ func main() {
 		os.Exit(2)
 	}
 	functions := map[string]any{
-		"IsolateOrder":     order.OrderWorkflow,
-		"IsolateEcho":      order.EchoWorkflow,
-		"IsolateTypedEcho": order.TypedEchoWorkflow,
-		"IsolateSignal":    signal.SignalWorkflow,
-		"IsolateClock":     clock.ClockWorkflow,
+		"IsolateOrder":      order.OrderWorkflow,
+		"IsolateEcho":       order.EchoWorkflow,
+		"IsolateTypedEcho":  order.TypedEchoWorkflow,
+		"IsolateSignal":     signal.SignalWorkflow,
+		"IsolateClock":      clock.ClockWorkflow,
+		"IsolateConcurrent": concurrent.ConcurrentWorkflow,
 	}
 	fn, ok := functions[os.Args[1]]
 	if !ok {
