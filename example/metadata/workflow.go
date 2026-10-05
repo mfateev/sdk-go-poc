@@ -10,13 +10,19 @@ import (
 	"strings"
 	"sync"
 
+	commonpb "go.temporal.io/api/common/v1"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
 	"google.golang.org/protobuf/runtime/protoimpl"
 )
 
 //go:isolate
-func MetadataWorkflow(_ context.Context, mode string) (string, error) {
+func MetadataWorkflow(_ context.Context, mode string) (result string, err error) {
+	defer func() {
+		if p := recover(); p != nil {
+			err = fmt.Errorf("metadata workflow unexpected panic: %v", p)
+		}
+	}()
 	if mode == "reject" {
 		var callback bool
 		if err := rejected("registry visitor", func() {
@@ -31,6 +37,9 @@ func MetadataWorkflow(_ context.Context, mode string) (string, error) {
 			return "", err
 		}
 		if err := rejected("private message info", func() { _ = (&protoimpl.MessageInfo{}).Descriptor() }); err != nil {
+			return "", err
+		}
+		if err := rejected("private type builder", func() { _ = (protoimpl.TypeBuilder{}).Build() }); err != nil {
 			return "", err
 		}
 		if err := rejected("descriptor callback", func() {
@@ -49,6 +58,14 @@ func MetadataWorkflow(_ context.Context, mode string) (string, error) {
 		}
 		return "unsafe metadata operations rejected", nil
 	}
+	// Message state retains its canonical MessageInfo, while the actual message
+	// and bytes stay private. Heap-backed slots exercise reference publication;
+	// Header also exercises a later element in the same metadata table.
+	payload := &commonpb.Payload{Data: []byte("private payload")}
+	types := messageTypeSlots()
+	types[0], types[1] = payload.ProtoReflect().Type(), (&commonpb.Header{}).ProtoReflect().Type()
+	created := types[1].New().Interface().(*commonpb.Header)
+	created.Fields = map[string]*commonpb.Payload{"owned": payload}
 	var wg sync.WaitGroup
 	failures := make(chan error, 8)
 	for range 8 {
@@ -79,6 +96,11 @@ func MetadataWorkflow(_ context.Context, mode string) (string, error) {
 		})
 	}
 	wg.Wait()
+	// Frequent GC in the host driver runs while the concurrent cache builders
+	// allocate. These message values and metadata references remain live.
+	if string(payload.Data) != "private payload" || created.Fields["owned"] != payload || types[0].Descriptor().Fields().ByName("data") == nil || types[1].Descriptor().Fields().ByName("fields") == nil {
+		return "", fmt.Errorf("canonical message info or private payload changed")
+	}
 	close(failures)
 	for err := range failures {
 		return "", err
@@ -89,6 +111,9 @@ func MetadataWorkflow(_ context.Context, mode string) (string, error) {
 	}
 	return "metadata services passed", nil
 }
+
+//go:noinline
+func messageTypeSlots() *[2]protoreflect.MessageType { return new([2]protoreflect.MessageType) }
 
 func rejected(name string, fn func()) (err error) {
 	defer func() {
