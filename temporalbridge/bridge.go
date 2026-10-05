@@ -49,9 +49,9 @@ type Factory struct {
 
 func (f Factory) NewWorkflowDefinition() bindings.WorkflowDefinition {
 	if f.Function.Name() != "" {
-		handle := f.Function
-		// Capture only immutable function metadata, never the host resolver.
-		f.Program = handle.Program(func() { _ = workflow.RunFunction(handle) })
+		// The runtime entry wrapper transfers compiler-created metadata by
+		// value. This dispatcher captures no host-owned closure state.
+		f.Program = f.Function.ProgramWithHandle(func(handle isolate.Handle) { _ = workflow.RunFunction(handle) })
 		f.EntryName = f.Function.Name()
 	}
 	return &definition{program: f.Program, entryName: f.EntryName, resolveActivity: f.ResolveActivity}

@@ -291,3 +291,13 @@ and `LocalCancelWorkflow`. `ContextStressWorkflow` verifies child callback order
 
 When the host configures an isolate clock and timer operation, native
 `time.After`, `time.NewTimer`, and `time.Sleep` use durable host timers.
+
+### Function entry ownership
+
+The adapter uses `isolate.Handle.ProgramWithHandle` with a noncapturing dispatcher.
+The trusted runtime entry copies compiler-created function metadata by value;
+workflow dispatch does not read a host-owned closure containing that handle.
+The compiler/runtime conformance workflow checks SDK application code with
+level-two heap ownership diagnostics, including the race build. This remains
+partial enforcement: the external converter dependency graph and other remaining
+ownership paths still require their productization audit.
