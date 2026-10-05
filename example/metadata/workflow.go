@@ -10,16 +10,16 @@ import (
 	"strings"
 	"sync"
 
-	commonpb "go.temporal.io/api/common/v1"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
+	"google.golang.org/protobuf/runtime/protoimpl"
 )
 
 //go:isolate
 func MetadataWorkflow(_ context.Context, mode string) (string, error) {
 	if mode == "reject" {
 		var callback bool
-		if err := rejected(func() {
+		if err := rejected("registry visitor", func() {
 			protoregistry.GlobalTypes.RangeMessages(func(protoreflect.MessageType) bool { callback = true; return true })
 		}); err != nil {
 			return "", err
@@ -27,15 +27,24 @@ func MetadataWorkflow(_ context.Context, mode string) (string, error) {
 		if callback {
 			return "", fmt.Errorf("registry visitor ran inside a service")
 		}
-		if err := rejected(func() { _ = (&protoregistry.Types{}).NumMessages() }); err != nil {
+		if err := rejected("private registry", func() { _ = (&protoregistry.Types{}).NumMessages() }); err != nil {
 			return "", err
 		}
-		if err := rejected(func() {
+		if err := rejected("private message info", func() { _ = (&protoimpl.MessageInfo{}).Descriptor() }); err != nil {
+			return "", err
+		}
+		if err := rejected("descriptor callback", func() {
 			_, _ = protoregistry.GlobalFiles.FindDescriptorByName("isolate_metadata_callback_probe.Record")
 		}); err != nil {
 			return "", err
 		}
-		if err := rejected(func() { _ = protoregistry.GlobalTypes.RegisterMessage((&commonpb.Payload{}).ProtoReflect().Type()) }); err != nil {
+		if err := rejected("registry mutation", func() {
+			message, err := protoregistry.GlobalTypes.FindMessageByName("temporal.api.common.v1.Payload")
+			if err != nil {
+				panic(err)
+			}
+			_ = protoregistry.GlobalTypes.RegisterMessage(message)
+		}); err != nil {
 			return "", err
 		}
 		return "unsafe metadata operations rejected", nil
@@ -81,13 +90,17 @@ func MetadataWorkflow(_ context.Context, mode string) (string, error) {
 	return "metadata services passed", nil
 }
 
-func rejected(fn func()) (err error) {
+func rejected(name string, fn func()) (err error) {
 	defer func() {
-		if p := recover(); p != nil && (strings.Contains(fmt.Sprint(p), "unaudited metadata") || strings.Contains(fmt.Sprint(p), "requires a process-owned receiver")) {
-			err = nil
+		if p := recover(); p != nil {
+			if strings.Contains(fmt.Sprint(p), "unaudited metadata") || strings.Contains(fmt.Sprint(p), "requires a process-owned receiver") {
+				err = nil
+			} else {
+				err = fmt.Errorf("%s: unexpected rejection: %v", name, p)
+			}
 		}
 	}()
-	err = fmt.Errorf("unaudited operation was allowed")
+	err = fmt.Errorf("%s: unaudited operation was allowed", name)
 	fn()
 	return err
 }
