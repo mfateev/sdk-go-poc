@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mfateev/sdk-go-poc/example/cancellation"
 	"github.com/mfateev/sdk-go-poc/example/clock"
 	"github.com/mfateev/sdk-go-poc/example/concurrent"
 	"github.com/mfateev/sdk-go-poc/example/order"
@@ -19,10 +20,13 @@ import (
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/converter"
 	bindings "go.temporal.io/sdk/internalbindings"
+	"go.temporal.io/sdk/temporal"
 	goWorkflow "go.temporal.io/sdk/workflow"
 )
 
 type environment struct {
+	cancel             func()
+	canceledActivities int
 	bindings.WorkflowEnvironment
 	activity bindings.ResultHandler
 	timer    bindings.ResultHandler
@@ -33,6 +37,10 @@ type environment struct {
 	seq      int64
 	now      time.Time
 }
+
+func (e *environment) RegisterCancelHandler(handler func())        { e.cancel = handler }
+func (e *environment) RequestCancelActivity(_ bindings.ActivityID) { e.canceledActivities++ }
+func (e *environment) RequestCancelTimer(_ bindings.TimerID)       {}
 
 func (e *environment) RegisterSignalHandler(h func(string, *commonpb.Payloads, *commonpb.Header) error) {
 	e.signal = h
@@ -118,7 +126,10 @@ func main() {
 	runSignal()
 	runClock()
 	runConcurrent()
-	runDeadlock()
+	runRootCancellation()
+	runActivityCancellation()
+	runChildCancellation()
+	runContextStress()
 	runDeadline()
 	fmt.Println("temporal isolate serial and concurrent paths passed")
 }
@@ -192,14 +203,19 @@ func runConcurrent() {
 	}
 }
 
-func runDeadlock() {
-	d := definitionFor(concurrent.DeadlockWorkflow)
+func runRootCancellation() {
+	d := definitionFor(concurrent.WaitForCancellationWorkflow)
 	defer d.Close()
 	e := &environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}
 	d.Execute(e, nil, nil)
 	d.OnWorkflowTaskStarted(5 * time.Second)
-	if e.err == nil || !strings.Contains(e.err.Error(), "deadlocked") {
-		panic(fmt.Sprintf("deadlock error = %v", e.err))
+	if e.err != nil || e.cancel == nil {
+		panic("context wait did not park on host cancellation")
+	}
+	e.cancel()
+	d.OnWorkflowTaskStarted(5 * time.Second)
+	if !temporal.IsCanceledError(e.err) {
+		panic(fmt.Sprintf("workflow cancellation = %v", e.err))
 	}
 }
 
@@ -499,5 +515,107 @@ func runInferredActivity() {
 			panic("inferred call accepted failed/wrong-type response")
 		}
 		d.Close()
+	}
+}
+
+func runActivityCancellation() {
+	for _, beforeStart := range []bool{false, true} {
+		d := definitionFor(cancellation.ActivityWorkflow)
+		e := &cancellationEnvironment{environment: environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}}
+		input, err := e.GetDataConverter().ToPayloads("cancel")
+		if err != nil {
+			panic(err)
+		}
+		d.Execute(e, nil, input)
+		if beforeStart {
+			e.cancel()
+		}
+		d.OnWorkflowTaskStarted(5 * time.Second)
+		if !beforeStart {
+			if e.activity == nil || e.err != nil {
+				panic("cancellable activity not scheduled")
+			}
+			e.cancel()
+			d.OnWorkflowTaskStarted(5 * time.Second)
+		}
+		if !temporal.IsCanceledError(e.err) {
+			panic(fmt.Sprintf("activity workflow cancellation: %v", e.err))
+		}
+		want := 1
+		if beforeStart {
+			want = 0
+		}
+		if e.canceledActivities != want {
+			panic(fmt.Sprintf("activity cancel requests=%d, want=%d", e.canceledActivities, want))
+		}
+		if !beforeStart {
+			// A late activity completion must not reply/complete a second time.
+			e.activity(input, nil)
+			d.OnWorkflowTaskStarted(5 * time.Second)
+			if !temporal.IsCanceledError(e.err) {
+				panic("late activity response replaced cancellation")
+			}
+		}
+		d.Close()
+	}
+}
+
+type cancellationEnvironment struct{ environment }
+
+func (e *cancellationEnvironment) ExecuteActivity(p bindings.ExecuteActivityParams, cb bindings.ResultHandler) bindings.ActivityID {
+	if p.ActivityType.Name != "WaitActivity" {
+		panic("incorrect cancellation activity name")
+	}
+	e.activity = cb
+	return bindings.ActivityID{}
+}
+func runChildCancellation() {
+	for _, scenario := range []struct {
+		fn   any
+		want string
+	}{{cancellation.DeadlineWorkflow, "deadline observed"}, {cancellation.LocalCancelWorkflow, "local cancellation observed"}} {
+		d := definitionFor(scenario.fn)
+		e := &cancellationEnvironment{environment: environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}}
+		d.Execute(e, nil, nil)
+		d.OnWorkflowTaskStarted(5 * time.Second)
+		if e.activity == nil || e.timer == nil || e.err != nil {
+			panic(fmt.Sprintf("child cancellation not scheduled: %v", e.err))
+		}
+		e.now = e.now.Add(time.Second)
+		e.timer(nil, nil)
+		d.OnWorkflowTaskStarted(5 * time.Second)
+		if e.err != nil {
+			panic(e.err)
+		}
+		var got string
+		if err := e.GetDataConverter().FromPayloads(e.result, &got); err != nil {
+			panic(err)
+		}
+		if got != scenario.want || e.canceledActivities != 1 {
+			panic(fmt.Sprintf("child cancellation: %q requests=%d", got, e.canceledActivities))
+		}
+		d.Close()
+	}
+}
+func runContextStress() {
+	for _, procs := range []int{1, 2, 8} {
+		runtime.GOMAXPROCS(procs)
+		for range 5 {
+			d := definitionFor(cancellation.ContextStressWorkflow)
+			e := &environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}
+			d.Execute(e, nil, nil)
+			d.OnWorkflowTaskStarted(5 * time.Second)
+			if e.err != nil {
+				panic(e.err)
+			}
+			var got int
+			if err := e.GetDataConverter().FromPayloads(e.result, &got); err != nil {
+				panic(err)
+			}
+			if got != 64 {
+				panic("context callbacks did not all execute")
+			}
+			d.Close()
+		}
 	}
 }

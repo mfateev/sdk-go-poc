@@ -2,6 +2,7 @@
 package activityref
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"runtime"
@@ -21,4 +22,32 @@ func Name(fn any) (string, error) {
 	}
 	name := function.Name()
 	return strings.TrimSuffix(name[strings.LastIndex(name, ".")+1:], "-fm"), nil
+}
+
+// ValidateContext enforces the POC's activity context contract at registration.
+func ValidateContext(fn any) error {
+	typ := reflect.TypeOf(fn)
+	if typ == nil {
+		return fmt.Errorf("activity must be a non-nil function or pointer to struct")
+	}
+	validate := func(typ reflect.Type, receiver int) error {
+		if typ.NumIn() <= receiver || typ.In(receiver) != reflect.TypeFor[context.Context]() {
+			return fmt.Errorf("activity must take context.Context first")
+		}
+		return nil
+	}
+	if typ.Kind() == reflect.Func {
+		return validate(typ, 0)
+	}
+	if typ.Kind() == reflect.Pointer && typ.Elem().Kind() == reflect.Struct {
+		for i := 0; i < typ.NumMethod(); i++ {
+			method := typ.Method(i)
+			if method.PkgPath == "" {
+				if err := validate(method.Type, 1); err != nil {
+					return fmt.Errorf("%s: %w", method.Name, err)
+				}
+			}
+		}
+	}
+	return nil // SDK validates other registration forms.
 }

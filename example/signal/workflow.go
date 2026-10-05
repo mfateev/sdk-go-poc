@@ -1,9 +1,12 @@
 package signal
 
-import "github.com/mfateev/sdk-go-poc/workflow"
+import (
+	"context"
+	"github.com/mfateev/sdk-go-poc/workflow"
+)
 
 //go:isolate
-func SignalWorkflow() ([]byte, error) {
-	signal, err := workflow.NextSignal()
+func SignalWorkflow(ctx context.Context) ([]byte, error) {
+	signal, err := workflow.NextSignal(ctx)
 	return signal.Input, err
 }

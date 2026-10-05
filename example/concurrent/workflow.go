@@ -2,6 +2,7 @@
 package concurrent
 
 import (
+	"context"
 	"runtime"
 	"strings"
 	"time"
@@ -10,13 +11,15 @@ import (
 )
 
 //go:isolate
-func ConcurrentWorkflow() ([]byte, error) {
-	first := workflow.ExecuteActivityAsyncByName[[]byte]("echo", time.Minute, []byte("one"))
-	second := workflow.ExecuteActivityAsyncByName[[]byte]("echo", time.Minute, []byte("two"))
+func ConcurrentWorkflow(ctx context.Context) ([]byte, error) {
+	first := workflow.ExecuteActivityAsyncByName[[]byte](ctx, "echo", time.Minute, []byte("one"))
+	second := workflow.ExecuteActivityAsyncByName[[]byte](ctx, "echo", time.Minute, []byte("two"))
 	timer := time.After(time.Second)
 	var events []string
 	for first != nil || second != nil || timer != nil {
 		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
 		case result := <-first:
 			if result.Err != nil {
 				return nil, result.Err
@@ -38,14 +41,13 @@ func ConcurrentWorkflow() ([]byte, error) {
 }
 
 //go:isolate
-func DeadlockWorkflow() ([]byte, error) {
-	var never chan struct{}
-	<-never
-	return nil, nil
+func WaitForCancellationWorkflow(ctx context.Context) ([]byte, error) {
+	<-ctx.Done()
+	return nil, ctx.Err()
 }
 
 //go:isolate
-func YieldForeverWorkflow() ([]byte, error) {
+func YieldForeverWorkflow(ctx context.Context) ([]byte, error) {
 	for {
 		runtime.Gosched()
 	}

@@ -15,6 +15,7 @@ import (
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/converter"
 	bindings "go.temporal.io/sdk/internalbindings"
+	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/worker"
 	goWorkflow "go.temporal.io/sdk/workflow"
 	"google.golang.org/protobuf/proto"
@@ -67,7 +68,19 @@ type signalWaiter struct {
 	command *isolate.Command
 }
 
+type callState struct {
+	id      uint64
+	command *isolate.Command
+	done    bool
+	cancel  func()
+}
+
 type definition struct {
+	canceled        bool
+	cancelWaiter    *isolate.Command
+	calls           map[uint64]*callState
+	callsByCommand  map[*isolate.Command]*callState
+	earlyCancel     map[uint64]bool
 	resolveActivity func(string) string
 	program         isolate.Program
 	entryName       string
@@ -85,6 +98,16 @@ type definition struct {
 // Execute must be asynchronous. History callbacks only queue data here.
 func (d *definition) Execute(env bindings.WorkflowEnvironment, _ *commonpb.Header, input *commonpb.Payloads) {
 	d.env, d.input = env, input
+	env.RegisterCancelHandler(func() {
+		if d.completed {
+			return
+		}
+		d.canceled = true
+		if d.cancelWaiter != nil {
+			d.pending = append(d.pending, reply{command: d.cancelWaiter})
+			d.cancelWaiter = nil
+		}
+	})
 	env.RegisterSignalHandler(func(name string, payloads *commonpb.Payloads, _ *commonpb.Header) error {
 		var payload []byte
 		if err := env.GetDataConverter().FromPayloads(payloads, &payload); err != nil {
@@ -136,6 +159,10 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 	}
 	d.pending = nil
 	d.deliverWaitingSignals()
+	for _, r := range d.pending {
+		r.command.Reply(r.payload, r.err)
+	}
+	d.pending = nil
 	// History replies above are batched while the previous task is suspended.
 	// Service commands while the runtime seeks idle; after suspension drain
 	// pending sends, then resume their transport handshakes. Return only after
@@ -232,12 +259,117 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 }
 
 func (d *definition) replyWhenSuspended(command *isolate.Command, payload []byte, err error) {
-	d.immediate = append(d.immediate, reply{command: command, payload: payload, err: err})
+	d.finish(command, d.callsByCommand[command], payload, err, true)
+}
+
+func (d *definition) finish(command *isolate.Command, state *callState, payload []byte, err error, immediate bool) {
+	if state != nil {
+		if state.done {
+			return
+		}
+		state.done = true
+		delete(d.calls, state.id)
+		delete(d.callsByCommand, command)
+	}
+	r := reply{command: command, payload: payload, err: err}
+	if immediate {
+		d.immediate = append(d.immediate, r)
+	} else {
+		d.pending = append(d.pending, r)
+	}
+}
+
+func (d *definition) completion(command *isolate.Command) func([]byte, error) {
+	state := d.callsByCommand[command]
+	return func(payload []byte, err error) { d.finish(command, state, payload, err, false) }
+}
+
+func (d *definition) finishWorkflow(result *commonpb.Payloads, err error) {
+	d.env.Complete(result, err)
+	d.completed = true
+	if d.cancelWaiter != nil {
+		d.replyWhenSuspended(d.cancelWaiter, nil, nil)
+		d.cancelWaiter = nil
+	}
+}
+
+func completionError(message string, canceled bool) error {
+	if canceled {
+		return temporal.NewCanceledError()
+	}
+	if message != "" {
+		return errors.New(message)
+	}
+	return nil
 }
 
 // handle emits or answers one host command. Replies are held until suspension.
 func (d *definition) handle(command *isolate.Command) error {
 	switch command.Op {
+	case workflow.OpWorkflowCancel:
+		if d.cancelWaiter != nil {
+			return errors.New("duplicate workflow cancellation listener")
+		}
+		if d.canceled || d.completed {
+			d.replyWhenSuspended(command, nil, nil)
+		} else {
+			d.cancelWaiter = command
+		}
+		return nil
+	case workflow.OpCancellableCall:
+		var request workflow.CallRequest
+		if err := json.Unmarshal(command.Payload, &request); err != nil {
+			return err
+		}
+		if request.ID == 0 || (request.Op != workflow.OpActivityPayloads && request.Op != workflow.OpSleep && request.Op != workflow.OpSignal) {
+			return errors.New("invalid cancellable call")
+		}
+		if d.calls[request.ID] != nil {
+			return errors.New("duplicate cancellable call ID")
+		}
+		if d.earlyCancel[request.ID] {
+			delete(d.earlyCancel, request.ID)
+			d.replyWhenSuspended(command, nil, context.Canceled)
+			return nil
+		}
+		if d.calls == nil {
+			d.calls = make(map[uint64]*callState)
+			d.callsByCommand = make(map[*isolate.Command]*callState)
+		}
+		state := &callState{id: request.ID, command: command}
+		d.calls[request.ID], d.callsByCommand[command] = state, state
+		command.Op, command.Payload = request.Op, request.Payload
+		return d.handle(command)
+	case workflow.OpCancelCall:
+		var id uint64
+		if err := json.Unmarshal(command.Payload, &id); err != nil {
+			return err
+		}
+		if id == 0 {
+			return errors.New("invalid cancel call ID")
+		}
+		if state := d.calls[id]; state != nil {
+			// Finish first so synchronous or late SDK callbacks cannot reply twice.
+			d.finish(state.command, state, nil, context.Canceled, true)
+			for index, waiter := range d.wantSignals {
+				if waiter.command == state.command {
+					d.wantSignals = append(d.wantSignals[:index], d.wantSignals[index+1:]...)
+					break
+				}
+			}
+			if state.cancel != nil {
+				state.cancel()
+			}
+		} else {
+			// A cancel callback may send before the original Call's transport wait.
+			// These small IDs are discarded when that call arrives or workflow closes.
+			if d.earlyCancel == nil {
+				d.earlyCancel = make(map[uint64]bool)
+			}
+			d.earlyCancel[id] = true
+		}
+		d.replyWhenSuspended(command, nil, nil)
+		return nil
 	case workflow.OpInput:
 		input, err := d.inputBytes()
 		if err != nil {
@@ -269,7 +401,7 @@ func (d *definition) handle(command *isolate.Command) error {
 				return err
 			}
 		}
-		payload, err := json.Marshal(workflow.PayloadStart{Name: d.entryName, Payloads: input})
+		payload, err := json.Marshal(workflow.PayloadStart{Name: d.entryName, Payloads: input, Canceled: d.canceled})
 		if err != nil {
 			return err
 		}
@@ -326,13 +458,17 @@ func (d *definition) handle(command *isolate.Command) error {
 			ActivityType: bindings.ActivityType{Name: request.Name},
 			Input:        input,
 		}
-		d.env.ExecuteActivity(params, func(result *commonpb.Payloads, cause error) {
+		finish := d.completion(command)
+		activityID := d.env.ExecuteActivity(params, func(result *commonpb.Payloads, cause error) {
 			var payload []byte
 			if cause == nil && result != nil {
 				payload, cause = proto.MarshalOptions{Deterministic: true}.Marshal(result)
 			}
-			d.pending = append(d.pending, reply{command: command, payload: payload, err: cause})
+			finish(payload, cause)
 		})
+		if state := d.callsByCommand[command]; state != nil {
+			state.cancel = func() { d.env.RequestCancelActivity(activityID) }
+		}
 		return nil
 	case workflow.OpSleep:
 		var duration time.Duration
@@ -346,9 +482,11 @@ func (d *definition) handle(command *isolate.Command) error {
 			d.replyWhenSuspended(command, nil, nil)
 			return nil
 		}
-		d.env.NewTimer(duration, goWorkflow.TimerOptions{}, func(result *commonpb.Payloads, cause error) {
-			d.pending = append(d.pending, reply{command: command, err: cause})
-		})
+		finish := d.completion(command)
+		timerID := d.env.NewTimer(duration, goWorkflow.TimerOptions{}, func(result *commonpb.Payloads, cause error) { finish(nil, cause) })
+		if state := d.callsByCommand[command]; state != nil && timerID != nil {
+			state.cancel = func() { d.env.RequestCancelTimer(*timerID) }
+		}
 		return nil
 	case workflow.OpSignal:
 		name := string(command.Payload)
@@ -368,13 +506,12 @@ func (d *definition) handle(command *isolate.Command) error {
 		var result *commonpb.Payloads
 		var err error
 		if completion.Error != "" {
-			err = errors.New(completion.Error)
+			err = completionError(completion.Error, completion.Canceled)
 		} else {
 			result, err = d.env.GetDataConverter().ToPayloads(completion.Result)
 		}
 		if err == nil || completion.Error != "" {
-			d.env.Complete(result, err)
-			d.completed = true
+			d.finishWorkflow(result, err)
 			d.replyWhenSuspended(command, nil, nil)
 			return nil
 		}
@@ -387,15 +524,14 @@ func (d *definition) handle(command *isolate.Command) error {
 		var result *commonpb.Payloads
 		var err error
 		if completion.Error != "" {
-			err = errors.New(completion.Error)
+			err = completionError(completion.Error, completion.Canceled)
 		} else if len(completion.Payloads) != 0 {
 			result = new(commonpb.Payloads)
 			if err := proto.Unmarshal(completion.Payloads, result); err != nil {
 				return fmt.Errorf("decode workflow result payloads: %w", err)
 			}
 		}
-		d.env.Complete(result, err)
-		d.completed = true
+		d.finishWorkflow(result, err)
 		d.replyWhenSuspended(command, nil, nil)
 		return nil
 	default:
@@ -449,7 +585,7 @@ func (d *definition) deliverWaitingSignals() {
 			continue
 		}
 		payload, _ := json.Marshal(d.signals[signalIndex])
-		d.wantSignals[waiterIndex].command.Reply(payload, nil)
+		d.finish(d.wantSignals[waiterIndex].command, d.callsByCommand[d.wantSignals[waiterIndex].command], payload, nil, false)
 		d.wantSignals = append(d.wantSignals[:waiterIndex], d.wantSignals[waiterIndex+1:]...)
 		d.signals = append(d.signals[:signalIndex], d.signals[signalIndex+1:]...)
 	}

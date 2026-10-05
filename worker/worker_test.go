@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"context"
 	"go.temporal.io/sdk/activity"
 	"testing"
 	"time"
@@ -46,11 +47,13 @@ func TestOrdinaryWorkflowPreservesWorkerOptionsAndCustomConverter(t *testing.T) 
 func (w *testWorker) RegisterActivityWithOptions(fn any, options activity.RegisterOptions) {
 	w.env.RegisterActivityWithOptions(fn, options)
 }
-func testActivity(input int) (string, error) { return "host", nil }
+func testActivity(_ context.Context, input int) (string, error) { return "host", nil }
 
 type testActivities struct{}
 
-func (*testActivities) Method(input int) (string, error) { panic("must not execute while registering") }
+func (*testActivities) Method(_ context.Context, input int) (string, error) {
+	panic("must not execute while registering")
+}
 
 func TestActivityAliasesAndOrdinaryActivities(t *testing.T) {
 	var suite testsuite.WorkflowTestSuite
@@ -101,3 +104,21 @@ func TestReplayActivityAliasesAndDisabledAliasing(t *testing.T) {
 		}
 	}
 }
+
+func TestRejectsActivityWithoutStandardContext(t *testing.T) {
+	for _, fn := range []any{func(int) (string, error) { return "", nil }, func() {}, (*contextlessActivities)(nil)} {
+		r := NewWorkflowReplayer()
+		func() {
+			defer func() {
+				if recover() == nil {
+					t.Errorf("accepted contextless activity %T", fn)
+				}
+			}()
+			r.RegisterActivity(fn)
+		}()
+	}
+}
+
+type contextlessActivities struct{}
+
+func (*contextlessActivities) Wrong(string) error { return nil }

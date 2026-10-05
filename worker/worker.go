@@ -4,6 +4,7 @@
 package worker
 
 import (
+	"context"
 	"fmt"
 	"isolate"
 	"reflect"
@@ -94,8 +95,18 @@ func (w *isolateWorker) RegisterActivity(fn any) {
 }
 
 func (w *isolateWorker) RegisterActivityWithOptions(fn any, options activity.RegisterOptions) {
+	if err := activityref.ValidateContext(fn); err != nil {
+		panic(err)
+	}
 	w.Worker.RegisterActivityWithOptions(fn, options)
 	w.activities.register(fn, options)
+}
+
+func (w *isolateWorker) RegisterDynamicActivity(fn any, options activity.DynamicRegisterOptions) {
+	if err := activityref.ValidateContext(fn); err != nil {
+		panic(err)
+	}
+	w.Worker.RegisterDynamicActivity(fn, options)
 }
 
 func (w *isolateWorker) RegisterWorkflow(fn any) {
@@ -111,6 +122,10 @@ func registration(fn any, options goWorkflow.RegisterOptions, resolve func(strin
 	handle, ok := isolate.LookupFunction(fn)
 	if !ok {
 		return fn, options
+	}
+	signature := handle.Signature()
+	if signature.NumIn() == 0 || signature.In(0) != reflect.TypeFor[context.Context]() {
+		panic("worker: isolate workflow must take context.Context first")
 	}
 	if options.Name == "" {
 		name := handle.Name()
@@ -129,6 +144,9 @@ func (r *isolateReplayer) RegisterActivity(fn any) {
 }
 
 func (r *isolateReplayer) RegisterActivityWithOptions(fn any, options activity.RegisterOptions) {
+	if err := activityref.ValidateContext(fn); err != nil {
+		panic(err)
+	}
 	r.activities.register(fn, options)
 }
 

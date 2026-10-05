@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/mfateev/sdk-go-poc/example/cancellation"
 	"github.com/mfateev/sdk-go-poc/example/clock"
 	"github.com/mfateev/sdk-go-poc/example/concurrent"
 	"github.com/mfateev/sdk-go-poc/example/order"
@@ -23,6 +24,11 @@ func main() {
 		os.Exit(2)
 	}
 	functions := map[string]any{
+		"ActivityWorkflow":        cancellation.ActivityWorkflow,
+		"IdleWorkflow":            cancellation.IdleWorkflow,
+		"DeadlineWorkflow":        cancellation.DeadlineWorkflow,
+		"LocalCancelWorkflow":     cancellation.LocalCancelWorkflow,
+		"ContextStressWorkflow":   cancellation.ContextStressWorkflow,
 		"IsolateOrder":            order.OrderWorkflow,
 		"IsolateEcho":             order.EchoWorkflow,
 		"IsolateTypedActivity":    order.TypedActivityWorkflow,

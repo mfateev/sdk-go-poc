@@ -1,7 +1,9 @@
 package temporalbridge
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	goWorkflow "go.temporal.io/sdk/workflow"
 	"isolate"
 	"strings"
@@ -61,15 +63,18 @@ func TestNamedSignalMatching(t *testing.T) {
 // happens to match a registered function alias key.
 type activityEnvironment struct {
 	bindings.WorkflowEnvironment
-	name string
+	name     string
+	callback bindings.ResultHandler
+	cancels  int
 }
 
 func (e *activityEnvironment) WorkflowInfo() *goWorkflow.Info {
 	return &goWorkflow.Info{TaskQueueName: "test"}
 }
 func (e *activityEnvironment) GenerateSequence() int64 { return 1 }
-func (e *activityEnvironment) ExecuteActivity(p bindings.ExecuteActivityParams, _ bindings.ResultHandler) bindings.ActivityID {
+func (e *activityEnvironment) ExecuteActivity(p bindings.ExecuteActivityParams, callback bindings.ResultHandler) bindings.ActivityID {
 	e.name = p.ActivityType.Name
+	e.callback = callback
 	return bindings.ActivityID{}
 }
 func TestOnlyFunctionReferencesResolveActivityAliases(t *testing.T) {
@@ -99,5 +104,39 @@ func TestOnlyFunctionReferencesResolveActivityAliases(t *testing.T) {
 		if env.name != want || calls != wantCalls {
 			t.Fatalf("function=%t: name=%q, resolver calls=%d", function, env.name, calls)
 		}
+	}
+}
+
+func (e *activityEnvironment) RequestCancelActivity(_ bindings.ActivityID) { e.cancels++ }
+func TestCancelActivityRepliesOnceAndIgnoresLateCallback(t *testing.T) {
+	env := new(activityEnvironment)
+	d := &definition{env: env}
+	payload, _ := json.Marshal(workflow.ActivityPayloadRequest{Name: "Foo", StartToCloseTimeout: time.Minute})
+	request, _ := json.Marshal(workflow.CallRequest{ID: 1, Op: workflow.OpActivityPayloads, Payload: payload})
+	original := &isolate.Command{Op: workflow.OpCancellableCall, Payload: request}
+	if err := d.handle(original); err != nil {
+		t.Fatal(err)
+	}
+	cancel := &isolate.Command{Op: workflow.OpCancelCall, Payload: []byte("1")}
+	if err := d.handle(cancel); err != nil {
+		t.Fatal(err)
+	}
+	if env.cancels != 1 || len(d.immediate) != 2 || d.immediate[0].command != original || !errors.Is(d.immediate[0].err, context.Canceled) {
+		t.Fatalf("cancel replies=%+v requests=%d", d.immediate, env.cancels)
+	}
+	env.callback(nil, nil)
+	if len(d.pending) != 0 || len(d.immediate) != 2 {
+		t.Fatal("late activity callback delivered a second result")
+	}
+}
+
+func TestCancelListenerRegisteredAfterCompletionIsReleased(t *testing.T) {
+	d := &definition{completed: true}
+	command := &isolate.Command{Op: workflow.OpWorkflowCancel}
+	if err := d.handle(command); err != nil {
+		t.Fatal(err)
+	}
+	if d.cancelWaiter != nil || len(d.immediate) != 1 || d.immediate[0].command != command {
+		t.Fatal("completed workflow retained a late cancellation listener")
 	}
 }

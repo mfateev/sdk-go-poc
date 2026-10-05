@@ -120,7 +120,7 @@ Mark each workflow function and register it through the POC worker package:
 ```go
 // In an ordinary workflow package:
 //go:isolate
-func TypedEchoWorkflow(request TypedEchoRequest, suffix string) (TypedEchoResult, error) {
+func TypedEchoWorkflow(ctx context.Context, request TypedEchoRequest, suffix string) (TypedEchoResult, error) {
     return TypedEchoResult{Message: "hello " + request.Name + suffix}, nil
 }
 
@@ -152,7 +152,7 @@ so selected package initializers run for every instance. Finer function-level
 dependency selection remains TODO. The older directory-program and explicit
 registration helpers remain available for runtime probes.
 
-`workflow.GetSignalChannel(name)` provides a channel for signals with that
+`workflow.GetSignalChannel(ctx, name)` provides a channel for signals with that
 name. It wraps the existing host `Call` in an isolate-owned goroutine and
 returns `workflow.SignalResult` values, including any host error. `NextSignal`
 still receives the next signal of any name. The host keeps other named signals
@@ -160,55 +160,93 @@ queued for their matching channels.
 `workflow.ExecuteActivityAsync` wraps `ExecuteActivity` the same way and returns
 a channel with one `workflow.ActivityResult[R]` before closing.
 
-Activity calls infer input and result types from a function with one input and
-one result plus an error:
+Every isolate workflow and every POC activity takes standard `context.Context`
+as its first parameter. The SDK creates the workflow's context inside its
+isolate and injects it before decoding the ordinary input payloads. Contexts
+are never serialized or passed as host pointers. Existing ordinary Temporal
+workflows retain the standard SDK's `workflow.Context` API.
 
 ```go
-func FormatNumber(input int) (string, error) {
-    return fmt.Sprintf("number:%d", input), nil
+func FormatNumber(ctx context.Context, input int) (string, error) {
+    return fmt.Sprintf("number:%d", input), nil // host activity
 }
 
-text, err := workflow.ExecuteActivity(FormatNumber, time.Minute, 5) // text is string
-result := <-workflow.ExecuteActivityAsync(FormatNumber, time.Minute, 5)
+//go:isolate
+func Example(ctx context.Context, input int) (string, error) {
+    return workflow.ExecuteActivity(ctx, FormatNumber, time.Minute, input)
+}
+```
+
+Go infers both input and result types. Async calls use the same context:
+
+```go
+result := <-workflow.ExecuteActivityAsync(ctx, FormatNumber, time.Minute, 5)
 // result.Result is string; result.Err is error.
 ```
 
-For an activity with a leading `context.Context`, use
-`ExecuteActivityWithContext` or `ExecuteActivityAsyncWithContext`. The host
-worker supplies the context; the isolate sends only the input value. These
-APIs identify the function without executing it inside the isolate. Function
-names and bound methods follow Temporal's short-name convention. Function
-registrations with `activity.RegisterOptions{Name: ...}` are resolved by the
-host, including registrations made after the workflow was registered.
-`worker.New` honors `DisableRegistrationAliasing`; `worker.Wrap` assumes the
-wrapped SDK worker uses the default aliasing setting.
+A Temporal workflow cancellation request cancels the context passed to the
+workflow function. `<-ctx.Done()` wakes and `ctx.Err()` is `context.Canceled`.
+Child contexts inherit cancellation normally. `context.WithCancel`,
+`WithCancelCause`, `WithTimeout`, `WithDeadline`, `WithValue`, `WithoutCancel`,
+and `AfterFunc` work inside an isolate. Deadlines use history time and durable
+Temporal timers, and children/callbacks cancel in creation order. Custom
+contexts with their own `AfterFunc` implementation remain outside the POC.
+
+Canceling the context supplied to an activity call requests cancellation of
+that activity on the host and wakes its workflow caller. The worker supplies
+the activity's own standard Go context; a workflow context is never copied
+into the host. As with standard Temporal activities, a running activity should
+heartbeat to receive cancellation promptly and must cooperate with its context.
+A child cancellation leaves its parent active, and `context.WithoutCancel(ctx)`
+can be used for cleanup work after workflow cancellation. A workflow returning
+`context.Canceled` completes as canceled; a workflow may handle cancellation
+and return a normal result instead.
+
+Function references also support zero-input and error-only activities:
+
+```go
+choice, err := workflow.ExecuteActivityNoInput(ctx, orders.GetOrder, timeout)
+err = workflow.ExecuteActivityError(ctx, orders.OrderApple, timeout, choice)
+```
+
+These infer types from the actual signatures and preserve the original argument
+counts. A nil receiver can identify a method; the registered host object supplies
+its receiver state. Prefixed struct registrations still require explicit names.
 
 Name-based calls support zero or multiple inputs and error-only activities:
 
 ```go
-text, err := workflow.ExecuteActivityByName[string]("Greet", time.Minute, name)
-result := <-workflow.ExecuteActivityAsyncByName[MyResult]("Compute", time.Minute, input, options)
-_, err = workflow.ExecuteActivityByName[struct{}]("SendEmail", time.Minute, message)
+text, err := workflow.ExecuteActivityByName[string](ctx, "Greet", time.Minute, name)
+result := <-workflow.ExecuteActivityAsyncByName[MyResult](ctx, "Compute", time.Minute, input, options)
+_, err = workflow.ExecuteActivityByName[struct{}](ctx, "SendEmail", time.Minute, message)
 ```
 
-For these calls the result type is explicit. Use `struct{}` for an activity
-returning only an error. Prefixed struct registrations should be called by
-name, matching the standard SDK. Name-based calls are passed through exactly
-and are not rewritten by the function alias table.
+Here the result type is explicit. Use `struct{}` for an activity returning only
+an error. Name-based calls are passed through exactly. `workflow.Sleep(ctx, d)`,
+`NextSignal(ctx)`, and `GetSignalChannel(ctx, name)` also honor cancellation.
+Native timers can be used in `select` alongside `ctx.Done()`.
 
-When replaying a workflow that references aliased activity functions, call
-`replayer.RegisterActivityWithOptions(fn, options)` with the same aliases as
-the worker. These registrations supply metadata only; replay never executes
-activities. Unaliased functions need no activity registration on the replayer.
+Function names and bound methods follow Temporal's short-name convention.
+`activity.RegisterOptions{Name: ...}` aliases resolve on the host, including
+registrations made after the workflow registration. Prefixed struct methods
+use explicit names, matching the standard SDK. `worker.New` honors
+`DisableRegistrationAliasing`; `worker.Wrap` assumes default SDK aliasing.
+When replaying aliased function references, supply the same aliases with
+`replayer.RegisterActivityWithOptions(fn, options)`. Replay registrations are
+metadata only and never execute activities. Unaliased functions need no replay
+activity registration. Registration rejects POC activities and marked workflows
+that omit the required standard context parameter.
 
-Arguments and results use the default Temporal converter inside the isolate
-and cross `Call` as protobuf-serialized `Payloads`. The host forwards them to
-native activity functions without byte/string wrappers. Activity and converter
-errors return the zero result with an error. Values remain restricted to the
-same JSON/bytes/null subset as workflow arguments; custom converters and
-protobuf message values remain TODOs. Previous `ExecuteActivity[R](name, ...)`
-callers now use `ExecuteActivityByName[R](name, ...)`, and the previous async
-name API becomes `ExecuteActivityAsyncByName[R]`.
+Arguments/results still use Temporal's default converter inside the isolate
+and cross `Call` as protobuf-serialized `Payloads`. The supported values remain
+JSON/bytes/null; custom converters and protobuf message arguments/results are
+TODOs. Adding context parameters does not add context data to workflow or
+activity histories. Previous `ExecuteActivityWithContext` variants are replaced
+by the mandatory-context `ExecuteActivity`/`ExecuteActivityAsync` APIs.
+
+Cancellation examples are registered on the example worker: `ActivityWorkflow`
+(waiting activity), `IdleWorkflow` (waiting on `ctx.Done()`), `DeadlineWorkflow`,
+and `LocalCancelWorkflow`. `ContextStressWorkflow` verifies child callback order.
 
 When the host configures an isolate clock and timer operation, native
 `time.After`, `time.NewTimer`, and `time.Sleep` use durable host timers.

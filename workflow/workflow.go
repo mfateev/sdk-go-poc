@@ -32,15 +32,18 @@ const (
 	OpStartPayloads    uint32 = 7
 	OpCompletePayloads uint32 = 8
 	OpActivityPayloads uint32 = 9
+	OpWorkflowCancel   uint32 = 10
+	OpCancellableCall  uint32 = 11
+	OpCancelCall       uint32 = 12
 )
 
 // Handler is a named workflow function. Each execution receives its own
 // isolate instance, including a fresh copy of the registration table.
-type Handler func([]byte) ([]byte, error)
+type Handler func(context.Context, []byte) ([]byte, error)
 
 var handlers = make(map[string]Handler)
 
-type typedHandler func(*commonpb.Payloads) (*commonpb.Payloads, error)
+type typedHandler func(context.Context, *commonpb.Payloads) (*commonpb.Payloads, error)
 
 var typedHandlers = make(map[string]typedHandler)
 
@@ -74,25 +77,25 @@ func registerTyped(name string, handler typedHandler) {
 
 // RegisterTyped0 registers a typed workflow without arguments. The result is
 // converted inside the isolate using Temporal's default converter.
-func RegisterTyped0[R any](name string, handler func() (R, error)) {
+func RegisterTyped0[R any](name string, handler func(context.Context) (R, error)) {
 	if handler == nil {
 		panic("workflow: nil typed handler")
 	}
-	registerTyped(name, func(payloads *commonpb.Payloads) (*commonpb.Payloads, error) {
+	registerTyped(name, func(ctx context.Context, payloads *commonpb.Payloads) (*commonpb.Payloads, error) {
 		if err := checkArgumentCount(payloads, 0); err != nil {
 			return nil, err
 		}
-		result, err := handler()
+		result, err := handler(ctx)
 		return encodeTypedResult(result, err)
 	})
 }
 
 // RegisterTyped registers a typed workflow with one argument.
-func RegisterTyped[A, R any](name string, handler func(A) (R, error)) {
+func RegisterTyped[A, R any](name string, handler func(context.Context, A) (R, error)) {
 	if handler == nil {
 		panic("workflow: nil typed handler")
 	}
-	registerTyped(name, func(payloads *commonpb.Payloads) (*commonpb.Payloads, error) {
+	registerTyped(name, func(ctx context.Context, payloads *commonpb.Payloads) (*commonpb.Payloads, error) {
 		if err := checkArgumentCount(payloads, 1); err != nil {
 			return nil, err
 		}
@@ -103,17 +106,17 @@ func RegisterTyped[A, R any](name string, handler func(A) (R, error)) {
 		if err := converter.GetDefaultDataConverter().FromPayloads(payloads, &arg); err != nil {
 			return nil, fmt.Errorf("workflow: decode arguments: %w", err)
 		}
-		result, err := handler(arg)
+		result, err := handler(ctx, arg)
 		return encodeTypedResult(result, err)
 	})
 }
 
 // RegisterTyped2 registers a typed workflow with two arguments.
-func RegisterTyped2[A, B, R any](name string, handler func(A, B) (R, error)) {
+func RegisterTyped2[A, B, R any](name string, handler func(context.Context, A, B) (R, error)) {
 	if handler == nil {
 		panic("workflow: nil typed handler")
 	}
-	registerTyped(name, func(payloads *commonpb.Payloads) (*commonpb.Payloads, error) {
+	registerTyped(name, func(ctx context.Context, payloads *commonpb.Payloads) (*commonpb.Payloads, error) {
 		if err := checkArgumentCount(payloads, 2); err != nil {
 			return nil, err
 		}
@@ -126,7 +129,7 @@ func RegisterTyped2[A, B, R any](name string, handler func(A, B) (R, error)) {
 		if err := converter.GetDefaultDataConverter().FromPayloads(payloads, &first, &second); err != nil {
 			return nil, fmt.Errorf("workflow: decode arguments: %w", err)
 		}
-		result, err := handler(first, second)
+		result, err := handler(ctx, first, second)
 		return encodeTypedResult(result, err)
 	})
 }
@@ -200,6 +203,7 @@ type Start struct {
 // PayloadStart carries the entry name and serialized Temporal Payloads. The
 // bytes cross the isolate boundary; Go argument values do not.
 type PayloadStart struct {
+	Canceled bool   `json:"canceled,omitempty"`
 	Name     string `json:"name"`
 	Payloads []byte `json:"payloads"`
 }
@@ -215,12 +219,14 @@ func Run() error {
 	if err := json.Unmarshal(payload, &start); err != nil {
 		return Complete(nil, fmt.Errorf("workflow: decode start: %w", err))
 	}
+	ctx, cancel := executionContext(start.Canceled)
+	defer cancel()
 	if handler, ok := typedHandlers[start.Name]; ok {
 		payloads, err := decodePayloads(start.Payloads)
 		if err != nil {
 			return completePayloads(nil, fmt.Errorf("workflow: decode input payloads: %w", err))
 		}
-		result, err := handler(payloads)
+		result, err := handler(ctx, payloads)
 		return completePayloads(result, err)
 	}
 	handler, ok := handlers[start.Name]
@@ -231,7 +237,7 @@ func Run() error {
 	if err != nil {
 		return Complete(nil, fmt.Errorf("workflow: decode input: %w", err))
 	}
-	result, err := handler(input)
+	result, err := handler(ctx, input)
 	return Complete(result, err)
 }
 
@@ -288,8 +294,19 @@ func RunFunction(handle isolate.Handle) error {
 	if err != nil {
 		return completePayloads(nil, fmt.Errorf("workflow: decode input payloads: %w", err))
 	}
+	ctx, cancel := executionContext(start.Canceled)
+	defer cancel()
 	var result *commonpb.Payloads
 	err = handle.Invoke(func(args ...isolate.Value) error {
+		if len(args) == 0 {
+			return errors.New("workflow: isolate workflow must take context.Context first")
+		}
+		slot, ok := args[0].Pointer.(*context.Context)
+		if !ok {
+			return errors.New("workflow: isolate workflow must take context.Context first")
+		}
+		*slot = ctx
+		args = args[1:]
 		if err := checkArgumentCount(payloads, len(args)); err != nil {
 			return err
 		}
@@ -358,13 +375,15 @@ type ActivityResult[R any] struct {
 
 // Completion is the wire representation of a workflow result.
 type Completion struct {
-	Result []byte `json:"result"`
-	Error  string `json:"error,omitempty"`
+	Canceled bool   `json:"canceled,omitempty"`
+	Result   []byte `json:"result"`
+	Error    string `json:"error,omitempty"`
 }
 
 // PayloadCompletion carries serialized Temporal Payloads produced by a typed
 // handler, or its error. The host forwards these payloads without conversion.
 type PayloadCompletion struct {
+	Canceled bool   `json:"canceled,omitempty"`
 	Payloads []byte `json:"payloads"`
 	Error    string `json:"error,omitempty"`
 }
@@ -372,35 +391,42 @@ type PayloadCompletion struct {
 // Input returns the workflow's first byte-slice argument.
 func Input() ([]byte, error) { return isolate.Call(OpInput, nil) }
 
-// ExecuteActivity infers the input and result types from a one-argument activity.
-// The function identifies host code; it is never invoked inside the isolate.
-func ExecuteActivity[I, R any](activity func(I) (R, error), timeout time.Duration, input I) (R, error) {
-	return executeActivityFunction[R](activity, timeout, input)
-}
-
-// ExecuteActivityWithContext identifies an activity whose first parameter is a
-// host context. The worker supplies that context; only input crosses Call.
-func ExecuteActivityWithContext[I, R any](activity func(context.Context, I) (R, error), timeout time.Duration, input I) (R, error) {
-	return executeActivityFunction[R](activity, timeout, input)
-}
-
-func executeActivityFunction[R any](activity any, timeout time.Duration, input any) (R, error) {
+// ExecuteActivity infers input/result types from a host activity. Every
+// workflow and activity takes standard context.Context as its first argument.
+// ctx controls cancellation; the activity's own context is supplied by its host.
+func ExecuteActivity[I, R any](ctx context.Context, activity func(context.Context, I) (R, error), timeout time.Duration, input I) (R, error) {
 	name, err := activityref.Name(activity)
 	if err != nil {
 		var zero R
 		return zero, err
 	}
-	return executeActivity[R](name, true, timeout, input)
+	return executeActivity[R](ctx, name, true, timeout, input)
 }
 
-// ExecuteActivityAsync infers types and delivers one result, then closes.
-func ExecuteActivityAsync[I, R any](activity func(I) (R, error), timeout time.Duration, input I) <-chan ActivityResult[R] {
-	return activityAsync(func() (R, error) { return ExecuteActivity(activity, timeout, input) })
+// ExecuteActivityNoInput infers a result from an activity taking only context.
+func ExecuteActivityNoInput[R any](ctx context.Context, activity func(context.Context) (R, error), timeout time.Duration) (R, error) {
+	name, err := activityref.Name(activity)
+	if err != nil {
+		var zero R
+		return zero, err
+	}
+	return executeActivity[R](ctx, name, true, timeout)
 }
 
-// ExecuteActivityAsyncWithContext is the async form for host-context activities.
-func ExecuteActivityAsyncWithContext[I, R any](activity func(context.Context, I) (R, error), timeout time.Duration, input I) <-chan ActivityResult[R] {
-	return activityAsync(func() (R, error) { return ExecuteActivityWithContext(activity, timeout, input) })
+// ExecuteActivityError identifies an activity returning only an error.
+func ExecuteActivityError[I any](ctx context.Context, activity func(context.Context, I) error, timeout time.Duration, input I) error {
+	name, err := activityref.Name(activity)
+	if err != nil {
+		return err
+	}
+	_, err = executeActivity[struct{}](ctx, name, true, timeout, input)
+	return err
+}
+
+// ExecuteActivityAsync delivers one typed result and closes. ctx controls the
+// activity lifetime even after this function returns the channel.
+func ExecuteActivityAsync[I, R any](ctx context.Context, activity func(context.Context, I) (R, error), timeout time.Duration, input I) <-chan ActivityResult[R] {
+	return activityAsync(func() (R, error) { return ExecuteActivity(ctx, activity, timeout, input) })
 }
 
 func activityAsync[R any](call func() (R, error)) <-chan ActivityResult[R] {
@@ -417,12 +443,18 @@ func activityAsync[R any](call func() (R, error)) <-chan ActivityResult[R] {
 // and waits for its typed result. R must be explicit because Go cannot infer
 // type parameters from return values. Use struct{} for error-only activities.
 // Arguments/results use Temporal's default converter inside the isolate.
-func ExecuteActivityByName[R any](name string, timeout time.Duration, args ...any) (R, error) {
-	return executeActivity[R](name, false, timeout, args...)
+func ExecuteActivityByName[R any](ctx context.Context, name string, timeout time.Duration, args ...any) (R, error) {
+	return executeActivity[R](ctx, name, false, timeout, args...)
 }
 
-func executeActivity[R any](name string, function bool, timeout time.Duration, args ...any) (R, error) {
+func executeActivity[R any](ctx context.Context, name string, function bool, timeout time.Duration, args ...any) (R, error) {
 	var zero R
+	if ctx == nil {
+		return zero, errors.New("workflow: nil context")
+	}
+	if err := ctx.Err(); err != nil {
+		return zero, err
+	}
 	if name == "" || timeout <= 0 {
 		return zero, errors.New("workflow: activity name and timeout are required")
 	}
@@ -437,7 +469,7 @@ func executeActivity[R any](name string, function bool, timeout time.Duration, a
 	if err != nil {
 		return zero, err
 	}
-	response, err := isolate.Call(OpActivityPayloads, request)
+	response, err := call(ctx, OpActivityPayloads, request)
 	if err != nil {
 		return zero, err
 	}
@@ -484,12 +516,12 @@ func decodeActivityResult[R any](response []byte) (R, error) {
 
 // ExecuteActivityAsyncByName starts a typed activity call in an isolate-owned
 // goroutine. The buffered channel receives one result and then closes.
-func ExecuteActivityAsyncByName[R any](name string, timeout time.Duration, args ...any) <-chan ActivityResult[R] {
-	return activityAsync(func() (R, error) { return ExecuteActivityByName[R](name, timeout, args...) })
+func ExecuteActivityAsyncByName[R any](ctx context.Context, name string, timeout time.Duration, args ...any) <-chan ActivityResult[R] {
+	return activityAsync(func() (R, error) { return ExecuteActivityByName[R](ctx, name, timeout, args...) })
 }
 
 // Sleep waits on a durable Temporal timer. Do not use time.Sleep for this POC.
-func Sleep(duration time.Duration) error {
+func Sleep(ctx context.Context, duration time.Duration) error {
 	if duration < 0 {
 		return errors.New("workflow: negative sleep duration")
 	}
@@ -497,16 +529,16 @@ func Sleep(duration time.Duration) error {
 	if err != nil {
 		return err
 	}
-	_, err = isolate.Call(OpSleep, payload)
+	_, err = call(ctx, OpSleep, payload)
 	return err
 }
 
 // NextSignal waits for the next incoming signal, regardless of its name.
-func NextSignal() (Signal, error) { return nextSignal("") }
+func NextSignal(ctx context.Context) (Signal, error) { return nextSignal(ctx, "") }
 
-func nextSignal(name string) (Signal, error) {
+func nextSignal(ctx context.Context, name string) (Signal, error) {
 	var signal Signal
-	payload, err := isolate.Call(OpSignal, []byte(name))
+	payload, err := call(ctx, OpSignal, []byte(name))
 	if err != nil {
 		return signal, err
 	}
@@ -518,13 +550,22 @@ func nextSignal(name string) (Signal, error) {
 // all signals. Each call starts an isolate-owned goroutine that waits through
 // Call; its channel is buffered so a completed call can finish if the workflow
 // has selected another case. A host error is sent once, then the channel closes.
-func GetSignalChannel(name string) <-chan SignalResult {
+func GetSignalChannel(ctx context.Context, name string) <-chan SignalResult {
 	results := make(chan SignalResult, 1)
+	if ctx == nil {
+		results <- SignalResult{Err: errors.New("workflow: nil context")}
+		close(results)
+		return results
+	}
 	go func() {
 		defer close(results)
 		for {
-			signal, err := nextSignal(name)
-			results <- SignalResult{Signal: signal, Err: err}
+			signal, err := nextSignal(ctx, name)
+			select {
+			case results <- SignalResult{Signal: signal, Err: err}:
+			case <-ctx.Done():
+				return
+			}
 			if err != nil {
 				return
 			}
@@ -538,6 +579,7 @@ func Complete(result []byte, cause error) error {
 	completion := Completion{Result: result}
 	if cause != nil {
 		completion.Error = cause.Error()
+		completion.Canceled = errors.Is(cause, context.Canceled)
 	}
 	payload, err := json.Marshal(completion)
 	if err != nil {
@@ -551,6 +593,7 @@ func completePayloads(result *commonpb.Payloads, cause error) error {
 	completion := PayloadCompletion{}
 	if cause != nil {
 		completion.Error = cause.Error()
+		completion.Canceled = errors.Is(cause, context.Canceled)
 	} else if result != nil {
 		var err error
 		completion.Payloads, err = payloadwire.Encode(result)

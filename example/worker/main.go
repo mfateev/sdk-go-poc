@@ -4,7 +4,9 @@ import (
 	"context"
 	"log"
 	"os"
+	"time"
 
+	"github.com/mfateev/sdk-go-poc/example/cancellation"
 	"github.com/mfateev/sdk-go-poc/example/clock"
 	"github.com/mfateev/sdk-go-poc/example/concurrent"
 	"github.com/mfateev/sdk-go-poc/example/order"
@@ -33,7 +35,7 @@ func main() {
 		log.Fatal(err)
 	}
 	defer c.Close()
-	w := worker.New(c, "isolate-poc", worker.Options{})
+	w := worker.New(c, "isolate-poc", worker.Options{DefaultHeartbeatThrottleInterval: time.Second, MaxHeartbeatThrottleInterval: time.Second})
 	w.RegisterWorkflowWithOptions(order.OrderWorkflow, goWorkflow.RegisterOptions{Name: "IsolateOrder"})
 	w.RegisterWorkflowWithOptions(order.EchoWorkflow, goWorkflow.RegisterOptions{Name: "IsolateEcho"})
 	w.RegisterWorkflowWithOptions(order.TypedEchoWorkflow, goWorkflow.RegisterOptions{Name: "IsolateTypedEcho"})
@@ -41,6 +43,12 @@ func main() {
 	w.RegisterWorkflowWithOptions(clock.ClockWorkflow, goWorkflow.RegisterOptions{Name: "IsolateClock"})
 	w.RegisterWorkflowWithOptions(concurrent.ConcurrentWorkflow, goWorkflow.RegisterOptions{Name: "IsolateConcurrent"})
 	w.RegisterWorkflowWithOptions(order.TypedActivityWorkflow, goWorkflow.RegisterOptions{Name: "IsolateTypedActivity"})
+	w.RegisterWorkflow(cancellation.ActivityWorkflow)
+	w.RegisterWorkflow(cancellation.IdleWorkflow)
+	w.RegisterWorkflow(cancellation.DeadlineWorkflow)
+	w.RegisterWorkflow(cancellation.LocalCancelWorkflow)
+	w.RegisterWorkflow(cancellation.ContextStressWorkflow)
+	w.RegisterActivity(cancellation.WaitActivity)
 	w.RegisterWorkflow(PlainEcho)
 	w.RegisterActivityWithOptions(echo, activity.RegisterOptions{Name: "echo"})
 	w.RegisterActivityWithOptions(func(_ context.Context, name string, count int) (order.ActivityDetails, error) {
