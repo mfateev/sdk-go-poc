@@ -9,6 +9,7 @@ import (
 	"github.com/mfateev/sdk-go-poc/example/cancellation"
 	"github.com/mfateev/sdk-go-poc/example/clock"
 	"github.com/mfateev/sdk-go-poc/example/concurrent"
+	"github.com/mfateev/sdk-go-poc/example/determinism"
 	"github.com/mfateev/sdk-go-poc/example/order"
 	"github.com/mfateev/sdk-go-poc/example/signal"
 	"github.com/mfateev/sdk-go-poc/worker"
@@ -48,6 +49,8 @@ func main() {
 	w.RegisterWorkflow(cancellation.DeadlineWorkflow)
 	w.RegisterWorkflow(cancellation.LocalCancelWorkflow)
 	w.RegisterWorkflow(cancellation.ContextStressWorkflow)
+	w.RegisterWorkflow(determinism.DeterminismWorkflow)
+	w.RegisterActivity(determinism.RecordTrace)
 	w.RegisterActivity(cancellation.WaitActivity)
 	w.RegisterWorkflow(PlainEcho)
 	w.RegisterActivityWithOptions(echo, activity.RegisterOptions{Name: "echo"})

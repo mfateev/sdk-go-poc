@@ -1,5 +1,43 @@
 # Temporal isolate SDK POC
 
+## Determinism regression corpus
+
+`example/determinism.DeterminismWorkflow` records observable ordering for native
+goroutines, maps, selects, `sync.Map.Range`, `iter.Pull2`, top-level random streams,
+floating-point distributions, standard context cancellation, and native timers.
+Its activity input and result retain the full trace. The runtime's deterministic
+default time zone is UTC. Named time-zone database lookups are rejected;
+explicit fixed zones or supplied zone data remain valid.
+
+Build the checker with the custom toolchain and replay the saved history in
+fresh processes from this repository:
+
+```sh
+../golang-go/bin/go build -o /tmp/isolate-determinism-replay ./example/determinism/check
+GOMAXPROCS=1 /tmp/isolate-determinism-replay
+GOMAXPROCS=2 /tmp/isolate-determinism-replay
+GOMAXPROCS=8 GODEBUG=cpu.all=off TZ=America/Los_Angeles /tmp/isolate-determinism-replay
+```
+
+To record an additional history with the example worker and a running local
+Temporal server:
+
+```sh
+temporal workflow execute --workflow-id isolate-poc-determinism --type DeterminismWorkflow --task-queue isolate-poc --input 8
+temporal workflow show --workflow-id isolate-poc-determinism --output json > /tmp/isolate-determinism-history.json
+/tmp/isolate-determinism-replay -history /tmp/isolate-determinism-history.json
+```
+
+The workflow compares its freshly computed trace against the recorded activity
+result; the checker also compares every completion observation against history.
+This is necessary because Temporal's SDK replay checks do not compare activity
+input payloads. A negative test corrupts both recorded results and verifies that
+replay still rejects the changed trace.
+The compiler repository's `isolate-determinism.yml` runs the
+same fixture on native Linux and macOS arm64/amd64, alongside runtime/compiler,
+SDK/sample, and repeated race tests. A fixture must be kept when runtime behavior
+changes; replacing it would hide an incompatible replay change.
+
 This module adapts statically linked Go isolates to the Temporal Go SDK's
 `WorkflowDefinitionFactory` boundary, the same level used by the Go bridge for
 Temporal's PHP SDK. It needs the compiler and runtime from the
