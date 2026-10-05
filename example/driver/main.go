@@ -14,6 +14,8 @@ import (
 	"github.com/mfateev/sdk-go-poc/example/cancellation"
 	"github.com/mfateev/sdk-go-poc/example/clock"
 	"github.com/mfateev/sdk-go-poc/example/concurrent"
+	"github.com/mfateev/sdk-go-poc/example/metadata"
+	"github.com/mfateev/sdk-go-poc/example/metadata/probe"
 	"github.com/mfateev/sdk-go-poc/example/order"
 	"github.com/mfateev/sdk-go-poc/example/signal"
 	"github.com/mfateev/sdk-go-poc/temporalbridge"
@@ -81,6 +83,7 @@ func definitionFor(fn any) bindings.WorkflowDefinition {
 }
 
 func main() {
+	runMetadataServices()
 	d := definitionFor(order.OrderWorkflow)
 	e := &environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}
 	input, err := e.GetDataConverter().ToPayloads([]byte("hello"))
@@ -614,6 +617,43 @@ func runContextStress() {
 			}
 			if got != 64 {
 				panic("context callbacks did not all execute")
+			}
+			d.Close()
+		}
+	}
+}
+
+func runMetadataServices() {
+	if err := probe.PrepareCallbackProbe(); err != nil {
+		panic(err)
+	}
+	for _, procs := range []int{1, 2, 8} {
+		runtime.GOMAXPROCS(procs)
+		for _, mode := range []string{"build", "reject", "build"} {
+			d := definitionFor(metadata.MetadataWorkflow)
+			e := &environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}
+			input, err := e.GetDataConverter().ToPayloads(mode)
+			if err != nil {
+				panic(err)
+			}
+			d.Execute(e, nil, input)
+			d.OnWorkflowTaskStarted(5 * time.Second)
+			if e.err != nil {
+				panic(e.err)
+			}
+			var got string
+			if err := e.GetDataConverter().FromPayloads(e.result, &got); err != nil {
+				panic(err)
+			}
+			want := "metadata services passed"
+			if mode == "reject" {
+				want = "unsafe metadata operations rejected"
+			}
+			if got != want {
+				panic(fmt.Sprintf("metadata workflow: %q, want %q", got, want))
+			}
+			if probe.CallbackProbeCount() != 0 {
+				panic("isolate metadata service invoked host callback")
 			}
 			d.Close()
 		}
