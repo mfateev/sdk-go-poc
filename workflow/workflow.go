@@ -103,7 +103,7 @@ func RegisterTyped[A, R any](name string, handler func(context.Context, A) (R, e
 		if isProtoValue(any(arg)) || isProtoValue(any(&arg)) {
 			return nil, errors.New("workflow: protobuf values are outside the isolate POC subset")
 		}
-		if err := converter.GetDefaultDataConverter().FromPayloads(payloads, &arg); err != nil {
+		if err := instanceDataConverter.FromPayloads(payloads, &arg); err != nil {
 			return nil, fmt.Errorf("workflow: decode arguments: %w", err)
 		}
 		result, err := handler(ctx, arg)
@@ -126,7 +126,7 @@ func RegisterTyped2[A, B, R any](name string, handler func(context.Context, A, B
 			isProtoValue(any(second)) || isProtoValue(any(&second)) {
 			return nil, errors.New("workflow: protobuf values are outside the isolate POC subset")
 		}
-		if err := converter.GetDefaultDataConverter().FromPayloads(payloads, &first, &second); err != nil {
+		if err := instanceDataConverter.FromPayloads(payloads, &first, &second); err != nil {
 			return nil, fmt.Errorf("workflow: decode arguments: %w", err)
 		}
 		result, err := handler(ctx, first, second)
@@ -151,7 +151,7 @@ func encodeTypedResult[R any](result R, cause error) (*commonpb.Payloads, error)
 	if isProtoValue(any(result)) || isProtoValue(any(&result)) {
 		return nil, errors.New("workflow: protobuf values are outside the isolate POC subset")
 	}
-	payloads, err := converter.GetDefaultDataConverter().ToPayloads(result)
+	payloads, err := instanceDataConverter.ToPayloads(result)
 	if err != nil {
 		return nil, fmt.Errorf("workflow: encode result: %w", err)
 	}
@@ -258,7 +258,7 @@ func decodeBytes(data []byte) ([]byte, error) {
 		return nil, err
 	}
 	var value []byte
-	if err := converter.GetDefaultDataConverter().FromPayloads(&payloads, &value); err != nil {
+	if err := instanceDataConverter.FromPayloads(&payloads, &value); err != nil {
 		return nil, err
 	}
 	return value, nil
@@ -317,7 +317,7 @@ func RunFunction(handle isolate.Handle) error {
 			}
 			pointers[i] = arg.Pointer
 		}
-		if err := converter.GetDefaultDataConverter().FromPayloads(payloads, pointers...); err != nil {
+		if err := instanceDataConverter.FromPayloads(payloads, pointers...); err != nil {
 			return fmt.Errorf("workflow: decode arguments: %w", err)
 		}
 		return nil
@@ -330,7 +330,7 @@ func RunFunction(handle isolate.Handle) error {
 			return errors.New("workflow: protobuf values are outside the isolate POC subset")
 		}
 		var err error
-		result, err = converter.GetDefaultDataConverter().ToPayloads(value.Value)
+		result, err = instanceDataConverter.ToPayloads(value.Value)
 		if err != nil {
 			return fmt.Errorf("workflow: encode result: %w", err)
 		}
@@ -482,7 +482,7 @@ func encodeActivityArgs(args []any) ([]byte, error) {
 			return nil, errors.New("workflow: protobuf values are outside the isolate POC subset")
 		}
 	}
-	payloads, err := converter.GetDefaultDataConverter().ToPayloads(args...)
+	payloads, err := instanceDataConverter.ToPayloads(args...)
 	if err != nil {
 		return nil, fmt.Errorf("workflow: encode activity arguments: %w", err)
 	}
@@ -507,7 +507,7 @@ func decodeActivityResult[R any](response []byte) (R, error) {
 	if len(payloads.Payloads) != 1 {
 		return result, fmt.Errorf("workflow: activity returned %d payloads, want 1", len(payloads.Payloads))
 	}
-	if err := converter.GetDefaultDataConverter().FromPayloads(payloads, &result); err != nil {
+	if err := instanceDataConverter.FromPayloads(payloads, &result); err != nil {
 		var zero R
 		return zero, fmt.Errorf("workflow: decode activity result: %w", err)
 	}

@@ -143,14 +143,17 @@ The isolate adapter requires Temporal's default data converter on the worker
 and rejects a custom converter when an isolate workflow task starts. Byte handlers
 remain supported. Typed handlers receive protobuf-serialized Temporal
 `Payloads` through the isolate byte boundary, decode their arguments with
-`converter.GetDefaultDataConverter()` inside the isolate, and encode their
+a fresh default converter inside the isolate, and encode their
 result there. The host forwards typed result payloads without converting them.
 The isolate's small protobuf wire codec accepts ordinary payload metadata and
 data. Its supported encodings are `binary/null`, `binary/plain`, and
 `json/plain`; protobuf message encodings and external payload references fail
 with a workflow error. Custom worker converters, payload codecs, serialization
-context, and a full boundary type check remain TODOs. The compiler currently
-treats the default converter's external dependency graph as process-owned for
+context, and a full boundary type check remain TODOs. The workflow package
+creates a separate default converter inside each isolate, including its converter
+map, ordered list and mutable converter values. Shared type metadata uses the audited
+runtime services. The host worker retains its standard default converter. The build
+still treats the converter's external dependency graph as process-owned for
 this trusted POC; its mutable caches and effects need an ownership audit.
 
 Mark each workflow function and register it through the POC worker package:
