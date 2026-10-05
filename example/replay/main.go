@@ -22,12 +22,13 @@ func main() {
 		os.Exit(2)
 	}
 	functions := map[string]any{
-		"IsolateOrder":      order.OrderWorkflow,
-		"IsolateEcho":       order.EchoWorkflow,
-		"IsolateTypedEcho":  order.TypedEchoWorkflow,
-		"IsolateSignal":     signal.SignalWorkflow,
-		"IsolateClock":      clock.ClockWorkflow,
-		"IsolateConcurrent": concurrent.ConcurrentWorkflow,
+		"IsolateOrder":         order.OrderWorkflow,
+		"IsolateEcho":          order.EchoWorkflow,
+		"IsolateTypedActivity": order.TypedActivityWorkflow,
+		"IsolateTypedEcho":     order.TypedEchoWorkflow,
+		"IsolateSignal":        signal.SignalWorkflow,
+		"IsolateClock":         clock.ClockWorkflow,
+		"IsolateConcurrent":    concurrent.ConcurrentWorkflow,
 	}
 	fn, ok := functions[os.Args[1]]
 	if !ok {

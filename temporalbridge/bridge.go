@@ -293,6 +293,38 @@ func (d *definition) handle(command *isolate.Command) error {
 			d.queueResult(command, result, cause)
 		})
 		return nil
+	case workflow.OpActivityPayloads:
+		var request workflow.ActivityPayloadRequest
+		if err := json.Unmarshal(command.Payload, &request); err != nil {
+			return err
+		}
+		if request.Name == "" || request.StartToCloseTimeout <= 0 {
+			return errors.New("invalid activity request")
+		}
+		var input *commonpb.Payloads
+		if len(request.Payloads) != 0 {
+			input = new(commonpb.Payloads)
+			if err := proto.Unmarshal(request.Payloads, input); err != nil {
+				return fmt.Errorf("decode activity argument payloads: %w", err)
+			}
+		}
+		params := bindings.ExecuteActivityParams{
+			ExecuteActivityOptions: bindings.ExecuteActivityOptions{
+				TaskQueueName:       d.env.WorkflowInfo().TaskQueueName,
+				StartToCloseTimeout: request.StartToCloseTimeout,
+				ScheduleID:          d.env.GenerateSequence(),
+			},
+			ActivityType: bindings.ActivityType{Name: request.Name},
+			Input:        input,
+		}
+		d.env.ExecuteActivity(params, func(result *commonpb.Payloads, cause error) {
+			var payload []byte
+			if cause == nil && result != nil {
+				payload, cause = proto.MarshalOptions{Deterministic: true}.Marshal(result)
+			}
+			d.pending = append(d.pending, reply{command: command, payload: payload, err: cause})
+		})
+		return nil
 	case workflow.OpSleep:
 		var duration time.Duration
 		if err := json.Unmarshal(command.Payload, &duration); err != nil {

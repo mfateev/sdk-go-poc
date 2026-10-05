@@ -12,7 +12,7 @@ import (
 )
 
 func TestExecuteActivityAsyncReturnsOneErrorAndCloses(t *testing.T) {
-	results := ExecuteActivityAsync("", nil, time.Second)
+	results := ExecuteActivityAsync[[]byte]("", time.Second)
 	select {
 	case result, ok := <-results:
 		if !ok || result.Err == nil || result.Result != nil {
@@ -84,5 +84,90 @@ func TestTypedHandlerRejectsProtoArgumentBeforeConversion(t *testing.T) {
 	_, err := typedHandlers["test-proto-argument"](payloads)
 	if err == nil || !strings.Contains(err.Error(), "protobuf values") {
 		t.Fatalf("protobuf argument error = %v", err)
+	}
+}
+
+func TestTypedActivityArgumentsAndResults(t *testing.T) {
+	type record struct {
+		Name  string
+		Count int
+	}
+	data, err := encodeActivityArgs([]any{"hello", 3, record{Name: "world", Count: 7}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var payloads commonpb.Payloads
+	if err := proto.Unmarshal(data, &payloads); err != nil {
+		t.Fatal(err)
+	}
+	var name string
+	var count int
+	var in record
+	if err := converter.GetDefaultDataConverter().FromPayloads(&payloads, &name, &count, &in); err != nil {
+		t.Fatal(err)
+	}
+	if name != "hello" || count != 3 || in != (record{Name: "world", Count: 7}) {
+		t.Fatalf("arguments = %q, %d, %+v", name, count, in)
+	}
+	encoded, err := converter.GetDefaultDataConverter().ToPayloads(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := proto.Marshal(encoded)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := decodeActivityResult[record](raw)
+	if err != nil || got != in {
+		t.Fatalf("result = %+v, %v", got, err)
+	}
+	empty, err := encodeActivityArgs(nil)
+	if err != nil || len(empty) != 0 {
+		t.Fatalf("zero arguments = %x, %v", empty, err)
+	}
+	if _, err := decodeActivityResult[struct{}](nil); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestTypedActivityFailuresReturnZero(t *testing.T) {
+	if got, err := ExecuteActivity[string]("", time.Second); err == nil || got != "" {
+		t.Fatalf("invalid call = %q, %v", got, err)
+	}
+	payloads, err := converter.GetDefaultDataConverter().ToPayloads("not an integer")
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := proto.Marshal(payloads)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, err := decodeActivityResult[int](raw); err == nil || got != 0 {
+		t.Fatalf("mismatched result = %d, %v", got, err)
+	}
+	if _, err := decodeActivityResult[string]([]byte{0xff}); err == nil {
+		t.Fatal("malformed protobuf accepted")
+	}
+	payloads, err = converter.GetDefaultDataConverter().ToPayloads("one", "two")
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err = proto.Marshal(payloads)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := decodeActivityResult[string](raw); err == nil {
+		t.Fatal("multiple result payloads accepted")
+	}
+	for _, value := range []any{&commonpb.Payload{}, commonpb.Payload{}} {
+		if _, err := encodeActivityArgs([]any{value}); err == nil {
+			t.Fatal("protobuf activity argument accepted")
+		}
+	}
+	if _, err := ExecuteActivity[*commonpb.Payload]("unsupported", time.Second); err == nil || !strings.Contains(err.Error(), "protobuf values") {
+		t.Fatalf("protobuf activity result: %v", err)
+	}
+	if _, err := encodeActivityArgs([]any{make(chan int)}); err == nil {
+		t.Fatal("unsupported JSON argument accepted")
 	}
 }

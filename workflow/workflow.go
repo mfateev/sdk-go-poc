@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"isolate"
+	"reflect"
 	"time"
 
 	gogoproto "github.com/gogo/protobuf/proto"
@@ -28,6 +29,7 @@ const (
 	OpStart            uint32 = 6
 	OpStartPayloads    uint32 = 7
 	OpCompletePayloads uint32 = 8
+	OpActivityPayloads uint32 = 9
 )
 
 // Handler is a named workflow function. Each execution receives its own
@@ -156,7 +158,20 @@ func isProtoValue(value any) bool {
 		return true
 	}
 	_, ok := value.(gogoproto.Message)
-	return ok
+	if ok {
+		return true
+	}
+	if value == nil {
+		return false
+	}
+	typ := reflect.TypeOf(value)
+	// Pointer values already had their full method set checked above.
+	// Constructing pointers to them would create unnecessary **T metadata.
+	if typ.Kind() == reflect.Pointer {
+		return false
+	}
+	pointer := reflect.PointerTo(typ)
+	return pointer.Implements(reflect.TypeFor[proto.Message]()) || pointer.Implements(reflect.TypeFor[gogoproto.Message]())
 }
 
 func checkPOCEncodings(payloads *commonpb.Payloads) error {
@@ -312,6 +327,14 @@ type ActivityRequest struct {
 	StartToCloseTimeout time.Duration `json:"start_to_close_timeout"`
 }
 
+// ActivityPayloadRequest carries arguments encoded inside the isolate using
+// Temporal's default converter. The host forwards them to the activity.
+type ActivityPayloadRequest struct {
+	Name                string        `json:"name"`
+	Payloads            []byte        `json:"payloads"`
+	StartToCloseTimeout time.Duration `json:"start_to_close_timeout"`
+}
+
 // Signal is one incoming workflow signal.
 type Signal struct {
 	Name  string `json:"name"`
@@ -325,8 +348,8 @@ type SignalResult struct {
 }
 
 // ActivityResult carries the completed activity result or its error.
-type ActivityResult struct {
-	Result []byte
+type ActivityResult[R any] struct {
+	Result R
 	Err    error
 }
 
@@ -346,30 +369,79 @@ type PayloadCompletion struct {
 // Input returns the workflow's first byte-slice argument.
 func Input() ([]byte, error) { return isolate.Call(OpInput, nil) }
 
-// ExecuteActivity schedules a host activity and waits for its result.
-func ExecuteActivity(name string, input []byte, timeout time.Duration) ([]byte, error) {
+// ExecuteActivity schedules a host activity with zero or more typed arguments
+// and waits for its typed result. R must be explicit because Go cannot infer
+// type parameters from return values. Use struct{} for error-only activities.
+// Arguments/results use Temporal's default converter inside the isolate.
+func ExecuteActivity[R any](name string, timeout time.Duration, args ...any) (R, error) {
+	var zero R
 	if name == "" || timeout <= 0 {
-		return nil, errors.New("workflow: activity name and timeout are required")
+		return zero, errors.New("workflow: activity name and timeout are required")
 	}
-	request, err := json.Marshal(ActivityRequest{Name: name, Input: input, StartToCloseTimeout: timeout})
+	if isProtoValue(zero) || isProtoValue(&zero) {
+		return zero, errors.New("workflow: protobuf values are outside the isolate POC subset")
+	}
+	payloads, err := encodeActivityArgs(args)
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
-	return isolate.Call(OpActivity, request)
+	request, err := json.Marshal(ActivityPayloadRequest{Name: name, Payloads: payloads, StartToCloseTimeout: timeout})
+	if err != nil {
+		return zero, err
+	}
+	response, err := isolate.Call(OpActivityPayloads, request)
+	if err != nil {
+		return zero, err
+	}
+	return decodeActivityResult[R](response)
 }
 
-// ExecuteActivityAsync starts an activity call in an isolate-owned goroutine.
-// The returned channel receives one result and then closes. It is buffered so
-// the call can finish if the workflow selects another event first.
-func ExecuteActivityAsync(name string, input []byte, timeout time.Duration) <-chan ActivityResult {
-	results := make(chan ActivityResult, 1)
+func encodeActivityArgs(args []any) ([]byte, error) {
+	for _, arg := range args {
+		if isProtoValue(arg) {
+			return nil, errors.New("workflow: protobuf values are outside the isolate POC subset")
+		}
+	}
+	payloads, err := converter.GetDefaultDataConverter().ToPayloads(args...)
+	if err != nil {
+		return nil, fmt.Errorf("workflow: encode activity arguments: %w", err)
+	}
+	if err := checkPOCEncodings(payloads); err != nil {
+		return nil, err
+	}
+	return payloadwire.Encode(payloads)
+}
+
+func decodeActivityResult[R any](response []byte) (R, error) {
+	var result R
+	if isProtoValue(result) || isProtoValue(&result) {
+		return result, errors.New("workflow: protobuf values are outside the isolate POC subset")
+	}
+	payloads, err := decodePayloads(response)
+	if err != nil {
+		return result, fmt.Errorf("workflow: decode activity result: %w", err)
+	}
+	if len(payloads.Payloads) == 0 {
+		return result, nil
+	} // Error-only activity.
+	if len(payloads.Payloads) != 1 {
+		return result, fmt.Errorf("workflow: activity returned %d payloads, want 1", len(payloads.Payloads))
+	}
+	if err := converter.GetDefaultDataConverter().FromPayloads(payloads, &result); err != nil {
+		var zero R
+		return zero, fmt.Errorf("workflow: decode activity result: %w", err)
+	}
+	return result, nil
+}
+
+// ExecuteActivityAsync starts a typed activity call in an isolate-owned
+// goroutine. The buffered channel receives one result and then closes.
+func ExecuteActivityAsync[R any](name string, timeout time.Duration, args ...any) <-chan ActivityResult[R] {
+	results := make(chan ActivityResult[R], 1)
 	go func() {
 		defer close(results)
-		result, err := ExecuteActivity(name, input, timeout)
-		if err != nil {
-			result = nil
-		}
-		results <- ActivityResult{Result: result, Err: err}
+		result, err := ExecuteActivity[R](name, timeout, args...)
+		results <- ActivityResult[R]{Result: result, Err: err}
 	}()
 	return results
 }

@@ -58,6 +58,7 @@ To repeat the live check, start `temporal server start-dev --headless` and run
 temporal workflow execute --workflow-id isolate-poc-order --type IsolateOrder --task-queue isolate-poc --input aGVsbG8= --input-base64 --input-meta encoding=binary/plain
 temporal workflow execute --workflow-id isolate-poc-echo --type IsolateEcho --task-queue isolate-poc --input aGVsbG8= --input-base64 --input-meta encoding=binary/plain
 temporal workflow execute --workflow-id isolate-poc-typed-echo --type IsolateTypedEcho --task-queue isolate-poc --input '{"Name":"world"}' --input '"!"'
+temporal workflow execute --workflow-id isolate-poc-typed-activity --type IsolateTypedActivity --task-queue isolate-poc --input '"world"'
 temporal workflow execute --workflow-id isolate-poc-plain-echo --type PlainEcho --task-queue isolate-poc --input '"hello"'
 temporal workflow start --workflow-id isolate-poc-signal --type IsolateSignal --task-queue isolate-poc
 temporal workflow signal --workflow-id isolate-poc-signal --name ready --input c2lnbmFsLXJlc3VsdA== --input-base64 --input-meta encoding=binary/plain
@@ -156,6 +157,24 @@ returns `workflow.SignalResult` values, including any host error. `NextSignal`
 still receives the next signal of any name. The host keeps other named signals
 queued for their matching channels.
 `workflow.ExecuteActivityAsync` wraps `ExecuteActivity` the same way and returns
-a channel with one `workflow.ActivityResult` before closing.
+a channel with one `workflow.ActivityResult[R]` before closing.
+
+Activity calls now have typed results and variadic typed arguments:
+
+```go
+greeting, err := workflow.ExecuteActivity[string]("Greet", 10*time.Second, name)
+result := <-workflow.ExecuteActivityAsync[MyResult]("Compute", time.Minute, input, options)
+_, err = workflow.ExecuteActivity[struct{}]("SendEmail", time.Minute, message)
+```
+
+The result type must be explicit; Go does not infer it from assignment targets.
+Arguments and results use the default Temporal converter inside the isolate and
+cross `Call` as protobuf-serialized `Payloads`. The host forwards them to native
+activity functions without byte/string wrappers. Zero arguments are supported.
+Use `struct{}` for an activity returning only an error. Activity errors and
+conversion errors return the zero result with an error. The supported values
+are the same JSON/bytes/null subset as workflow arguments; custom converters
+and protobuf message values remain TODOs. Existing byte callers now write
+`ExecuteActivity[[]byte](name, timeout, input)`.
 When the host configures an isolate clock and timer operation, native
 `time.After`, `time.NewTimer`, and `time.Sleep` use durable host timers.

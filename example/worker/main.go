@@ -40,8 +40,15 @@ func main() {
 	w.RegisterWorkflowWithOptions(signal.SignalWorkflow, goWorkflow.RegisterOptions{Name: "IsolateSignal"})
 	w.RegisterWorkflowWithOptions(clock.ClockWorkflow, goWorkflow.RegisterOptions{Name: "IsolateClock"})
 	w.RegisterWorkflowWithOptions(concurrent.ConcurrentWorkflow, goWorkflow.RegisterOptions{Name: "IsolateConcurrent"})
+	w.RegisterWorkflowWithOptions(order.TypedActivityWorkflow, goWorkflow.RegisterOptions{Name: "IsolateTypedActivity"})
 	w.RegisterWorkflow(PlainEcho)
 	w.RegisterActivityWithOptions(echo, activity.RegisterOptions{Name: "echo"})
+	w.RegisterActivityWithOptions(func(_ context.Context, name string, count int) (order.ActivityDetails, error) {
+		return order.ActivityDetails{Message: "hello " + name, Count: count}, nil
+	}, activity.RegisterOptions{Name: "details"})
+	w.RegisterActivityWithOptions(func(_ context.Context, value string) (int, error) {
+		return len(value), nil
+	}, activity.RegisterOptions{Name: "length"})
 	if err := w.Run(worker.InterruptCh()); err != nil {
 		log.Fatal(err)
 	}

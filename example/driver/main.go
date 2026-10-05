@@ -4,6 +4,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"isolate"
 	"runtime"
@@ -106,6 +107,7 @@ func main() {
 	d.Close()
 	runEcho()
 	runTypedEcho()
+	runTypedActivity()
 	runUnsupportedProto()
 	runSignal()
 	runClock()
@@ -319,5 +321,105 @@ func runDeadline() {
 	d.OnWorkflowTaskStarted(20 * time.Millisecond)
 	if e.err == nil || !strings.Contains(e.err.Error(), "deadline") {
 		panic(fmt.Sprintf("deadline error = %v", e.err))
+	}
+}
+
+type typedActivityEnvironment struct {
+	environment
+	activityName string
+}
+
+func (e *typedActivityEnvironment) ExecuteActivity(p bindings.ExecuteActivityParams, cb bindings.ResultHandler) bindings.ActivityID {
+	if p.StartToCloseTimeout != time.Minute {
+		panic("unexpected activity timeout")
+	}
+	switch p.ActivityType.Name {
+	case "details":
+		var name string
+		var count int
+		if len(p.Input.GetPayloads()) != 2 {
+			panic("wrong typed activity arity")
+		}
+		if err := e.GetDataConverter().FromPayloads(p.Input, &name, &count); err != nil {
+			panic(err)
+		}
+		if name != "world" || count != 3 {
+			panic("incorrect typed arguments")
+		}
+	case "length":
+		var value string
+		if err := e.GetDataConverter().FromPayloads(p.Input, &value); err != nil {
+			panic(err)
+		}
+		if value != "hello world" {
+			panic("incorrect async argument")
+		}
+	default:
+		panic("unexpected typed activity")
+	}
+	e.activityName, e.activity = p.ActivityType.Name, cb
+	return bindings.ActivityID{}
+}
+
+func runTypedActivity() {
+	for _, scenario := range []string{"success", "failed", "wrong-type"} {
+		d := definitionFor(order.TypedActivityWorkflow)
+		e := &typedActivityEnvironment{environment: environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}}
+		input, err := e.GetDataConverter().ToPayloads("world")
+		if err != nil {
+			panic(err)
+		}
+		d.Execute(e, nil, input)
+		d.OnWorkflowTaskStarted(5 * time.Second)
+		if e.err != nil || e.activityName != "details" {
+			panic("typed activity not scheduled")
+		}
+		result := order.ActivityDetails{Message: "hello world", Count: 3}
+		var response any = result
+		var cause error
+		if scenario == "failed" {
+			cause = errors.New("activity failed")
+		}
+		if scenario == "wrong-type" {
+			response = "not a struct"
+		}
+		payloads, err := e.GetDataConverter().ToPayloads(response)
+		if err != nil {
+			panic(err)
+		}
+		e.activity(payloads, cause)
+		d.OnWorkflowTaskStarted(5 * time.Second)
+		if scenario != "success" {
+			if e.err == nil {
+				panic("bad activity response accepted")
+			}
+			if scenario == "failed" && e.err.Error() != "activity failed" {
+				panic(e.err)
+			}
+			if scenario == "wrong-type" && !strings.Contains(e.err.Error(), "decode activity result") {
+				panic(e.err)
+			}
+		} else {
+			if e.err != nil || e.activityName != "length" {
+				panic("async typed activity not scheduled")
+			}
+			payloads, err := e.GetDataConverter().ToPayloads(len(result.Message))
+			if err != nil {
+				panic(err)
+			}
+			e.activity(payloads, nil)
+			d.OnWorkflowTaskStarted(5 * time.Second)
+			if e.err != nil {
+				panic(e.err)
+			}
+			var got order.ActivityDetails
+			if err := e.GetDataConverter().FromPayloads(e.result, &got); err != nil {
+				panic(err)
+			}
+			if got != result {
+				panic(fmt.Sprintf("typed activity result = %+v", got))
+			}
+		}
+		d.Close()
 	}
 }
