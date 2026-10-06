@@ -301,3 +301,16 @@ The compiler/runtime conformance workflow checks SDK application code with
 level-two heap ownership diagnostics, including the race build. This remains
 partial enforcement: the external converter dependency graph and other remaining
 ownership paths still require their productization audit.
+
+### Memory ownership failures
+
+A detected ownership violation permanently terminates the workflow's isolate.
+Workflow `recover` cannot handle it and application defers are discarded.
+The adapter preserves the host's `*isolate.OwnershipError` (inspect it with
+`errors.As`) when reporting failure. Trusted metadata services finish releasing
+process locks before their goroutines are discarded; `Kill(ctx)` waits for
+that cleanup. The metadata driver checks private registry and MessageInfo failures
+and verifies that subsequent workflows still run in the same host.
+
+The general compiler heap checks remain opt-in during productization. This
+failure policy does not mean every ownership escape is already detected.

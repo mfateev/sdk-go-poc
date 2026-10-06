@@ -629,7 +629,7 @@ func runMetadataServices() {
 	}
 	for _, procs := range []int{1, 2, 8} {
 		runtime.GOMAXPROCS(procs)
-		for _, mode := range []string{"build", "reject", "build"} {
+		for _, mode := range []string{"build", "reject", "private registry", "private message info", "build"} {
 			d := definitionFor(metadata.MetadataWorkflow)
 			e := &environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}
 			input, err := e.GetDataConverter().ToPayloads(mode)
@@ -638,6 +638,14 @@ func runMetadataServices() {
 			}
 			d.Execute(e, nil, input)
 			d.OnWorkflowTaskStarted(5 * time.Second)
+			if strings.HasPrefix(mode, "private ") {
+				var fault *isolate.OwnershipError
+				if !errors.As(e.err, &fault) || fault.Reason != "isolate: metadata service requires a process-owned receiver" || e.result != nil {
+					panic(fmt.Sprintf("%s ownership fault: result=%v error=%v", mode, e.result, e.err))
+				}
+				d.Close()
+				continue
+			}
 			if e.err != nil {
 				panic(e.err)
 			}

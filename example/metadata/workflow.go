@@ -23,6 +23,16 @@ func MetadataWorkflow(_ context.Context, mode string) (result string, err error)
 			err = fmt.Errorf("metadata workflow unexpected panic: %v", p)
 		}
 	}()
+	// These receiver checks are ownership faults, so the workflow's recover
+	// above must not turn them into a normal result or workflow error.
+	if mode == "private registry" {
+		_ = (&protoregistry.Types{}).NumMessages()
+		return "ownership violation recovered", nil
+	}
+	if mode == "private message info" {
+		_ = (&protoimpl.MessageInfo{}).Descriptor()
+		return "ownership violation recovered", nil
+	}
 	if mode == "reject" {
 		var callback bool
 		if err := rejected("registry visitor", func() {
@@ -32,12 +42,6 @@ func MetadataWorkflow(_ context.Context, mode string) (result string, err error)
 		}
 		if callback {
 			return "", fmt.Errorf("registry visitor ran inside a service")
-		}
-		if err := rejected("private registry", func() { _ = (&protoregistry.Types{}).NumMessages() }); err != nil {
-			return "", err
-		}
-		if err := rejected("private message info", func() { _ = (&protoimpl.MessageInfo{}).Descriptor() }); err != nil {
-			return "", err
 		}
 		if err := rejected("private type builder", func() { _ = (protoimpl.TypeBuilder{}).Build() }); err != nil {
 			return "", err
@@ -118,7 +122,7 @@ func messageTypeSlots() *[2]protoreflect.MessageType { return new([2]protoreflec
 func rejected(name string, fn func()) (err error) {
 	defer func() {
 		if p := recover(); p != nil {
-			if strings.Contains(fmt.Sprint(p), "unaudited metadata") || strings.Contains(fmt.Sprint(p), "requires a process-owned receiver") {
+			if strings.Contains(fmt.Sprint(p), "unaudited metadata") {
 				err = nil
 			} else {
 				err = fmt.Errorf("%s: unexpected rejection: %v", name, p)
