@@ -429,6 +429,15 @@ func ExecuteActivityAsync[I, R any](ctx context.Context, activity func(context.C
 	return activityAsync(func() (R, error) { return ExecuteActivity(ctx, activity, timeout, input) })
 }
 
+// ExecuteActivityAsyncError identifies an activity returning only error and
+// delivers its completion on a channel. Result is always the empty struct;
+// Err reports failure or cancellation. The channel closes after one completion.
+func ExecuteActivityAsyncError[I any](ctx context.Context, activity func(context.Context, I) error, timeout time.Duration, input I) <-chan ActivityResult[struct{}] {
+	return activityAsync(func() (struct{}, error) {
+		return struct{}{}, ExecuteActivityError(ctx, activity, timeout, input)
+	})
+}
+
 func activityAsync[R any](call func() (R, error)) <-chan ActivityResult[R] {
 	results := make(chan ActivityResult[R], 1)
 	go func() {

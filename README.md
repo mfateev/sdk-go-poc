@@ -248,7 +248,13 @@ Function references also support zero-input and error-only activities:
 ```go
 choice, err := workflow.ExecuteActivityNoInput(ctx, orders.GetOrder, timeout)
 err = workflow.ExecuteActivityError(ctx, orders.OrderApple, timeout, choice)
+completion := <-workflow.ExecuteActivityAsyncError(ctx, orders.OrderApple, timeout, choice)
+err = completion.Err
 ```
+
+The async error-only variant returns `<-chan ActivityResult[struct{}]>`: one
+completion followed by channel closure. Its `Result` is empty; `Err` contains
+the activity failure or cancellation.
 
 These infer types from the actual signatures and preserve the original argument
 counts. A nil receiver can identify a method; the registered host object supplies

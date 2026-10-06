@@ -2,6 +2,7 @@ package workflow
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -11,6 +12,24 @@ import (
 	"go.temporal.io/sdk/converter"
 	"google.golang.org/protobuf/proto"
 )
+
+func TestExecuteActivityAsyncErrorCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	activity := func(context.Context, string) error { panic("activity must execute on the host") }
+	results := ExecuteActivityAsyncError(ctx, activity, time.Second, "input")
+	select {
+	case result, open := <-results:
+		if !open || !errors.Is(result.Err, context.Canceled) {
+			t.Fatalf("completion: %+v, open: %t", result, open)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("canceled activity did not complete")
+	}
+	if _, open := <-results; open {
+		t.Fatal("completion channel did not close")
+	}
+}
 
 func TestExecuteActivityAsyncReturnsOneErrorAndCloses(t *testing.T) {
 	results := ExecuteActivityAsyncByName[[]byte](context.Background(), "", time.Second)
