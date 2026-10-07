@@ -407,11 +407,16 @@ available to replay corrected code. Recovered panics and child `runtime.Goexit`
 keep ordinary Go semantics. Panic diagnostics copy a bounded message and stack;
 reporting never invokes an application's `Error` or `String` method.
 
-Completion, cache eviction and worker close permanently revoke local execution.
+Completion, cache eviction and workflow-definition close permanently revoke local execution.
 Close retires outstanding command cells and callbacks; late activity, timer,
 signal or cancellation callbacks cannot revive the workflow. Cache eviction does
 not send server-side cancellation commands. Recreating a workflow replays its
 history. Ordinary workflows and host activities retain their SDK behavior.
+
+Worker shutdown integration is still pending. The pinned Go SDK's `Worker.Stop`
+does not evict its shared sticky cache; closing a workflow definition and stopping
+its worker are distinct operations. Individual-worker cache eviction needs an SDK
+hook. The existing process-wide purge is valid only after all workers have stopped.
 
 A stuck isolate can remain pending beyond the bounded close timeout. The adapter
 logs the pending termination and keeps the handle for another cleanup attempt;
