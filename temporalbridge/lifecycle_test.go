@@ -19,6 +19,7 @@ import (
 func TestLifecycleFailuresDoNotCompleteExecution(t *testing.T) {
 	for _, cause := range []error{
 		&isolate.PanicError{Phase: "goroutine", Message: "child panic", Stack: "child stack"},
+		&isolate.OwnershipError{Reason: "private receiver", Stack: "ownership stack"},
 		&isolate.GoexitError{Phase: "main", Stack: "root stack"},
 		&isolate.ExitError{Code: 42},
 		isolate.ErrRevoked,
@@ -40,6 +41,9 @@ func TestLifecycleFailuresDoNotCompleteExecution(t *testing.T) {
 		}
 		if failure, ok := cause.(*isolate.PanicError); ok && d.StackTrace() != failure.Stack {
 			t.Fatal("child panic stack was lost during close")
+		}
+		if failure, ok := cause.(*isolate.OwnershipError); ok && d.StackTrace() != failure.Stack {
+			t.Fatal("ownership fault stack was lost during close")
 		}
 	}
 }

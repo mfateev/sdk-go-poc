@@ -400,7 +400,8 @@ completion is published only after the isolate's cleanup fence. Ordinary returne
 errors remain Workflow Execution failures, and workflow-context cancellation stays
 cooperative: workflow code can observe `ctx.Done()` and clean up before returning.
 
-Unrecovered root or child panics, root `runtime.Goexit`, and isolate `os.Exit`
+Unrecovered root or child panics, root `runtime.Goexit`, isolate `os.Exit`, and
+memory ownership violations
 produce **Workflow Task failures** under `BlockWorkflow`, leaving the execution
 available to replay corrected code. Recovered panics and child `runtime.Goexit`
 keep ordinary Go semantics. Panic diagnostics copy a bounded message and stack;

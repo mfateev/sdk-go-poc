@@ -657,15 +657,18 @@ func runMetadataServices() {
 				d.Close()
 				continue
 			}
-			d.OnWorkflowTaskStarted(5 * time.Second)
 			if strings.HasPrefix(mode, "private ") {
+				var failure any
+				func() { defer func() { failure = recover() }(); d.OnWorkflowTaskStarted(5 * time.Second) }()
+				taskFailure, ok := failure.(*temporalbridge.WorkflowTaskError)
 				var fault *isolate.OwnershipError
-				if !errors.As(e.err, &fault) || fault.Reason != "isolate: metadata service requires a process-owned receiver" || e.result != nil {
-					panic(fmt.Sprintf("%s ownership fault: result=%v error=%v", mode, e.result, e.err))
+				if !ok || !errors.As(taskFailure, &fault) || fault.Reason != "isolate: metadata service requires a process-owned receiver" || !strings.Contains(fault.Stack, "metadata.MetadataWorkflow") || e.completes != 0 {
+					panic(fmt.Sprintf("%s ownership task fault: failure=%v completions=%d", mode, failure, e.completes))
 				}
 				d.Close()
 				continue
 			}
+			d.OnWorkflowTaskStarted(5 * time.Second)
 			if e.err != nil {
 				panic(e.err)
 			}

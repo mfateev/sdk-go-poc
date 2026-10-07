@@ -667,11 +667,12 @@ func (d *definition) fail(err error) {
 		d.failTask(effect)
 	}
 	var failure *isolate.PanicError
+	var ownership *isolate.OwnershipError
 	var exited *isolate.GoexitError
 	var startup *isolate.InitializationError
 	var exit *isolate.ExitError
 	var pending *isolate.KillPendingError
-	if errors.As(err, &failure) || errors.As(err, &exited) || errors.As(err, &startup) || errors.As(err, &exit) || errors.As(err, &pending) || errors.Is(err, isolate.ErrRevoked) {
+	if errors.As(err, &failure) || errors.As(err, &ownership) || errors.As(err, &exited) || errors.As(err, &startup) || errors.As(err, &exit) || errors.As(err, &pending) || errors.Is(err, isolate.ErrRevoked) {
 		d.failTask(err)
 	}
 	env := d.env
@@ -695,12 +696,15 @@ func (d *definition) failTask(err error) {
 	d.completed = true
 	var effect *isolate.EffectError
 	var failure *isolate.PanicError
+	var ownership *isolate.OwnershipError
 	var exited *isolate.GoexitError
 	var startup *isolate.InitializationError
 	if errors.As(err, &effect) {
 		d.failureStack = effect.Stack
 	} else if errors.As(err, &failure) {
 		d.failureStack = failure.Stack
+	} else if errors.As(err, &ownership) {
+		d.failureStack = ownership.Stack
 	} else if errors.As(err, &exited) {
 		d.failureStack = exited.Stack
 	} else if errors.As(err, &startup) {
