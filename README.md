@@ -433,3 +433,70 @@ server (the checker terminates its own negative-test executions):
 /tmp/isolate-lifecycle-check
 /tmp/isolate-lifecycle-check live 127.0.0.1:7242
 ```
+
+## Isolate resource controls
+
+Configure the isolate worker or replayer before executions are created:
+
+```go
+w := worker.New(client, taskQueue, worker.Options{})
+w.RegisterWorkflow(MyWorkflow)
+err := worker.SetIsolateResourceOptions(w, worker.ResourceOptions{
+    Limits: isolate.ResourceLimits{
+        MaxMemoryBytes: 64 << 20,
+        MaxGoroutines:  128,
+    },
+    MaxTaskDuration:       5 * time.Second,
+    MaxNoProgressDuration: time.Second,
+    Observer: func(event worker.ResourceEvent) {
+        // Host metrics/logging. Inspect event.Replay when aggregating.
+        log.Printf("isolate %s: %+v %s", event.Kind, event.Stats, event.Error)
+    },
+})
+if err != nil {
+    return err
+}
+```
+
+Options are copied once per execution; changing worker configuration affects new
+executions. Zero values disable the corresponding limit. Ordinary workflows keep
+their SDK behavior. The low-level `temporalbridge.Factory.ResolveResourceOptions`
+provides the same policy; its definition exposes host-only `Resources()`.
+
+Memory accounting charges owned allocator slots until GC sweep, attached stacks,
+and attributable runtime metadata. Selected package globals are owned heap
+allocations. `ReservedHeapBytes` reports full owned span capacity, including
+allocated slots; unused capacity is not charged again. Shared process services,
+SDK/transport objects and process-wide GC infrastructure are outside this budget.
+It is **not an RSS cap**. Completed handles retain diagnostics without retaining
+private heaps. Concurrent counter snapshots are independently sampled.
+
+Goroutine limits include initializer, workflow and SDK helper goroutines attached
+to the instance, including iterator runners. Oversized application allocations are rejected
+before storage is requested. Runtime preparation under a lock may briefly exceed
+a budget while finishing the cleanup needed for safe revocation. A resource violation permanently revokes the
+instance and raises a typed `isolate.ResourceLimitError` as a **Workflow Task
+failure**. Recovery cannot convert it into a workflow result. Eviction retires
+late callbacks without canceling Temporal activities or timers.
+
+Task duration includes startup and active task processing. The no-progress
+watchdog starts after startup and detects absence of supported park/yield
+progress; asynchronous preemption does not count as progress. Cached idle time
+uses neither budget, and cached instances have no watchdog timers. These are
+host monotonic watchdogs, not workflow clocks or exact CPU quotas.
+`RunningNanoseconds` counts completed scheduled intervals, including metadata
+work and syscalls. Uninterrupted loops or native execution can leave termination
+pending; diagnostics and a later `Close()` report/retry cleanup, without forcibly
+killing arbitrary execution.
+
+`Observer` receives copied `created`, `task`, `limit`, `closed` and
+`termination-pending` events on the host. Use it to integrate the worker's metrics
+backend. Its values and failures are never supplied as deterministic workflow
+inputs. Keep host callbacks short. An observer panic follows the existing task
+panic path and disables that observer during cleanup.
+
+Run the compiled resource integration checks with the fork:
+
+```bash
+../golang-go/bin/go test ./example/resources/check
+```

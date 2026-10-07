@@ -59,6 +59,7 @@ type isolateWorker struct {
 	Worker
 	activities          activityAliases
 	logs                logConfiguration
+	resources           resourceConfiguration
 	failWorkflowOnPanic bool
 }
 
@@ -130,7 +131,7 @@ func (w *isolateWorker) RegisterWorkflowWithOptions(fn any, options goWorkflow.R
 		}
 	}
 	fn, options = registration(fn, options, w.activities.resolve, w.logs.resolve)
-	w.Worker.RegisterWorkflowWithOptions(fn, options)
+	w.Worker.RegisterWorkflowWithOptions(resourceFactory(fn, &w.resources), options)
 }
 
 func registration(fn any, options goWorkflow.RegisterOptions, resolve func(string) string, logs func() LogHandler) (any, goWorkflow.RegisterOptions) {
@@ -153,6 +154,7 @@ type isolateReplayer struct {
 	goWorker.WorkflowReplayer
 	activities activityAliases
 	logs       logConfiguration
+	resources  resourceConfiguration
 }
 
 func (r *isolateReplayer) RegisterActivity(fn any) {
@@ -172,7 +174,7 @@ func (r *isolateReplayer) RegisterWorkflow(fn any) {
 
 func (r *isolateReplayer) RegisterWorkflowWithOptions(fn any, options goWorkflow.RegisterOptions) {
 	fn, options = registration(fn, options, r.activities.resolve, r.logs.resolve)
-	r.WorkflowReplayer.RegisterWorkflowWithOptions(fn, options)
+	r.WorkflowReplayer.RegisterWorkflowWithOptions(resourceFactory(fn, &r.resources), options)
 }
 
 // GetWorkflowResult preserves the pinned SDK replayer's result-inspection

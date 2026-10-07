@@ -47,6 +47,8 @@ type Factory struct {
 	ResolveActivity func(string) string
 	// ResolveLogHandler reads worker configuration on the host for each record.
 	ResolveLogHandler func() LogHandler
+	// ResolveResourceOptions snapshots host policy for each new execution.
+	ResolveResourceOptions func() ResourceOptions
 }
 
 func (f Factory) NewWorkflowDefinition() bindings.WorkflowDefinition {
@@ -56,7 +58,14 @@ func (f Factory) NewWorkflowDefinition() bindings.WorkflowDefinition {
 		f.Program = f.Function.ProgramWithHandle(func(handle isolate.Handle) { _ = workflow.RunFunction(handle) })
 		f.EntryName = f.Function.Name()
 	}
-	return &definition{program: f.Program, entryName: f.EntryName, resolveActivity: f.ResolveActivity, resolveLogHandler: f.ResolveLogHandler}
+	var resources ResourceOptions
+	if f.ResolveResourceOptions != nil {
+		resources = f.ResolveResourceOptions()
+	}
+	if err := resources.Validate(); err != nil {
+		panic(err)
+	}
+	return &definition{resources: resources, program: f.Program, entryName: f.EntryName, resolveActivity: f.ResolveActivity, resolveLogHandler: f.ResolveLogHandler}
 }
 
 type reply struct {
@@ -78,6 +87,9 @@ type callState struct {
 }
 
 type definition struct {
+	resources         ResourceOptions
+	lastResources     isolate.ResourceStats
+	resourceIdentity  ResourceEvent
 	canceled          bool
 	cancelWaiter      *isolate.Command
 	calls             map[uint64]*callState
@@ -145,8 +157,13 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 	if deadline <= 0 {
 		deadline = time.Second
 	}
+	budget := resourceTaskBudget{start: time.Now(), options: d.resources}
+	if d.resources.MaxTaskDuration > 0 && d.resources.MaxTaskDuration < deadline {
+		deadline = d.resources.MaxTaskDuration
+	}
 	taskContext, cancelTask := context.WithTimeout(context.Background(), deadline)
 	defer cancelTask()
+	defer func() { d.observeResources("task", nil) }()
 	configured, ok := d.env.GetDataConverter().(*converter.CompositeDataConverter)
 	if !ok || configured != converter.GetDefaultDataConverter() {
 		d.fail(errors.New("isolate POC requires Temporal's default data converter"))
@@ -163,19 +180,37 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 	if !d.started {
 		d.started = true
 		var err error
-		d.instance, err = isolate.NewContext(taskContext, isolate.Config{Program: d.program, Deterministic: true, InitialTime: &now, TimerOp: workflow.OpSleep, LogHandler: d.writeLog})
+		d.instance, err = isolate.NewContext(taskContext, isolate.Config{Program: d.program, Deterministic: true, InitialTime: &now, TimerOp: workflow.OpSleep, LogHandler: d.writeLog, ResourceLimits: d.resources.Limits})
 		if err == nil {
 			err = d.instance.Start()
 		}
 		if err != nil {
-			d.failTask(err)
+			d.failTask(budget.startupError(err))
 			return
 		}
+		d.observeResources("created", nil)
 	} else if err := d.instance.AdvanceTime(now); err != nil {
 		d.fail(err)
 		return
 	}
 	instance := d.instance
+	budget.progress, budget.lastProgress, budget.monitoring = instance.Resources().Progress, time.Now(), true
+	var ticks <-chan time.Time
+	if limit := d.resources.MaxNoProgressDuration; limit > 0 {
+		interval := min(limit, 10*time.Millisecond)
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		ticks = ticker.C
+	}
+	checkBudget := func() {
+		if err := budget.check(instance); err != nil {
+			d.failTask(err)
+		}
+		if taskContext.Err() != nil {
+			d.failTask(errors.New("isolate did not suspend before the workflow task deadline"))
+		}
+	}
+	checkBudget()
 	if !newInstance && !resuming {
 		// An unrelated history event does not need to resume the instance.
 		return
@@ -194,6 +229,7 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 	// pending sends, then resume their transport handshakes. Return only after
 	// a pass reaches idle without producing another command.
 	handleCommand := func(command *isolate.Command) bool {
+		checkBudget()
 		if command == nil {
 			d.fail(errors.New("isolate command stream closed"))
 			return false
@@ -207,6 +243,7 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 		return !d.completed && !d.closed
 	}
 	for {
+		checkBudget()
 		if err := instance.Resume(); err != nil {
 			d.fail(err)
 			return
@@ -231,6 +268,7 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 				}
 				waiting = false
 			case <-instance.Done():
+				checkBudget()
 				if !d.completed {
 					err := instance.Wait()
 					if err == nil {
@@ -239,7 +277,10 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 					d.failTask(fmt.Errorf("isolate returned without workflow.Complete: %w", err))
 				}
 				return
+			case <-ticks:
+				checkBudget()
 			case <-taskContext.Done():
+				checkBudget()
 				d.failTask(errors.New("isolate did not suspend before the workflow task deadline"))
 				return
 			}
@@ -672,7 +713,8 @@ func (d *definition) fail(err error) {
 	var startup *isolate.InitializationError
 	var exit *isolate.ExitError
 	var pending *isolate.KillPendingError
-	if errors.As(err, &failure) || errors.As(err, &ownership) || errors.As(err, &exited) || errors.As(err, &startup) || errors.As(err, &exit) || errors.As(err, &pending) || errors.Is(err, isolate.ErrRevoked) {
+	var resource *isolate.ResourceLimitError
+	if errors.As(err, &resource) || errors.As(err, &failure) || errors.As(err, &ownership) || errors.As(err, &exited) || errors.As(err, &startup) || errors.As(err, &exit) || errors.As(err, &pending) || errors.Is(err, isolate.ErrRevoked) {
 		d.failTask(err)
 	}
 	env := d.env
@@ -699,7 +741,14 @@ func (d *definition) failTask(err error) {
 	var ownership *isolate.OwnershipError
 	var exited *isolate.GoexitError
 	var startup *isolate.InitializationError
-	if errors.As(err, &effect) {
+	var resource *isolate.ResourceLimitError
+	if errors.As(err, &resource) {
+		if d.instance == nil {
+			d.lastResources = resource.Stats
+		}
+		d.failureStack = resource.Stack
+		d.observeResources("limit", resource)
+	} else if errors.As(err, &effect) {
 		d.failureStack = effect.Stack
 	} else if errors.As(err, &failure) {
 		d.failureStack = failure.Stack
@@ -751,6 +800,11 @@ func (d *definition) Close() {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 	d.closeErr = d.instance.Kill(ctx)
+	if d.closeErr == nil {
+		d.observeResources("closed", nil)
+	} else {
+		d.observeResources("termination-pending", d.closeErr)
+	}
 	if d.closeErr == nil {
 		d.instance, d.env = nil, nil
 	} else if d.env != nil {
