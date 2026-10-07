@@ -33,23 +33,33 @@ type WorkflowReplayerOptions = goWorker.WorkflowReplayerOptions
 
 // New constructs a normal Temporal worker with isolate-aware registration.
 func New(c client.Client, taskQueue string, options Options) Worker {
-	return &isolateWorker{Worker: goWorker.New(c, taskQueue, options), activities: activityAliases{disabled: options.DisableRegistrationAliasing}}
+	return &isolateWorker{Worker: goWorker.New(c, taskQueue, options), activities: activityAliases{disabled: options.DisableRegistrationAliasing}, failWorkflowOnPanic: options.WorkflowPanicPolicy == goWorker.FailWorkflow}
 }
 
 // Wrap adds isolate registration to an existing worker. All lifecycle,
 // activity, dynamic workflow, and service methods retain their SDK behavior.
-// The wrapped worker must use the default registration aliasing setting; use
-// New to configure DisableRegistrationAliasing.
-func Wrap(w Worker) Worker {
+// Pass the options used to construct the worker if they differ from defaults.
+// Isolate workflows require BlockWorkflow panic policy. Ordinary registrations
+// keep the underlying worker's policy and converter.
+func Wrap(w Worker, options ...Options) Worker {
 	if _, ok := w.(*isolateWorker); ok {
 		return w
 	}
-	return &isolateWorker{Worker: w}
+	if len(options) > 1 {
+		panic("worker.Wrap: at most one Options value is supported")
+	}
+	var opts Options
+	if len(options) == 1 {
+		opts = options[0]
+	}
+	return &isolateWorker{Worker: w, activities: activityAliases{disabled: opts.DisableRegistrationAliasing}, failWorkflowOnPanic: opts.WorkflowPanicPolicy == goWorker.FailWorkflow}
 }
 
 type isolateWorker struct {
 	Worker
-	activities activityAliases
+	activities          activityAliases
+	logs                logConfiguration
+	failWorkflowOnPanic bool
 }
 
 // Match Temporal's short-name alias rules. This table stays on the host, and
@@ -114,11 +124,16 @@ func (w *isolateWorker) RegisterWorkflow(fn any) {
 }
 
 func (w *isolateWorker) RegisterWorkflowWithOptions(fn any, options goWorkflow.RegisterOptions) {
-	fn, options = registration(fn, options, w.activities.resolve)
+	if w.failWorkflowOnPanic {
+		if _, marked := isolate.LookupFunction(fn); marked {
+			panic("worker: isolate workflows require BlockWorkflow panic policy")
+		}
+	}
+	fn, options = registration(fn, options, w.activities.resolve, w.logs.resolve)
 	w.Worker.RegisterWorkflowWithOptions(fn, options)
 }
 
-func registration(fn any, options goWorkflow.RegisterOptions, resolve func(string) string) (any, goWorkflow.RegisterOptions) {
+func registration(fn any, options goWorkflow.RegisterOptions, resolve func(string) string, logs func() LogHandler) (any, goWorkflow.RegisterOptions) {
 	handle, ok := isolate.LookupFunction(fn)
 	if !ok {
 		return fn, options
@@ -131,12 +146,13 @@ func registration(fn any, options goWorkflow.RegisterOptions, resolve func(strin
 		name := handle.Name()
 		options.Name = name[strings.LastIndex(name, ".")+1:]
 	}
-	return temporalbridge.Factory{Function: handle, ResolveActivity: resolve}, options
+	return temporalbridge.Factory{Function: handle, ResolveActivity: resolve, ResolveLogHandler: logs}, options
 }
 
 type isolateReplayer struct {
 	goWorker.WorkflowReplayer
 	activities activityAliases
+	logs       logConfiguration
 }
 
 func (r *isolateReplayer) RegisterActivity(fn any) {
@@ -155,7 +171,7 @@ func (r *isolateReplayer) RegisterWorkflow(fn any) {
 }
 
 func (r *isolateReplayer) RegisterWorkflowWithOptions(fn any, options goWorkflow.RegisterOptions) {
-	fn, options = registration(fn, options, r.activities.resolve)
+	fn, options = registration(fn, options, r.activities.resolve, r.logs.resolve)
 	r.WorkflowReplayer.RegisterWorkflowWithOptions(fn, options)
 }
 

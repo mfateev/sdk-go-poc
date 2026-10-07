@@ -304,9 +304,9 @@ The adapter uses `isolate.Handle.ProgramWithHandle` with a noncapturing dispatch
 The trusted runtime entry copies compiler-created function metadata by value;
 workflow dispatch does not read a host-owned closure containing that handle.
 The compiler/runtime conformance workflow checks SDK application code with
-level-two heap ownership diagnostics, including the race build. This remains
-partial enforcement: the external converter dependency graph and other remaining
-ownership paths still require their productization audit.
+level-two heap ownership diagnostics, including the race build. Marked workflow builds force ownership checks across the linked dependency
+graph. Custom converters and hostile native-code containment retain separate
+productization gates.
 
 ### Memory ownership failures
 
@@ -318,5 +318,76 @@ process locks before their goroutines are discarded; `Kill(ctx)` waits for
 that cleanup. The metadata driver checks private registry and MessageInfo failures
 and verifies that subsequent workflows still run in the same host.
 
-The general compiler heap checks remain opt-in during productization. This
-failure policy does not mean every ownership escape is already detected.
+Marked workflow builds make the compiler heap checks mandatory. The supported
+default converter and native workflow operations have ownership regression
+coverage; custom converter support remains deferred.
+
+## Workflow effects and logging
+
+Isolate workflows reject environment/configuration reads, file and network I/O,
+subprocesses, OS entropy, process runtime controls, and application unsafe/native
+escape paths. Perform external work in activities and pass configuration as
+workflow input. Forbidden operations permanently revoke the isolate; application
+`recover` and deferred callbacks cannot resume it. The worker reports the
+operation and isolate stack as a **Workflow Task failure**, allowing a corrected
+workflow implementation to retry that task.
+
+Isolate registrations require the SDK's default `BlockWorkflow` panic policy.
+`worker.New` rejects marked workflow registration under `FailWorkflow`; ordinary
+workflow registrations retain their configured behavior. When adapting an
+existing worker, pass its original options to `worker.Wrap(existing, options)`.
+Direct `temporalbridge.Factory` users must configure `BlockWorkflow` themselves.
+
+`fmt.Print*`, standard `log`, `slog` and Go's `print`/`println` format inside the
+isolate and send copied records through the reserved logging Call. Initializer
+logs use the same transport. The default host handler uses the SDK logger and
+honors `EnableLoggingInReplay`. Configure a worker or replayer with:
+
+```go
+w := worker.New(c, taskQueue, worker.Options{})
+err := worker.SetIsolateLogHandler(w, func(event worker.LogEvent) {
+    if event.Replay {
+        return
+    }
+    hostLogger.Info(event.Message, "source", event.Source,
+        "workflowID", event.WorkflowID, "runID", event.RunID)
+})
+if err != nil {
+    panic(err)
+}
+w.RegisterWorkflow(MyWorkflow)
+```
+
+The handler stays on the host. Its errors/configuration are never returned to
+workflow code; printing returns the formatted byte count and nil after delivery.
+A nil handler restores SDK logging. Workflow-local buffers and explicitly
+constructed local loggers remain available. Host workflows and activities keep
+ordinary Go printing, logging and I/O behavior.
+
+### Effect conformance checks
+
+The checker validates initializer and workflow logging, worker configuration,
+replay metadata, ordinary workflow registration, file and metadata-operation
+violations, and recorded-history replay. Run it from this repository with the
+fork's compiler:
+
+```sh
+../golang-go/bin/go build -o /tmp/isolate-effects-check ./example/effects/check
+/tmp/isolate-effects-check
+```
+
+To also verify actual server history, start a temporary development server in
+another terminal, then run the opt-in service check:
+
+```sh
+temporal server start-dev --ip 127.0.0.1 --port 7242 --headless
+```
+
+```sh
+/tmp/isolate-effects-check live 127.0.0.1:7242
+```
+
+It checks that logging completes normally and that each forbidden operation
+produces a Workflow Task failure containing its operation and stack, with no
+Workflow Execution failure or completion. The checker uses unique workflow IDs
+and terminates its own negative-test executions after checking their histories.

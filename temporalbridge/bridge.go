@@ -45,6 +45,8 @@ type Factory struct {
 	// ResolveActivity maps function references to host registration aliases.
 	// It runs only on the host and is never passed into an isolate.
 	ResolveActivity func(string) string
+	// ResolveLogHandler reads worker configuration on the host for each record.
+	ResolveLogHandler func() LogHandler
 }
 
 func (f Factory) NewWorkflowDefinition() bindings.WorkflowDefinition {
@@ -54,7 +56,7 @@ func (f Factory) NewWorkflowDefinition() bindings.WorkflowDefinition {
 		f.Program = f.Function.ProgramWithHandle(func(handle isolate.Handle) { _ = workflow.RunFunction(handle) })
 		f.EntryName = f.Function.Name()
 	}
-	return &definition{program: f.Program, entryName: f.EntryName, resolveActivity: f.ResolveActivity}
+	return &definition{program: f.Program, entryName: f.EntryName, resolveActivity: f.ResolveActivity, resolveLogHandler: f.ResolveLogHandler}
 }
 
 type reply struct {
@@ -76,23 +78,25 @@ type callState struct {
 }
 
 type definition struct {
-	canceled        bool
-	cancelWaiter    *isolate.Command
-	calls           map[uint64]*callState
-	callsByCommand  map[*isolate.Command]*callState
-	earlyCancel     map[uint64]bool
-	resolveActivity func(string) string
-	program         isolate.Program
-	entryName       string
-	env             bindings.WorkflowEnvironment
-	input           *commonpb.Payloads
-	instance        *isolate.Isolate
-	started         bool
-	completed       bool
-	pending         []reply
-	immediate       []reply
-	signals         []workflow.Signal
-	wantSignals     []signalWaiter
+	canceled          bool
+	cancelWaiter      *isolate.Command
+	calls             map[uint64]*callState
+	callsByCommand    map[*isolate.Command]*callState
+	earlyCancel       map[uint64]bool
+	resolveActivity   func(string) string
+	resolveLogHandler func() LogHandler
+	effectStack       string
+	program           isolate.Program
+	entryName         string
+	env               bindings.WorkflowEnvironment
+	input             *commonpb.Payloads
+	instance          *isolate.Isolate
+	started           bool
+	completed         bool
+	pending           []reply
+	immediate         []reply
+	signals           []workflow.Signal
+	wantSignals       []signalWaiter
 }
 
 // Execute must be asynchronous. History callbacks only queue data here.
@@ -119,6 +123,14 @@ func (d *definition) Execute(env bindings.WorkflowEnvironment, _ *commonpb.Heade
 }
 
 func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
+	// A host log handler may panic. Always release the instance before handing
+	// the panic to the SDK's Workflow Task failure path.
+	defer func() {
+		if p := recover(); p != nil {
+			d.Close()
+			panic(p)
+		}
+	}()
 	if d.completed {
 		return
 	}
@@ -138,7 +150,7 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 	if !d.started {
 		d.started = true
 		var err error
-		d.instance, err = isolate.New(isolate.Config{Program: d.program, Deterministic: true, InitialTime: &now, TimerOp: workflow.OpSleep})
+		d.instance, err = isolate.New(isolate.Config{Program: d.program, Deterministic: true, InitialTime: &now, TimerOp: workflow.OpSleep, LogHandler: d.writeLog})
 		if err == nil {
 			err = d.instance.Start()
 		}
@@ -306,6 +318,14 @@ func completionError(message string, canceled bool) error {
 // handle emits or answers one host command. Replies are held until suspension.
 func (d *definition) handle(command *isolate.Command) error {
 	switch command.Op {
+	case isolate.LogOp:
+		record, err := isolate.DecodeLog(command.Payload)
+		if err != nil {
+			return err
+		}
+		d.writeLog(record)
+		d.replyWhenSuspended(command, nil, nil)
+		return nil
 	case workflow.OpWorkflowCancel:
 		if d.cancelWaiter != nil {
 			return errors.New("duplicate workflow cancellation listener")
@@ -604,11 +624,24 @@ func (d *definition) fail(err error) {
 		return
 	}
 	d.completed = true
+	var effect *isolate.EffectError
+	if errors.As(err, &effect) {
+		d.effectStack = effect.Stack
+		d.Close()
+		// The Go SDK converts this host panic to a Workflow Task failure under
+		// BlockWorkflow. Never issue a Workflow Execution failure command.
+		panic(effect)
+	}
 	d.env.Complete(nil, err)
 	d.Close() // Revoke dispatch and release any host suspension waiter.
 }
 
-func (d *definition) StackTrace() string { return "isolate workflow stack trace unavailable" }
+func (d *definition) StackTrace() string {
+	if d.effectStack != "" {
+		return d.effectStack
+	}
+	return "isolate workflow stack trace unavailable"
+}
 
 func (d *definition) Close() {
 	if d.instance == nil {
