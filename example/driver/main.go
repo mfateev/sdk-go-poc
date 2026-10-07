@@ -347,9 +347,14 @@ func runDeadline() {
 	defer d.Close()
 	e := &environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}
 	d.Execute(e, nil, nil)
-	d.OnWorkflowTaskStarted(20 * time.Millisecond)
-	if e.err == nil || !strings.Contains(e.err.Error(), "deadline") {
-		panic(fmt.Sprintf("deadline error = %v", e.err))
+	var failure any
+	func() {
+		defer func() { failure = recover() }()
+		d.OnWorkflowTaskStarted(20 * time.Millisecond)
+	}()
+	task, ok := failure.(*temporalbridge.WorkflowTaskError)
+	if !ok || !strings.Contains(task.Error(), "deadline") || e.completes != 0 {
+		panic(fmt.Sprintf("deadline task failure = %v, completes=%d", failure, e.completes))
 	}
 }
 

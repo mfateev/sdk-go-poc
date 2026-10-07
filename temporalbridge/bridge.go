@@ -85,7 +85,9 @@ type definition struct {
 	earlyCancel       map[uint64]bool
 	resolveActivity   func(string) string
 	resolveLogHandler func() LogHandler
-	effectStack       string
+	failureStack      string
+	closed            bool
+	closeErr          error
 	program           isolate.Program
 	entryName         string
 	env               bindings.WorkflowEnvironment
@@ -101,9 +103,12 @@ type definition struct {
 
 // Execute must be asynchronous. History callbacks only queue data here.
 func (d *definition) Execute(env bindings.WorkflowEnvironment, _ *commonpb.Header, input *commonpb.Payloads) {
+	if d.closed {
+		return
+	}
 	d.env, d.input = env, input
 	env.RegisterCancelHandler(func() {
-		if d.completed {
+		if d.completed || d.closed {
 			return
 		}
 		d.canceled = true
@@ -113,6 +118,9 @@ func (d *definition) Execute(env bindings.WorkflowEnvironment, _ *commonpb.Heade
 		}
 	})
 	env.RegisterSignalHandler(func(name string, payloads *commonpb.Payloads, _ *commonpb.Header) error {
+		if d.completed || d.closed {
+			return nil
+		}
 		var payload []byte
 		if err := env.GetDataConverter().FromPayloads(payloads, &payload); err != nil {
 			return err
@@ -131,9 +139,14 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 			panic(p)
 		}
 	}()
-	if d.completed {
+	if d.completed || d.closed {
 		return
 	}
+	if deadline <= 0 {
+		deadline = time.Second
+	}
+	taskContext, cancelTask := context.WithTimeout(context.Background(), deadline)
+	defer cancelTask()
 	configured, ok := d.env.GetDataConverter().(*converter.CompositeDataConverter)
 	if !ok || configured != converter.GetDefaultDataConverter() {
 		d.fail(errors.New("isolate POC requires Temporal's default data converter"))
@@ -150,18 +163,19 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 	if !d.started {
 		d.started = true
 		var err error
-		d.instance, err = isolate.New(isolate.Config{Program: d.program, Deterministic: true, InitialTime: &now, TimerOp: workflow.OpSleep, LogHandler: d.writeLog})
+		d.instance, err = isolate.NewContext(taskContext, isolate.Config{Program: d.program, Deterministic: true, InitialTime: &now, TimerOp: workflow.OpSleep, LogHandler: d.writeLog})
 		if err == nil {
 			err = d.instance.Start()
 		}
 		if err != nil {
-			d.fail(err)
+			d.failTask(err)
 			return
 		}
 	} else if err := d.instance.AdvanceTime(now); err != nil {
 		d.fail(err)
 		return
 	}
+	instance := d.instance
 	if !newInstance && !resuming {
 		// An unrelated history event does not need to resume the instance.
 		return
@@ -179,11 +193,6 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 	// Service commands while the runtime seeks idle; after suspension drain
 	// pending sends, then resume their transport handshakes. Return only after
 	// a pass reaches idle without producing another command.
-	if deadline <= 0 {
-		deadline = time.Second
-	}
-	timer := time.NewTimer(deadline)
-	defer timer.Stop()
 	handleCommand := func(command *isolate.Command) bool {
 		if command == nil {
 			d.fail(errors.New("isolate command stream closed"))
@@ -195,20 +204,20 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 			d.fail(err)
 			return false
 		}
-		return true
+		return !d.completed && !d.closed
 	}
 	for {
-		if err := d.instance.Resume(); err != nil {
+		if err := instance.Resume(); err != nil {
 			d.fail(err)
 			return
 		}
 		suspended := make(chan error, 1)
-		go func() { suspended <- d.instance.Suspend() }()
+		go func() { suspended <- instance.Suspend() }()
 		handled := false
 		waiting := true
 		for waiting {
 			select {
-			case command := <-d.instance.Commands():
+			case command := <-instance.Commands():
 				if !handleCommand(command) {
 					return
 				}
@@ -221,17 +230,17 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 					return
 				}
 				waiting = false
-			case <-d.instance.Done():
+			case <-instance.Done():
 				if !d.completed {
-					err := d.instance.Wait()
+					err := instance.Wait()
 					if err == nil {
 						err = errors.New("missing workflow completion")
 					}
-					d.fail(fmt.Errorf("isolate returned without workflow.Complete: %w", err))
+					d.failTask(fmt.Errorf("isolate returned without workflow.Complete: %w", err))
 				}
 				return
-			case <-timer.C:
-				d.fail(errors.New("isolate did not suspend before the workflow task deadline"))
+			case <-taskContext.Done():
+				d.failTask(errors.New("isolate did not suspend before the workflow task deadline"))
 				return
 			}
 		}
@@ -241,7 +250,7 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 	drain:
 		for {
 			select {
-			case command := <-d.instance.Commands():
+			case command := <-instance.Commands():
 				if !handleCommand(command) {
 					return
 				}
@@ -258,12 +267,11 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 		}
 		d.immediate = nil
 		if d.completed {
-			_ = d.instance.Resume() // Let the completion call finish naturally.
 			return
 		}
 		if !handled {
-			if d.instance.PendingCalls() == 0 {
-				d.fail(errors.New("isolate deadlocked without a pending host operation"))
+			if instance.PendingCalls() == 0 {
+				d.failTask(errors.New("isolate deadlocked without a pending host operation"))
 			}
 			return
 		}
@@ -275,6 +283,9 @@ func (d *definition) replyWhenSuspended(command *isolate.Command, payload []byte
 }
 
 func (d *definition) finish(command *isolate.Command, state *callState, payload []byte, err error, immediate bool) {
+	if d.closed {
+		return
+	}
 	if state != nil {
 		if state.done {
 			return
@@ -282,6 +293,7 @@ func (d *definition) finish(command *isolate.Command, state *callState, payload 
 		state.done = true
 		delete(d.calls, state.id)
 		delete(d.callsByCommand, command)
+		state.command, state.cancel = nil, nil
 	}
 	r := reply{command: command, payload: payload, err: err}
 	if immediate {
@@ -293,16 +305,39 @@ func (d *definition) finish(command *isolate.Command, state *callState, payload 
 
 func (d *definition) completion(command *isolate.Command) func([]byte, error) {
 	state := d.callsByCommand[command]
-	return func(payload []byte, err error) { d.finish(command, state, payload, err, false) }
+	if state == nil {
+		state = &callState{command: command}
+		if d.callsByCommand == nil {
+			d.callsByCommand = make(map[*isolate.Command]*callState)
+		}
+		d.callsByCommand[command] = state
+	}
+	// The callback retains a retireable cell, never the original command. Close
+	// clears the cell even if the SDK retains or subsequently invokes its callback.
+	return func(payload []byte, err error) {
+		if d.closed || state.done {
+			return
+		}
+		d.finish(state.command, state, payload, err, false)
+	}
 }
 
 func (d *definition) finishWorkflow(result *commonpb.Payloads, err error) {
-	d.env.Complete(result, err)
+	env := d.env
+	instance := d.instance
 	d.completed = true
-	if d.cancelWaiter != nil {
-		d.replyWhenSuspended(d.cancelWaiter, nil, nil)
-		d.cancelWaiter = nil
+	d.Close()
+	if d.closeErr != nil {
+		panic(&WorkflowTaskError{Cause: d.closeErr})
 	}
+	if instance != nil {
+		if outcome := instance.Wait(); outcome != nil && !errors.Is(outcome, isolate.ErrRevoked) {
+			d.failTask(outcome)
+		}
+	}
+	// Only publish an execution result after revoking children and draining all
+	// native cleanup. Completion cannot admit further activity/timer commands.
+	env.Complete(result, err)
 }
 
 func completionError(message string, canceled bool) error {
@@ -354,6 +389,8 @@ func (d *definition) handle(command *isolate.Command) error {
 		}
 		if d.calls == nil {
 			d.calls = make(map[uint64]*callState)
+		}
+		if d.callsByCommand == nil {
 			d.callsByCommand = make(map[*isolate.Command]*callState)
 		}
 		state := &callState{id: request.ID, command: command}
@@ -369,16 +406,17 @@ func (d *definition) handle(command *isolate.Command) error {
 			return errors.New("invalid cancel call ID")
 		}
 		if state := d.calls[id]; state != nil {
+			original, cancel := state.command, state.cancel
 			// Finish first so synchronous or late SDK callbacks cannot reply twice.
 			d.finish(state.command, state, nil, context.Canceled, true)
 			for index, waiter := range d.wantSignals {
-				if waiter.command == state.command {
+				if waiter.command == original {
 					d.wantSignals = append(d.wantSignals[:index], d.wantSignals[index+1:]...)
 					break
 				}
 			}
-			if state.cancel != nil {
-				state.cancel()
+			if cancel != nil {
+				cancel()
 			}
 		} else {
 			// A cancel callback may send before the original Call's transport wait.
@@ -447,8 +485,16 @@ func (d *definition) handle(command *isolate.Command) error {
 			ActivityType: bindings.ActivityType{Name: request.Name},
 			Input:        input,
 		}
+		finish := d.completion(command)
 		d.env.ExecuteActivity(params, func(result *commonpb.Payloads, cause error) {
-			d.queueResult(command, result, cause)
+			if d.closed {
+				return
+			}
+			var payload []byte
+			if cause == nil && result != nil {
+				cause = d.env.GetDataConverter().FromPayloads(result, &payload)
+			}
+			finish(payload, cause)
 		})
 		return nil
 	case workflow.OpActivityPayloads:
@@ -480,6 +526,9 @@ func (d *definition) handle(command *isolate.Command) error {
 		}
 		finish := d.completion(command)
 		activityID := d.env.ExecuteActivity(params, func(result *commonpb.Payloads, cause error) {
+			if d.closed {
+				return
+			}
 			var payload []byte
 			if cause == nil && result != nil {
 				payload, cause = proto.MarshalOptions{Deterministic: true}.Marshal(result)
@@ -532,7 +581,6 @@ func (d *definition) handle(command *isolate.Command) error {
 		}
 		if err == nil || completion.Error != "" {
 			d.finishWorkflow(result, err)
-			d.replyWhenSuspended(command, nil, nil)
 			return nil
 		}
 		return err
@@ -552,7 +600,6 @@ func (d *definition) handle(command *isolate.Command) error {
 			}
 		}
 		d.finishWorkflow(result, err)
-		d.replyWhenSuspended(command, nil, nil)
 		return nil
 	default:
 		return fmt.Errorf("unknown isolate operation %d", command.Op)
@@ -611,43 +658,104 @@ func (d *definition) deliverWaitingSignals() {
 	}
 }
 
-func (d *definition) queueResult(command *isolate.Command, result *commonpb.Payloads, cause error) {
-	var payload []byte
-	if cause == nil && result != nil {
-		cause = d.env.GetDataConverter().FromPayloads(result, &payload)
-	}
-	d.pending = append(d.pending, reply{command: command, payload: payload, err: cause})
-}
-
 func (d *definition) fail(err error) {
 	if d.completed {
 		return
 	}
-	d.completed = true
 	var effect *isolate.EffectError
 	if errors.As(err, &effect) {
-		d.effectStack = effect.Stack
-		d.Close()
-		// The Go SDK converts this host panic to a Workflow Task failure under
-		// BlockWorkflow. Never issue a Workflow Execution failure command.
-		panic(effect)
+		d.failTask(effect)
 	}
-	d.env.Complete(nil, err)
-	d.Close() // Revoke dispatch and release any host suspension waiter.
+	var failure *isolate.PanicError
+	var exited *isolate.GoexitError
+	var startup *isolate.InitializationError
+	var exit *isolate.ExitError
+	var pending *isolate.KillPendingError
+	if errors.As(err, &failure) || errors.As(err, &exited) || errors.As(err, &startup) || errors.As(err, &exit) || errors.As(err, &pending) || errors.Is(err, isolate.ErrRevoked) {
+		d.failTask(err)
+	}
+	env := d.env
+	d.completed = true
+	d.Close()
+	if d.closeErr != nil {
+		panic(&WorkflowTaskError{Cause: d.closeErr})
+	}
+	env.Complete(nil, err)
+}
+
+// WorkflowTaskError reports a lifecycle failure on the host. It is never a
+// workflow execution result. The supported worker uses BlockWorkflow to retry
+// its task, just as for an ordinary workflow panic.
+type WorkflowTaskError struct{ Cause error }
+
+func (e *WorkflowTaskError) Error() string { return e.Cause.Error() }
+func (e *WorkflowTaskError) Unwrap() error { return e.Cause }
+
+func (d *definition) failTask(err error) {
+	d.completed = true
+	var effect *isolate.EffectError
+	var failure *isolate.PanicError
+	var exited *isolate.GoexitError
+	var startup *isolate.InitializationError
+	if errors.As(err, &effect) {
+		d.failureStack = effect.Stack
+	} else if errors.As(err, &failure) {
+		d.failureStack = failure.Stack
+	} else if errors.As(err, &exited) {
+		d.failureStack = exited.Stack
+	} else if errors.As(err, &startup) {
+		d.failureStack = startup.Pending.Stack
+	}
+	d.Close()
+	if effect != nil {
+		panic(effect) // Preserve the original effect diagnostic contract.
+	}
+	panic(&WorkflowTaskError{Cause: err})
 }
 
 func (d *definition) StackTrace() string {
-	if d.effectStack != "" {
-		return d.effectStack
+	if d.closeErr != nil {
+		var pending *isolate.KillPendingError
+		if errors.As(d.closeErr, &pending) {
+			return d.failureStack + "\n" + pending.Error() + "\n" + pending.Stack
+		}
+		return d.failureStack + "\n" + d.closeErr.Error()
+	}
+	if d.failureStack != "" {
+		return d.failureStack
 	}
 	return "isolate workflow stack trace unavailable"
 }
 
 func (d *definition) Close() {
+	if !d.closed {
+		d.closed = true
+		for _, state := range d.callsByCommand {
+			state.done = true
+			state.command, state.cancel = nil, nil
+		}
+		d.calls, d.callsByCommand, d.earlyCancel = nil, nil, nil
+		d.pending, d.immediate, d.signals, d.wantSignals = nil, nil, nil, nil
+		d.cancelWaiter, d.input = nil, nil
+		d.program = isolate.Program{}
+		d.resolveActivity, d.resolveLogHandler = nil, nil
+	}
 	if d.instance == nil {
+		d.env = nil
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
-	_ = d.instance.Kill(ctx)
+	d.closeErr = d.instance.Kill(ctx)
+	if d.closeErr == nil {
+		d.instance, d.env = nil, nil
+	} else if d.env != nil {
+		if logger := d.env.GetLogger(); logger != nil {
+			logger.Warn("isolate termination pending", "error", d.closeErr)
+		}
+	}
 }
+
+// CloseError exposes pending termination to hosts using the low-level factory.
+// Calling Close again can finish cleanup; it never revives the instance.
+func (d *definition) CloseError() error { return d.closeErr }

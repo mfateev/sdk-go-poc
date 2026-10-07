@@ -391,3 +391,38 @@ It checks that logging completes normally and that each forbidden operation
 produces a Workflow Task failure containing its operation and stack, with no
 Workflow Execution failure or completion. The checker uses unique workflow IDs
 and terminates its own negative-test executions after checking their histories.
+
+
+## Workflow lifecycle
+
+Returning from a marked workflow terminates its remaining goroutines. Execution
+completion is published only after the isolate's cleanup fence. Ordinary returned
+errors remain Workflow Execution failures, and workflow-context cancellation stays
+cooperative: workflow code can observe `ctx.Done()` and clean up before returning.
+
+Unrecovered root or child panics, root `runtime.Goexit`, and isolate `os.Exit`
+produce **Workflow Task failures** under `BlockWorkflow`, leaving the execution
+available to replay corrected code. Recovered panics and child `runtime.Goexit`
+keep ordinary Go semantics. Panic diagnostics copy a bounded message and stack;
+reporting never invokes an application's `Error` or `String` method.
+
+Completion, cache eviction and worker close permanently revoke local execution.
+Close retires outstanding command cells and callbacks; late activity, timer,
+signal or cancellation callbacks cannot revive the workflow. Cache eviction does
+not send server-side cancellation commands. Recreating a workflow replays its
+history. Ordinary workflows and host activities retain their SDK behavior.
+
+A stuck isolate can remain pending beyond the bounded close timeout. The adapter
+logs the pending termination and keeps the handle for another cleanup attempt;
+low-level hosts can inspect `CloseError()` and `StackTrace()`. A deadline never
+undoes revocation. CPU loops without a supported execution fence and unsupported
+native waits do not have an in-process hard-kill guarantee.
+
+Run compiled lifecycle and replay conformance, optionally against a development
+server (the checker terminates its own negative-test executions):
+
+```sh
+../golang-go/bin/go build -o /tmp/isolate-lifecycle-check ./example/lifecycle/check
+/tmp/isolate-lifecycle-check
+/tmp/isolate-lifecycle-check live 127.0.0.1:7242
+```
