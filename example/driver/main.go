@@ -30,14 +30,15 @@ type environment struct {
 	cancel             func()
 	canceledActivities int
 	bindings.WorkflowEnvironment
-	activity bindings.ResultHandler
-	timer    bindings.ResultHandler
-	signal   func(string, *commonpb.Payloads, *commonpb.Header) error
-	result   *commonpb.Payloads
-	err      error
-	info     goWorkflow.Info
-	seq      int64
-	now      time.Time
+	activity  bindings.ResultHandler
+	timer     bindings.ResultHandler
+	signal    func(string, *commonpb.Payloads, *commonpb.Header) error
+	result    *commonpb.Payloads
+	completes int
+	err       error
+	info      goWorkflow.Info
+	seq       int64
+	now       time.Time
 }
 
 func (e *environment) RegisterCancelHandler(handler func())        { e.cancel = handler }
@@ -67,7 +68,10 @@ func (e *environment) NewTimer(d time.Duration, _ goWorkflow.TimerOptions, cb bi
 	e.timer = cb
 	return nil
 }
-func (e *environment) Complete(result *commonpb.Payloads, err error) { e.result, e.err = result, err }
+func (e *environment) Complete(result *commonpb.Payloads, err error) {
+	e.completes++
+	e.result, e.err = result, err
+}
 
 func definitionFor(fn any) bindings.WorkflowDefinition {
 	handle, ok := isolate.LookupFunction(fn)
@@ -629,7 +633,7 @@ func runMetadataServices() {
 	}
 	for _, procs := range []int{1, 2, 8} {
 		runtime.GOMAXPROCS(procs)
-		for _, mode := range []string{"build", "reject", "private registry", "private message info", "build"} {
+		for _, mode := range []string{"build", "reject visitor", "reject builder", "reject descriptor", "reject mutation", "private registry", "private message info", "build"} {
 			d := definitionFor(metadata.MetadataWorkflow)
 			e := &environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}
 			input, err := e.GetDataConverter().ToPayloads(mode)
@@ -637,6 +641,17 @@ func runMetadataServices() {
 				panic(err)
 			}
 			d.Execute(e, nil, input)
+			if strings.HasPrefix(mode, "reject ") {
+				var failure any
+				func() { defer func() { failure = recover() }(); d.OnWorkflowTaskStarted(5 * time.Second) }()
+				fault, ok := failure.(*isolate.EffectError)
+				operation := map[string]string{"reject visitor": "RangeMessages", "reject builder": "Builder.Build", "reject descriptor": "metadata callback", "reject mutation": "RegisterMessage"}[mode]
+				if !ok || !strings.Contains(fault.Operation, operation) || !strings.Contains(fault.Stack, "metadata.MetadataWorkflow") || e.completes != 0 || probe.CallbackProbeCount() != 0 {
+					panic(fmt.Sprintf("%s task fault: %v completions=%d callbacks=%d", mode, failure, e.completes, probe.CallbackProbeCount()))
+				}
+				d.Close()
+				continue
+			}
 			d.OnWorkflowTaskStarted(5 * time.Second)
 			if strings.HasPrefix(mode, "private ") {
 				var fault *isolate.OwnershipError
@@ -654,9 +669,6 @@ func runMetadataServices() {
 				panic(err)
 			}
 			want := "metadata services passed"
-			if mode == "reject" {
-				want = "unsafe metadata operations rejected"
-			}
 			if got != want {
 				panic(fmt.Sprintf("metadata workflow: %q, want %q", got, want))
 			}

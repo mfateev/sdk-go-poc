@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"strings"
 	"sync"
 
 	commonpb "go.temporal.io/api/common/v1"
@@ -33,34 +32,23 @@ func MetadataWorkflow(_ context.Context, mode string) (result string, err error)
 		_ = (&protoimpl.MessageInfo{}).Descriptor()
 		return "ownership violation recovered", nil
 	}
-	if mode == "reject" {
-		var callback bool
-		if err := rejected("registry visitor", func() {
-			protoregistry.GlobalTypes.RangeMessages(func(protoreflect.MessageType) bool { callback = true; return true })
-		}); err != nil {
+	switch mode {
+	case "reject visitor":
+		protoregistry.GlobalTypes.RangeMessages(func(protoreflect.MessageType) bool { panic("registry visitor executed") })
+		return "metadata violation returned", nil
+	case "reject builder":
+		_ = (protoimpl.TypeBuilder{}).Build()
+		return "metadata violation returned", nil
+	case "reject descriptor":
+		_, _ = protoregistry.GlobalFiles.FindDescriptorByName("isolate_metadata_callback_probe.Record")
+		return "metadata violation returned", nil
+	case "reject mutation":
+		message, err := protoregistry.GlobalTypes.FindMessageByName("temporal.api.common.v1.Payload")
+		if err != nil {
 			return "", err
 		}
-		if callback {
-			return "", fmt.Errorf("registry visitor ran inside a service")
-		}
-		if err := rejected("private type builder", func() { _ = (protoimpl.TypeBuilder{}).Build() }); err != nil {
-			return "", err
-		}
-		if err := rejected("descriptor callback", func() {
-			_, _ = protoregistry.GlobalFiles.FindDescriptorByName("isolate_metadata_callback_probe.Record")
-		}); err != nil {
-			return "", err
-		}
-		if err := rejected("registry mutation", func() {
-			message, err := protoregistry.GlobalTypes.FindMessageByName("temporal.api.common.v1.Payload")
-			if err != nil {
-				panic(err)
-			}
-			_ = protoregistry.GlobalTypes.RegisterMessage(message)
-		}); err != nil {
-			return "", err
-		}
-		return "unsafe metadata operations rejected", nil
+		_ = protoregistry.GlobalTypes.RegisterMessage(message)
+		return "metadata violation returned", nil
 	}
 	// Message state retains its canonical MessageInfo, while the actual message
 	// and bytes stay private. Heap-backed slots exercise reference publication;
@@ -118,21 +106,6 @@ func MetadataWorkflow(_ context.Context, mode string) (result string, err error)
 
 //go:noinline
 func messageTypeSlots() *[2]protoreflect.MessageType { return new([2]protoreflect.MessageType) }
-
-func rejected(name string, fn func()) (err error) {
-	defer func() {
-		if p := recover(); p != nil {
-			if strings.Contains(fmt.Sprint(p), "unaudited metadata") {
-				err = nil
-			} else {
-				err = fmt.Errorf("%s: unexpected rejection: %v", name, p)
-			}
-		}
-	}()
-	err = fmt.Errorf("%s: unaudited operation was allowed", name)
-	fn()
-	return err
-}
 
 type applicationValue struct{}
 
