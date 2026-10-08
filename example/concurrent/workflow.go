@@ -13,8 +13,8 @@ import (
 //go:isolate
 func ConcurrentWorkflow(ctx context.Context) ([]byte, error) {
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: time.Minute})
-	first := awaitActivity(ctx, workflow.ExecuteActivity(ctx, "echo", []byte("one")))
-	second := awaitActivity(ctx, workflow.ExecuteActivity(ctx, "echo", []byte("two")))
+	first := workflow.ExecuteActivity(ctx, "echo", []byte("one")).ToChannel()
+	second := workflow.ExecuteActivity(ctx, "echo", []byte("two")).ToChannel()
 	timer := time.After(time.Second)
 	var events []string
 	for first != nil || second != nil || timer != nil {
@@ -25,13 +25,21 @@ func ConcurrentWorkflow(ctx context.Context) ([]byte, error) {
 			if result.Err != nil {
 				return nil, result.Err
 			}
-			events = append(events, string(result.Result))
+			var value []byte
+			if err := result.Value.Get(&value); err != nil {
+				return nil, err
+			}
+			events = append(events, string(value))
 			first = nil
 		case result := <-second:
 			if result.Err != nil {
 				return nil, result.Err
 			}
-			events = append(events, string(result.Result))
+			var value []byte
+			if err := result.Value.Get(&value); err != nil {
+				return nil, err
+			}
+			events = append(events, string(value))
 			second = nil
 		case <-timer:
 			events = append(events, "timer")
@@ -52,16 +60,4 @@ func YieldForeverWorkflow(ctx context.Context) ([]byte, error) {
 	for {
 		runtime.Gosched()
 	}
-}
-
-// Native channels let workflow goroutines select on ordinary activity futures.
-func awaitActivity(ctx context.Context, future workflow.Future) <-chan workflow.ActivityResult[[]byte] {
-	results := make(chan workflow.ActivityResult[[]byte], 1)
-	go func() {
-		var result []byte
-		err := future.Get(ctx, &result)
-		results <- workflow.ActivityResult[[]byte]{Result: result, Err: err}
-		close(results)
-	}()
-	return results
 }

@@ -230,8 +230,33 @@ Activity references identify host work; they never run inside the isolate.
 future is ignored. Function references or literal activity names accept zero or
 multiple arguments and activities returning only `error`; pass `nil` to `Get`
 when no result is needed. `Get` is repeatable and `IsReady` checks completion.
-For native `select`, use an ordinary goroutine to call `Get` and send its result
-on an ordinary Go channel, as in `example/concurrent`.
+For native `select`, use `Future.ToChannel()`, as in `example/concurrent`:
+
+```go
+resultCh := workflow.ExecuteActivity(ctx, MyActivity, input).ToChannel()
+select {
+case outcome := <-resultCh:
+    if outcome.Err != nil {
+        return outcome.Err
+    }
+    var result MyResult
+    return outcome.Value.Get(&result)
+case <-ctx.Done():
+    return ctx.Err()
+}
+```
+
+Each `ToChannel()` call returns a new buffered receive-only channel with one
+`FutureResult{Value, Err}`, then closes it. On success, `Value` implements the
+SDK's `converter.EncodedValue`: `Get(&typedResult)` extracts the chosen type and
+`HasValue()` distinguishes an error-only activity with no result. On failure,
+`Value` is nil and `Err` preserves the future's error. Extraction remains
+repeatable, including through `Future.Get`, with the same converter and POC
+type checks. Receiving, ignoring, or abandoning an adapter channel does not
+cancel the activity; its execution context controls cancellation. A native
+goroutine waits for completion and the one-item buffer lets it finish even when
+the channel is ignored. Set a select arm's channel to nil after consuming its
+result to avoid selecting repeatedly on the closed channel.
 
 A Temporal workflow cancellation request cancels the context passed to the
 workflow function. `<-ctx.Done()` wakes and `ctx.Err()` is `context.Canceled`.

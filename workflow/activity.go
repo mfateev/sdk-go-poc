@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/mfateev/sdk-go-poc/internal/activityref"
+	"go.temporal.io/sdk/converter"
 	"go.temporal.io/sdk/temporal"
 	goWorkflow "go.temporal.io/sdk/workflow"
 )
@@ -86,12 +87,56 @@ func WithPriority(ctx context.Context, p Priority) context.Context {
 type Future interface {
 	Get(ctx context.Context, valuePtr any) error
 	IsReady() bool
+	// ToChannel returns a new buffered channel carrying one result, then closes
+	// it. Receiving or ignoring the channel does not cancel the operation.
+	ToChannel() <-chan FutureResult
+}
+
+// FutureResult carries an encoded success value or an error. On success Value
+// is non-nil: use Value.Get(&result) to extract the caller's chosen type, or
+// HasValue to check whether an error-only activity returned a value. On failure
+// Value is nil. Extraction uses the same converter and checks as Future.Get.
+type FutureResult struct {
+	Value converter.EncodedValue
+	Err   error
+}
+
+type futureValue struct {
+	future   *activityFuture
+	hasValue bool
+}
+
+func (v *futureValue) HasValue() bool { return v.hasValue }
+func (v *futureValue) Get(valuePtr any) error {
+	return v.future.Get(context.Background(), valuePtr)
 }
 
 type activityFuture struct {
 	done    chan struct{}
 	payload []byte
 	err     error
+}
+
+func (f *activityFuture) ToChannel() <-chan FutureResult {
+	results := make(chan FutureResult, 1)
+	go func() {
+		defer close(results)
+		<-f.done
+		if f.err != nil {
+			results <- FutureResult{Err: f.err}
+			return
+		}
+		payloads, err := decodePayloads(f.payload)
+		if err == nil && len(payloads.Payloads) > 1 {
+			err = fmt.Errorf("workflow: activity returned %d payloads, want 1", len(payloads.Payloads))
+		}
+		if err != nil {
+			results <- FutureResult{Err: err}
+			return
+		}
+		results <- FutureResult{Value: &futureValue{future: f, hasValue: len(payloads.Payloads) != 0}}
+	}()
+	return results
 }
 
 func (f *activityFuture) IsReady() bool {

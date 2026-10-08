@@ -139,6 +139,7 @@ func main() {
 	runSignal()
 	runClock()
 	runConcurrent()
+	runConcurrentChannelError()
 	runRootCancellation()
 	runActivityCancellation()
 	runChildCancellation()
@@ -214,6 +215,40 @@ func runConcurrent() {
 				panic(fmt.Sprintf("concurrent replay differs at GOMAXPROCS=%d: %q, want %q", procs, stream, baseline))
 			}
 			d.Close()
+		}
+	}
+}
+
+func runConcurrentChannelError() {
+	for _, mode := range []string{"activity-error", "decode-error"} {
+		d := definitionFor(concurrent.ConcurrentWorkflow)
+		e := &concurrentEnvironment{
+			environment: environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)},
+			activities:  make(map[string]bindings.ResultHandler),
+		}
+		d.Execute(e, nil, nil)
+		d.OnWorkflowTaskStarted(5 * time.Second)
+		if mode == "activity-error" {
+			// Empty error messages must still arrive through FutureResult.Err.
+			e.activities["one"](nil, errors.New(""))
+		} else {
+			payloads, err := e.GetDataConverter().ToPayloads(42)
+			if err != nil {
+				panic(err)
+			}
+			e.activities["one"](payloads, nil)
+		}
+		d.OnWorkflowTaskStarted(5 * time.Second)
+		if e.completes != 1 || e.err == nil || mode == "activity-error" && e.err.Error() != "" {
+			panic(fmt.Sprintf("channel %s lost failure: completes=%d error=%v", mode, e.completes, e.err))
+		}
+		// Pending activity/timer callbacks must not revive a completed adapter.
+		e.activities["two"](nil, nil)
+		e.timer(nil, nil)
+		d.OnWorkflowTaskStarted(5 * time.Second)
+		d.Close()
+		if e.completes != 1 {
+			panic("channel error revived completed workflow")
 		}
 	}
 }

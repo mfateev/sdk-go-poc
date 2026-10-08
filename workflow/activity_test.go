@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	commonpb "go.temporal.io/api/common/v1"
 )
 
 func TestActivityOptionsCopiesPolicyAndPreservesTaskQueue(t *testing.T) {
@@ -109,5 +111,121 @@ func TestExecutionContextInheritsWorkflowTaskQueue(t *testing.T) {
 	ctx = WithActivityOptions(ctx, ActivityOptions{ScheduleToCloseTimeout: time.Minute})
 	if GetActivityOptions(ctx).TaskQueue != "workflow-queue" {
 		t.Fatal("default options erased workflow task queue")
+	}
+}
+
+func receiveFutureResult(t *testing.T, results <-chan FutureResult) FutureResult {
+	t.Helper()
+	select {
+	case result, ok := <-results:
+		if !ok {
+			t.Fatal("result channel closed without a result")
+		}
+		select {
+		case _, more := <-results:
+			if more {
+				t.Fatal("result channel delivered more than once")
+			}
+		case <-time.After(time.Second):
+			t.Fatal("result channel did not close")
+		}
+		return result
+	case <-time.After(time.Second):
+		t.Fatal("result channel did not complete")
+		return FutureResult{}
+	}
+}
+
+func TestFutureToChannelWaitsAndSupportsIndependentTypedExtraction(t *testing.T) {
+	f := &activityFuture{done: make(chan struct{})}
+	first, second := f.ToChannel(), f.ToChannel()
+	select {
+	case <-first:
+		t.Fatal("unfinished future delivered a channel result")
+	default:
+	}
+	payload, err := encodeActivityArgs([]any{struct{ Name string }{"hello"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.payload = payload
+	close(f.done)
+	for _, ch := range []<-chan FutureResult{first, second, f.ToChannel()} {
+		result := receiveFutureResult(t, ch)
+		if result.Err != nil || result.Value == nil || !result.Value.HasValue() {
+			t.Fatalf("channel result: %+v", result)
+		}
+		var typed struct{ Name string }
+		if err := result.Value.Get(&typed); err != nil || typed.Name != "hello" {
+			t.Fatalf("typed extraction: %+v %v", typed, err)
+		}
+		var alternate map[string]string
+		if err := result.Value.Get(&alternate); err != nil || alternate["Name"] != "hello" {
+			t.Fatalf("alternate extraction: %+v %v", alternate, err)
+		}
+		var wrong int
+		if err := result.Value.Get(&wrong); err == nil {
+			t.Fatal("invalid extraction type accepted")
+		}
+		var protobuf *commonpb.Payload
+		if err := result.Value.Get(&protobuf); err == nil {
+			t.Fatal("channel bypassed protobuf subset checks")
+		}
+	}
+	var result struct{ Name string }
+	if err := f.Get(context.Background(), &result); err != nil || result.Name != "hello" {
+		t.Fatalf("ToChannel consumed Future.Get result: %+v %v", result, err)
+	}
+}
+
+func TestFutureToChannelPreservesErrorsAndEmptyResults(t *testing.T) {
+	for _, cause := range []error{context.Canceled, errors.New("")} {
+		f := &activityFuture{done: make(chan struct{}), err: cause}
+		close(f.done)
+		result := receiveFutureResult(t, f.ToChannel())
+		if result.Value != nil || result.Err != cause {
+			t.Fatalf("error identity changed: %+v", result)
+		}
+	}
+	f := &activityFuture{done: make(chan struct{})}
+	close(f.done)
+	result := receiveFutureResult(t, f.ToChannel())
+	if result.Err != nil || result.Value == nil || result.Value.HasValue() || result.Value.Get(nil) != nil {
+		t.Fatalf("error-only success: %+v", result)
+	}
+	for _, payload := range [][]byte{{0xff}, func() []byte {
+		p, err := encodeActivityArgs([]any{1, 2})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}()} {
+		f := &activityFuture{done: make(chan struct{}), payload: payload}
+		close(f.done)
+		result := receiveFutureResult(t, f.ToChannel())
+		if result.Value != nil || result.Err == nil {
+			t.Fatalf("malformed result accepted: %+v", result)
+		}
+	}
+}
+
+func TestFutureChannelValueDoesNotShareDecodedBytes(t *testing.T) {
+	payload, err := encodeActivityArgs([]any{[]byte("hello")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := &activityFuture{done: make(chan struct{}), payload: payload}
+	close(f.done)
+	result := receiveFutureResult(t, f.ToChannel())
+	if result.Err != nil {
+		t.Fatal(result.Err)
+	}
+	var first, second []byte
+	if err := result.Value.Get(&first); err != nil {
+		t.Fatal(err)
+	}
+	first[0] = 'X'
+	if err := result.Value.Get(&second); err != nil || string(second) != "hello" {
+		t.Fatalf("decoded bytes aliased previous extraction: %q %v", second, err)
 	}
 }
