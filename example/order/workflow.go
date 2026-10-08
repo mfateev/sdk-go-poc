@@ -11,8 +11,8 @@ import (
 
 //go:isolate
 func OrderWorkflow(ctx context.Context, input []byte) ([]byte, error) {
-	var err error
-	input, err = workflow.ExecuteActivityByName[[]byte](ctx, "echo", time.Minute, input)
+	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: time.Minute})
+	err := workflow.ExecuteActivity(ctx, "echo", input).Get(ctx, &input)
 	if err == nil {
 		started := time.Now()
 		if err := workflow.Sleep(ctx, time.Second); err != nil {
@@ -50,15 +50,17 @@ type ActivityDetails struct {
 
 //go:isolate
 func TypedActivityWorkflow(ctx context.Context, name string) (ActivityDetails, error) {
-	details, err := workflow.ExecuteActivityByName[ActivityDetails](ctx, "details", time.Minute, name, 3)
+	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: time.Minute})
+	var details ActivityDetails
+	err := workflow.ExecuteActivity(ctx, "details", name, 3).Get(ctx, &details)
 	if err != nil {
 		return ActivityDetails{}, err
 	}
-	result := <-workflow.ExecuteActivityAsync(ctx, ActivityLength, time.Minute, details.Message)
-	if result.Err != nil {
-		return ActivityDetails{}, result.Err
+	var length int
+	if err := workflow.ExecuteActivity(ctx, ActivityLength, details.Message).Get(ctx, &length); err != nil {
+		return ActivityDetails{}, err
 	}
-	if result.Result != len(details.Message) {
+	if length != len(details.Message) {
 		return ActivityDetails{}, errors.New("incorrect typed activity length")
 	}
 	return details, nil
@@ -69,7 +71,10 @@ func ActivityLength(_ context.Context, value string) (int, error) { return len(v
 
 //go:isolate
 func InferredActivityWorkflow(ctx context.Context, input int) (string, error) {
-	return workflow.ExecuteActivity(ctx, FormatNumber, time.Minute, input)
+	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: time.Minute})
+	var result string
+	err := workflow.ExecuteActivity(ctx, FormatNumber, input).Get(ctx, &result)
+	return result, err
 }
 
 // FormatNumber is host-only activity code; a reference never executes it here.

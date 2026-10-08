@@ -198,8 +198,10 @@ name. It wraps the existing host `Call` in an isolate-owned goroutine and
 returns `workflow.SignalResult` values, including any host error. `NextSignal`
 still receives the next signal of any name. The host keeps other named signals
 queued for their matching channels.
-`workflow.ExecuteActivityAsync` wraps `ExecuteActivity` the same way and returns
-a channel with one `workflow.ActivityResult[R]` before closing.
+Activities use the current Go SDK API: `WithActivityOptions`,
+`ExecuteActivity(ctx, activity, args...)`, and `Future.Get(ctx, &result)`.
+The earlier typed activity helpers are commented out and retained in
+`workflow/typed_activity.go` for future API work.
 
 Every isolate workflow and every POC activity takes standard `context.Context`
 as its first parameter. The SDK creates the workflow's context inside its
@@ -214,16 +216,22 @@ func FormatNumber(ctx context.Context, input int) (string, error) {
 
 //go:isolate
 func Example(ctx context.Context, input int) (string, error) {
-    return workflow.ExecuteActivity(ctx, FormatNumber, time.Minute, input)
+    ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
+        StartToCloseTimeout: time.Minute,
+    })
+    var result string
+    err := workflow.ExecuteActivity(ctx, FormatNumber, input).Get(ctx, &result)
+    return result, err
 }
 ```
 
-Go infers both input and result types. Async calls use the same context:
-
-```go
-result := <-workflow.ExecuteActivityAsync(ctx, FormatNumber, time.Minute, 5)
-// result.Result is string; result.Err is error.
-```
+Activity references identify host work; they never run inside the isolate.
+`ExecuteActivity` acknowledges scheduling before returning, including when its
+future is ignored. Function references or literal activity names accept zero or
+multiple arguments and activities returning only `error`; pass `nil` to `Get`
+when no result is needed. `Get` is repeatable and `IsReady` checks completion.
+For native `select`, use an ordinary goroutine to call `Get` and send its result
+on an ordinary Go channel, as in `example/concurrent`.
 
 A Temporal workflow cancellation request cancels the context passed to the
 workflow function. `<-ctx.Done()` wakes and `ctx.Err()` is `context.Canceled`.
@@ -234,7 +242,12 @@ Temporal timers, and children/callbacks cancel in creation order. Custom
 contexts with their own `AfterFunc` implementation remain outside the POC.
 
 Canceling the context supplied to an activity call requests cancellation of
-that activity on the host and wakes its workflow caller. The worker supplies
+that activity on the host. With the default `WaitForCancellation: false`,
+the SDK resolves the future immediately with cancellation. With
+`WaitForCancellation: true`, the future waits for the activity’s actual terminal
+result, which may still be successful. `Get` does not cancel or abandon the
+operation when its waiting context is canceled; the execution context controls
+the activity lifetime, matching the pinned SDK. The worker supplies
 the activity's own standard Go context; a workflow context is never copied
 into the host. As with standard Temporal activities, a running activity should
 heartbeat to receive cancellation promptly and must cooperate with its context.
@@ -243,35 +256,22 @@ can be used for cleanup work after workflow cancellation. A workflow returning
 `context.Canceled` completes as canceled; a workflow may handle cancellation
 and return a normal result instead.
 
-Function references also support zero-input and error-only activities:
+All pinned `ActivityOptions` fields are forwarded: task queue, activity ID,
+schedule/start/heartbeat timeouts, retry policy, cancellation policy, eager
+execution, versioning intent, summary, and priority. Option helpers copy context
+state and mutable retry policy data. Empty task queues inherit existing context
+options and ultimately the workflow task queue. Server retry defaults are
+preserved; set `RetryPolicy.MaximumAttempts: 1` to disable retries.
 
-```go
-choice, err := workflow.ExecuteActivityNoInput(ctx, orders.GetOrder, timeout)
-err = workflow.ExecuteActivityError(ctx, orders.OrderApple, timeout, choice)
-completion := <-workflow.ExecuteActivityAsyncError(ctx, orders.OrderApple, timeout, choice)
-err = completion.Err
-```
+The result boundary still supports default-converter JSON/bytes/null values.
+Structured Temporal failures across the byte boundary remain feature 7 work:
+non-cancellation failures currently arrive as text. The SDK default failure
+converter's protobuf clone needs further ownership support before it can run
+inside an isolate. Custom converters remain feature 8 work.
 
-The async error-only variant returns `<-chan ActivityResult[struct{}]>`: one
-completion followed by channel closure. Its `Result` is empty; `Err` contains
-the activity failure or cancellation.
-
-These infer types from the actual signatures and preserve the original argument
-counts. A nil receiver can identify a method; the registered host object supplies
-its receiver state. Prefixed struct registrations still require explicit names.
-
-Name-based calls support zero or multiple inputs and error-only activities:
-
-```go
-text, err := workflow.ExecuteActivityByName[string](ctx, "Greet", time.Minute, name)
-result := <-workflow.ExecuteActivityAsyncByName[MyResult](ctx, "Compute", time.Minute, input, options)
-_, err = workflow.ExecuteActivityByName[struct{}](ctx, "SendEmail", time.Minute, message)
-```
-
-Here the result type is explicit. Use `struct{}` for an activity returning only
-an error. Name-based calls are passed through exactly. `workflow.Sleep(ctx, d)`,
-`NextSignal(ctx)`, and `GetSignalChannel(ctx, name)` also honor cancellation.
-Native timers can be used in `select` alongside `ctx.Done()`.
+`workflow.Sleep(ctx, d)`, `NextSignal(ctx)`, and `GetSignalChannel(ctx, name)`
+also honor cancellation. Native timers can be used in `select` alongside
+`ctx.Done()`.
 
 Function names and bound methods follow Temporal's short-name convention.
 `activity.RegisterOptions{Name: ...}` aliases resolve on the host, including
@@ -288,8 +288,7 @@ Arguments/results still use Temporal's default converter inside the isolate
 and cross `Call` as protobuf-serialized `Payloads`. The supported values remain
 JSON/bytes/null; custom converters and protobuf message arguments/results are
 TODOs. Adding context parameters does not add context data to workflow or
-activity histories. Previous `ExecuteActivityWithContext` variants are replaced
-by the mandatory-context `ExecuteActivity`/`ExecuteActivityAsync` APIs.
+activity histories. Activities now use SDK-style futures with a mandatory standard Go context.
 
 Cancellation examples are registered on the example worker: `ActivityWorkflow`
 (waiting activity), `IdleWorkflow` (waiting on `ctx.Done()`), `DeadlineWorkflow`,

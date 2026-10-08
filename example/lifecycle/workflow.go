@@ -29,7 +29,10 @@ func LifecycleWorkflow(ctx context.Context, mode string) (string, error) {
 	case "error":
 		return "", errors.New("ordinary workflow error")
 	case "evict":
-		activity := workflow.ExecuteActivityAsyncByName[[]byte](ctx, "pending", time.Minute, []byte("input"))
+		ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: time.Minute})
+		future := workflow.ExecuteActivity(ctx, "pending", []byte("input"))
+		activity := make(chan struct{})
+		go func() { _ = future.Get(ctx, nil); close(activity) }()
 		signals := workflow.GetSignalChannel(ctx, "pending")
 		timer := time.NewTimer(time.Hour)
 		select {

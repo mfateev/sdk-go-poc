@@ -28,7 +28,10 @@ func WaitActivity(ctx context.Context, input string) (string, error) {
 
 //go:isolate
 func ActivityWorkflow(ctx context.Context, input string) (string, error) {
-	return workflow.ExecuteActivity(ctx, WaitActivity, time.Minute, input)
+	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: time.Minute})
+	var result string
+	err := workflow.ExecuteActivity(ctx, WaitActivity, input).Get(ctx, &result)
+	return result, err
 }
 
 //go:isolate
@@ -41,7 +44,8 @@ func IdleWorkflow(ctx context.Context) (string, error) {
 func DeadlineWorkflow(ctx context.Context) (string, error) {
 	child, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
-	_, err := workflow.ExecuteActivity(child, WaitActivity, time.Minute, "deadline")
+	child = workflow.WithActivityOptions(child, workflow.ActivityOptions{StartToCloseTimeout: time.Minute})
+	err := workflow.ExecuteActivity(child, WaitActivity, "deadline").Get(child, nil)
 	if !errors.Is(err, context.DeadlineExceeded) || ctx.Err() != nil {
 		return "", fmt.Errorf("incorrect child deadline: activity=%v parent=%v", err, ctx.Err())
 	}
@@ -52,14 +56,15 @@ func DeadlineWorkflow(ctx context.Context) (string, error) {
 func LocalCancelWorkflow(ctx context.Context) (string, error) {
 	child, cancel := context.WithCancelCause(ctx)
 	cause := errors.New("local cancellation cause")
-	results := workflow.ExecuteActivityAsync(child, WaitActivity, time.Minute, "local")
+	child = workflow.WithActivityOptions(child, workflow.ActivityOptions{StartToCloseTimeout: time.Minute})
+	result := workflow.ExecuteActivity(child, WaitActivity, "local")
 	if err := workflow.Sleep(ctx, time.Second); err != nil {
 		return "", err
 	}
 	cancel(cause)
-	result := <-results
-	if !errors.Is(result.Err, context.Canceled) || context.Cause(child) != cause || ctx.Err() != nil {
-		return "", fmt.Errorf("incorrect local cancellation: result=%v parent=%v", result.Err, ctx.Err())
+	err := result.Get(child, nil)
+	if !errors.Is(err, context.Canceled) || context.Cause(child) != cause || ctx.Err() != nil {
+		return "", fmt.Errorf("incorrect local cancellation: result=%v parent=%v", err, ctx.Err())
 	}
 	return "local cancellation observed", nil
 }

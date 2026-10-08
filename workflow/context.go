@@ -18,8 +18,8 @@ type CallRequest struct {
 
 var nextCallID atomic.Uint64
 
-func executionContext(canceled bool) (context.Context, context.CancelFunc) {
-	ctx, cancel := context.WithCancel(context.Background())
+func executionContext(canceled bool, taskQueue string) (context.Context, context.CancelFunc) {
+	ctx, cancel := context.WithCancel(WithTaskQueue(context.Background(), taskQueue))
 	if canceled {
 		cancel()
 		return ctx, cancel

@@ -14,7 +14,6 @@ import (
 	"time"
 
 	gogoproto "github.com/gogo/protobuf/proto"
-	"github.com/mfateev/sdk-go-poc/internal/activityref"
 	"github.com/mfateev/sdk-go-poc/internal/payloadwire"
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/converter"
@@ -35,6 +34,9 @@ const (
 	OpWorkflowCancel   uint32 = 10
 	OpCancellableCall  uint32 = 11
 	OpCancelCall       uint32 = 12
+	OpScheduleActivity uint32 = 13
+	OpAwaitActivity    uint32 = 14
+	OpCancelActivity   uint32 = 15
 )
 
 // Handler is a named workflow function. Each execution receives its own
@@ -203,9 +205,10 @@ type Start struct {
 // PayloadStart carries the entry name and serialized Temporal Payloads. The
 // bytes cross the isolate boundary; Go argument values do not.
 type PayloadStart struct {
-	Canceled bool   `json:"canceled,omitempty"`
-	Name     string `json:"name"`
-	Payloads []byte `json:"payloads"`
+	TaskQueue string `json:"task_queue,omitempty"`
+	Canceled  bool   `json:"canceled,omitempty"`
+	Name      string `json:"name"`
+	Payloads  []byte `json:"payloads"`
 }
 
 // Run selects the registered function, calls it, and reports its result to the
@@ -219,7 +222,7 @@ func Run() error {
 	if err := json.Unmarshal(payload, &start); err != nil {
 		return Complete(nil, fmt.Errorf("workflow: decode start: %w", err))
 	}
-	ctx, cancel := executionContext(start.Canceled)
+	ctx, cancel := executionContext(start.Canceled, start.TaskQueue)
 	defer cancel()
 	if handler, ok := typedHandlers[start.Name]; ok {
 		payloads, err := decodePayloads(start.Payloads)
@@ -294,7 +297,7 @@ func RunFunction(handle isolate.Handle) error {
 	if err != nil {
 		return completePayloads(nil, fmt.Errorf("workflow: decode input payloads: %w", err))
 	}
-	ctx, cancel := executionContext(start.Canceled)
+	ctx, cancel := executionContext(start.Canceled, start.TaskQueue)
 	defer cancel()
 	var result *commonpb.Payloads
 	err = handle.Invoke(func(args ...isolate.Value) error {
@@ -349,10 +352,12 @@ type ActivityRequest struct {
 // ActivityPayloadRequest carries arguments encoded inside the isolate using
 // Temporal's default converter. The host forwards them to the activity.
 type ActivityPayloadRequest struct {
-	Function            bool          `json:"function,omitempty"`
-	Name                string        `json:"name"`
-	Payloads            []byte        `json:"payloads"`
-	StartToCloseTimeout time.Duration `json:"start_to_close_timeout"`
+	ID                  uint64           `json:"id,omitempty"`
+	Options             *ActivityOptions `json:"options,omitempty"`
+	Function            bool             `json:"function,omitempty"`
+	Name                string           `json:"name"`
+	Payloads            []byte           `json:"payloads"`
+	StartToCloseTimeout time.Duration    `json:"start_to_close_timeout"`
 }
 
 // Signal is one incoming workflow signal.
@@ -391,100 +396,6 @@ type PayloadCompletion struct {
 // Input returns the workflow's first byte-slice argument.
 func Input() ([]byte, error) { return isolate.Call(OpInput, nil) }
 
-// ExecuteActivity infers input/result types from a host activity. Every
-// workflow and activity takes standard context.Context as its first argument.
-// ctx controls cancellation; the activity's own context is supplied by its host.
-func ExecuteActivity[I, R any](ctx context.Context, activity func(context.Context, I) (R, error), timeout time.Duration, input I) (R, error) {
-	name, err := activityref.Name(activity)
-	if err != nil {
-		var zero R
-		return zero, err
-	}
-	return executeActivity[R](ctx, name, true, timeout, input)
-}
-
-// ExecuteActivityNoInput infers a result from an activity taking only context.
-func ExecuteActivityNoInput[R any](ctx context.Context, activity func(context.Context) (R, error), timeout time.Duration) (R, error) {
-	name, err := activityref.Name(activity)
-	if err != nil {
-		var zero R
-		return zero, err
-	}
-	return executeActivity[R](ctx, name, true, timeout)
-}
-
-// ExecuteActivityError identifies an activity returning only an error.
-func ExecuteActivityError[I any](ctx context.Context, activity func(context.Context, I) error, timeout time.Duration, input I) error {
-	name, err := activityref.Name(activity)
-	if err != nil {
-		return err
-	}
-	_, err = executeActivity[struct{}](ctx, name, true, timeout, input)
-	return err
-}
-
-// ExecuteActivityAsync delivers one typed result and closes. ctx controls the
-// activity lifetime even after this function returns the channel.
-func ExecuteActivityAsync[I, R any](ctx context.Context, activity func(context.Context, I) (R, error), timeout time.Duration, input I) <-chan ActivityResult[R] {
-	return activityAsync(func() (R, error) { return ExecuteActivity(ctx, activity, timeout, input) })
-}
-
-// ExecuteActivityAsyncError identifies an activity returning only error and
-// delivers its completion on a channel. Result is always the empty struct;
-// Err reports failure or cancellation. The channel closes after one completion.
-func ExecuteActivityAsyncError[I any](ctx context.Context, activity func(context.Context, I) error, timeout time.Duration, input I) <-chan ActivityResult[struct{}] {
-	return activityAsync(func() (struct{}, error) {
-		return struct{}{}, ExecuteActivityError(ctx, activity, timeout, input)
-	})
-}
-
-func activityAsync[R any](call func() (R, error)) <-chan ActivityResult[R] {
-	results := make(chan ActivityResult[R], 1)
-	go func() {
-		defer close(results)
-		result, err := call()
-		results <- ActivityResult[R]{Result: result, Err: err}
-	}()
-	return results
-}
-
-// ExecuteActivityByName schedules a host activity with zero or more typed arguments
-// and waits for its typed result. R must be explicit because Go cannot infer
-// type parameters from return values. Use struct{} for error-only activities.
-// Arguments/results use Temporal's default converter inside the isolate.
-func ExecuteActivityByName[R any](ctx context.Context, name string, timeout time.Duration, args ...any) (R, error) {
-	return executeActivity[R](ctx, name, false, timeout, args...)
-}
-
-func executeActivity[R any](ctx context.Context, name string, function bool, timeout time.Duration, args ...any) (R, error) {
-	var zero R
-	if ctx == nil {
-		return zero, errors.New("workflow: nil context")
-	}
-	if err := ctx.Err(); err != nil {
-		return zero, err
-	}
-	if name == "" || timeout <= 0 {
-		return zero, errors.New("workflow: activity name and timeout are required")
-	}
-	if isProtoValue(zero) || isProtoValue(&zero) {
-		return zero, errors.New("workflow: protobuf values are outside the isolate POC subset")
-	}
-	payloads, err := encodeActivityArgs(args)
-	if err != nil {
-		return zero, err
-	}
-	request, err := json.Marshal(ActivityPayloadRequest{Name: name, Function: function, Payloads: payloads, StartToCloseTimeout: timeout})
-	if err != nil {
-		return zero, err
-	}
-	response, err := call(ctx, OpActivityPayloads, request)
-	if err != nil {
-		return zero, err
-	}
-	return decodeActivityResult[R](response)
-}
-
 func encodeActivityArgs(args []any) ([]byte, error) {
 	for _, arg := range args {
 		if isProtoValue(arg) {
@@ -521,12 +432,6 @@ func decodeActivityResult[R any](response []byte) (R, error) {
 		return zero, fmt.Errorf("workflow: decode activity result: %w", err)
 	}
 	return result, nil
-}
-
-// ExecuteActivityAsyncByName starts a typed activity call in an isolate-owned
-// goroutine. The buffered channel receives one result and then closes.
-func ExecuteActivityAsyncByName[R any](ctx context.Context, name string, timeout time.Duration, args ...any) <-chan ActivityResult[R] {
-	return activityAsync(func() (R, error) { return ExecuteActivityByName[R](ctx, name, timeout, args...) })
 }
 
 // Sleep waits on a durable Temporal timer. Do not use time.Sleep for this POC.

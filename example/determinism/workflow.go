@@ -111,7 +111,9 @@ func DeterminismWorkflow(ctx context.Context, workers int) ([]string, error) {
 	record("finish:" + time.Now().Format(time.RFC3339Nano))
 	// Retain the trace in history so replay can check freshly computed
 	// observations against the recorded activity result and final completion.
-	recorded, err := workflow.ExecuteActivity(ctx, RecordTrace, time.Minute, trace)
+	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: time.Minute})
+	var recorded []string
+	err := workflow.ExecuteActivity(ctx, RecordTrace, trace).Get(ctx, &recorded)
 	if err != nil {
 		return nil, err
 	}

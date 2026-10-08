@@ -87,6 +87,7 @@ type callState struct {
 }
 
 type definition struct {
+	activities        map[uint64]*activityState
 	resources         ResourceOptions
 	lastResources     isolate.ResourceStats
 	resourceIdentity  ResourceEvent
@@ -394,6 +395,8 @@ func completionError(message string, canceled bool) error {
 // handle emits or answers one host command. Replies are held until suspension.
 func (d *definition) handle(command *isolate.Command) error {
 	switch command.Op {
+	case workflow.OpScheduleActivity, workflow.OpAwaitActivity, workflow.OpCancelActivity:
+		return d.handleActivity(command)
 	case isolate.LogOp:
 		record, err := isolate.DecodeLog(command.Payload)
 		if err != nil {
@@ -500,7 +503,7 @@ func (d *definition) handle(command *isolate.Command) error {
 				return err
 			}
 		}
-		payload, err := json.Marshal(workflow.PayloadStart{Name: d.entryName, Payloads: input, Canceled: d.canceled})
+		payload, err := json.Marshal(workflow.PayloadStart{Name: d.entryName, Payloads: input, Canceled: d.canceled, TaskQueue: d.env.WorkflowInfo().TaskQueueName})
 		if err != nil {
 			return err
 		}
@@ -783,6 +786,11 @@ func (d *definition) StackTrace() string {
 func (d *definition) Close() {
 	if !d.closed {
 		d.closed = true
+		for _, state := range d.activities {
+			state.waiter, state.cancel, state.payload = nil, nil, nil
+			state.retired = true
+		}
+		d.activities = nil
 		for _, state := range d.callsByCommand {
 			state.done = true
 			state.command, state.cancel = nil, nil

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"isolate"
 	"runtime"
+	"slices"
 	"strings"
 	"time"
 
@@ -41,9 +42,14 @@ type environment struct {
 	now       time.Time
 }
 
-func (e *environment) RegisterCancelHandler(handler func())        { e.cancel = handler }
-func (e *environment) RequestCancelActivity(_ bindings.ActivityID) { e.canceledActivities++ }
-func (e *environment) RequestCancelTimer(_ bindings.TimerID)       {}
+func (e *environment) RegisterCancelHandler(handler func()) { e.cancel = handler }
+func (e *environment) RequestCancelActivity(_ bindings.ActivityID) {
+	e.canceledActivities++
+	if e.activity != nil {
+		e.activity(nil, temporal.NewCanceledError())
+	}
+}
+func (e *environment) RequestCancelTimer(_ bindings.TimerID) {}
 
 func (e *environment) RegisterSignalHandler(h func(string, *commonpb.Payloads, *commonpb.Header) error) {
 	e.signal = h
@@ -196,7 +202,9 @@ func runConcurrent() {
 				panic(err)
 			}
 			stream := string(result)
-			if !strings.HasPrefix(stream, "two|") || !strings.Contains(stream, "one") || !strings.Contains(stream, "timer") {
+			events := strings.Split(stream, "|")
+			slices.Sort(events)
+			if !slices.Equal(events, []string{"one", "timer", "two"}) {
 				panic("lost concurrent result: " + stream)
 			}
 			if baseline == "" {
@@ -430,7 +438,7 @@ func runTypedActivity() {
 			if scenario == "failed" && e.err.Error() != "activity failed" {
 				panic(e.err)
 			}
-			if scenario == "wrong-type" && !strings.Contains(e.err.Error(), "decode activity result") {
+			if scenario == "wrong-type" && !strings.Contains(e.err.Error(), "unable to decode") {
 				panic(e.err)
 			}
 		} else {
