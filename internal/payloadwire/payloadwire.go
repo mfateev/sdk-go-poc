@@ -18,7 +18,7 @@ func Decode(data []byte) (*commonpb.Payloads, error) {
 	for len(data) != 0 {
 		number, wireType, n := protowire.ConsumeTag(data)
 		if n < 0 {
-			return nil, protowire.ParseError(n)
+			return nil, fmt.Errorf("payloads: invalid protobuf wire (code %d)", n)
 		}
 		data = data[n:]
 		if number != 1 || wireType != protowire.BytesType {
@@ -26,7 +26,7 @@ func Decode(data []byte) (*commonpb.Payloads, error) {
 		}
 		value, n := protowire.ConsumeBytes(data)
 		if n < 0 {
-			return nil, protowire.ParseError(n)
+			return nil, fmt.Errorf("payloads: invalid protobuf wire (code %d)", n)
 		}
 		data = data[n:]
 		payload, err := decodePayload(value)
@@ -43,7 +43,7 @@ func decodePayload(data []byte) (*commonpb.Payload, error) {
 	for len(data) != 0 {
 		number, wireType, n := protowire.ConsumeTag(data)
 		if n < 0 {
-			return nil, protowire.ParseError(n)
+			return nil, fmt.Errorf("payload: invalid protobuf wire (code %d)", n)
 		}
 		data = data[n:]
 		if wireType != protowire.BytesType {
@@ -51,7 +51,7 @@ func decodePayload(data []byte) (*commonpb.Payload, error) {
 		}
 		value, n := protowire.ConsumeBytes(data)
 		if n < 0 {
-			return nil, protowire.ParseError(n)
+			return nil, fmt.Errorf("payload: invalid protobuf wire (code %d)", n)
 		}
 		data = data[n:]
 		switch number {
@@ -79,7 +79,7 @@ func decodeMetadata(data []byte) (string, []byte, error) {
 	for len(data) != 0 {
 		number, wireType, n := protowire.ConsumeTag(data)
 		if n < 0 {
-			return "", nil, protowire.ParseError(n)
+			return "", nil, fmt.Errorf("payload metadata: invalid protobuf wire (code %d)", n)
 		}
 		data = data[n:]
 		if wireType != protowire.BytesType || number < 1 || number > 2 {
@@ -87,7 +87,7 @@ func decodeMetadata(data []byte) (string, []byte, error) {
 		}
 		field, n := protowire.ConsumeBytes(data)
 		if n < 0 {
-			return "", nil, protowire.ParseError(n)
+			return "", nil, fmt.Errorf("payload metadata: invalid protobuf wire (code %d)", n)
 		}
 		data = data[n:]
 		if number == 1 {

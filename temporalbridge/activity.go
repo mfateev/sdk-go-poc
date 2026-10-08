@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"isolate"
 
+	"github.com/mfateev/sdk-go-poc/internal/failurecodec"
 	"github.com/mfateev/sdk-go-poc/workflow"
 	commonpb "go.temporal.io/api/common/v1"
 	bindings "go.temporal.io/sdk/internalbindings"
@@ -91,6 +92,11 @@ func (d *definition) handleActivity(command *isolate.Command) error {
 				outcome.Failed = true
 				outcome.Error = cause.Error()
 				outcome.Canceled = temporal.IsCanceledError(cause)
+				var err error
+				outcome.Failure, err = failurecodec.Encode(cause, d.env.GetDataConverter())
+				if err != nil {
+					panic(fmt.Errorf("encode activity failure: %w", err))
+				}
 			}
 			payload, err := json.Marshal(outcome)
 			if err != nil {

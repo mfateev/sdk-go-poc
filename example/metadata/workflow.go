@@ -5,11 +5,22 @@ package metadata
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"sync"
+	"time"
+
+	"github.com/mfateev/sdk-go-poc/internal/failurecodec"
+	"github.com/mfateev/sdk-go-poc/internal/failurewire"
+	"github.com/mfateev/sdk-go-poc/workflow"
+	enumspb "go.temporal.io/api/enums/v1"
 
 	commonpb "go.temporal.io/api/common/v1"
+	failurepb "go.temporal.io/api/failure/v1"
+	"go.temporal.io/sdk/converter"
+	"go.temporal.io/sdk/temporal"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
 	"google.golang.org/protobuf/runtime/protoimpl"
@@ -49,6 +60,9 @@ func MetadataWorkflow(_ context.Context, mode string) (result string, err error)
 		}
 		_ = protoregistry.GlobalTypes.RegisterMessage(message)
 		return "metadata violation returned", nil
+	case "reject clone":
+		_ = proto.Clone(&customMessage{})
+		return "metadata violation returned", nil
 	}
 	// Message state retains its canonical MessageInfo, while the actual message
 	// and bytes stay private. Heap-backed slots exercise reference publication;
@@ -58,6 +72,42 @@ func MetadataWorkflow(_ context.Context, mode string) (result string, err error)
 	types[0], types[1] = payload.ProtoReflect().Type(), (&commonpb.Header{}).ProtoReflect().Type()
 	created := types[1].New().Interface().(*commonpb.Header)
 	created.Fields = map[string]*commonpb.Payload{"owned": payload}
+	// The generated-value clone path must copy mutable containers without
+	// granting access to protobuf's shared coder caches.
+	clone := proto.Clone(created).(*commonpb.Header)
+	clone.Fields["owned"].Data[0] = 'X'
+	if string(payload.Data) != "private payload" {
+		return "", fmt.Errorf("protobuf clone retained mutable input")
+	}
+	if proto.Clone((*commonpb.Payload)(nil)).(*commonpb.Payload) != nil || proto.Clone(nil) != nil {
+		return "", fmt.Errorf("protobuf clone lost typed nil")
+	}
+	empty := proto.Clone(&commonpb.Payloads{Payloads: []*commonpb.Payload{nil, {Data: []byte{}}}}).(*commonpb.Payloads)
+	if empty.Payloads[0] == nil || empty.Payloads[1].Data != nil {
+		return "", fmt.Errorf("protobuf clone changed empty value semantics")
+	}
+	emptyMap := proto.Clone(&commonpb.Header{Fields: map[string]*commonpb.Payload{}}).(*commonpb.Header)
+	if emptyMap.Fields != nil {
+		return "", fmt.Errorf("protobuf clone retained empty map")
+	}
+	failure := &failurepb.Failure{Message: "structured", FailureInfo: &failurepb.Failure_ApplicationFailureInfo{ApplicationFailureInfo: &failurepb.ApplicationFailureInfo{Type: "checked", NonRetryable: true}}}
+	dc := converter.NewCompositeDataConverter(converter.NewNilPayloadConverter(), converter.NewByteSlicePayloadConverter(), converter.NewJSONPayloadConverter())
+	fc := temporal.NewDefaultFailureConverter(temporal.DefaultFailureConverterOptions{DataConverter: dc})
+	decoded := fc.FailureToError(failure)
+	application, ok := decoded.(*temporal.ApplicationError)
+	if !ok || application.Type() != "checked" || !application.NonRetryable() {
+		return "", fmt.Errorf("structured failure conversion lost its type")
+	}
+	if !errors.Is(application.Details(), temporal.ErrNoData) {
+		return "", fmt.Errorf("missing error details lost SDK sentinel identity")
+	}
+	// Parse errors must be caller-owned, including errors in nested Payloads.
+	// Protobuf's ParseError helper returns process-owned sentinel objects.
+	for _, data := range [][]byte{{0}, {0x0a, 0x80}, {0x2a, 3, 0x1a, 1, 0x80}} {
+		if _, err := failurewire.Decode(data); err == nil {
+			return "", fmt.Errorf("malformed failure was accepted")
+		}
+	}
 	var wg sync.WaitGroup
 	failures := make(chan error, 8)
 	for range 8 {
@@ -102,6 +152,38 @@ func MetadataWorkflow(_ context.Context, mode string) (result string, err error)
 		return "", fmt.Errorf("application callback: %s %v", encoded, err)
 	}
 	return "metadata services passed", nil
+}
+
+type customMessage struct{}
+
+func (*customMessage) ProtoMessage()                      {}
+func (*customMessage) ProtoReflect() protoreflect.Message { panic("custom clone callback executed") }
+
+//go:isolate
+func StructuredFailureWorkflow(ctx context.Context, returnFailure bool) ([]byte, error) {
+	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: time.Minute})
+	err := workflow.ExecuteActivity(ctx, "echo", []byte("failure")).Get(ctx, nil)
+	var activity *temporal.ActivityError
+	var timeout *temporal.TimeoutError
+	var application *temporal.ApplicationError
+	if !errors.As(err, &activity) || activity.ActivityID() != "activity-id" || activity.RetryState() != enumspb.RETRY_STATE_MAXIMUM_ATTEMPTS_REACHED || !errors.As(err, &timeout) || timeout.TimeoutType() != enumspb.TIMEOUT_TYPE_HEARTBEAT || !errors.As(err, &application) || application.Type() != "invalid" || !application.NonRetryable() || application.NextRetryDelay() != 3*time.Second {
+		return nil, fmt.Errorf("structured error chain changed: %v", err)
+	}
+	var detail string
+	var number int64
+	var data []byte
+	if decodeErr := application.Details(&detail, &number, &data); decodeErr != nil || detail != "detail" || number != 9007199254740993 || string(data) != "private" {
+		return nil, fmt.Errorf("application details changed: %v", decodeErr)
+	}
+	var heartbeat string
+	if decodeErr := timeout.LastHeartbeatDetails(&heartbeat); decodeErr != nil || heartbeat != "heartbeat" {
+		return nil, fmt.Errorf("heartbeat details changed: %v", decodeErr)
+	}
+	if returnFailure {
+		return nil, err
+	}
+	dc := converter.NewCompositeDataConverter(converter.NewNilPayloadConverter(), converter.NewByteSlicePayloadConverter(), converter.NewJSONPayloadConverter())
+	return failurecodec.Encode(err, dc)
 }
 
 //go:noinline

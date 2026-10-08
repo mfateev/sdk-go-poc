@@ -11,6 +11,7 @@ import (
 	"isolate"
 	"time"
 
+	"github.com/mfateev/sdk-go-poc/internal/failurecodec"
 	"github.com/mfateev/sdk-go-poc/workflow"
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/converter"
@@ -626,7 +627,13 @@ func (d *definition) handle(command *isolate.Command) error {
 		if completion.ContinueAsNew != nil {
 			return d.finishContinuation(completion.ContinueAsNew)
 		}
-		if completion.Failed || completion.Error != "" {
+		if len(completion.Failure) != 0 {
+			var transportErr error
+			err, transportErr = failurecodec.Decode(completion.Failure, d.env.GetDataConverter())
+			if transportErr != nil {
+				return fmt.Errorf("decode workflow failure: %w", transportErr)
+			}
+		} else if completion.Failed || completion.Error != "" {
 			err = completionError(completion.Error, completion.Canceled, completion.Failed)
 		} else {
 			result, err = d.env.GetDataConverter().ToPayloads(completion.Result)
@@ -646,7 +653,13 @@ func (d *definition) handle(command *isolate.Command) error {
 		if completion.ContinueAsNew != nil {
 			return d.finishContinuation(completion.ContinueAsNew)
 		}
-		if completion.Failed || completion.Error != "" {
+		if len(completion.Failure) != 0 {
+			var transportErr error
+			err, transportErr = failurecodec.Decode(completion.Failure, d.env.GetDataConverter())
+			if transportErr != nil {
+				return fmt.Errorf("decode workflow failure: %w", transportErr)
+			}
+		} else if completion.Failed || completion.Error != "" {
 			err = completionError(completion.Error, completion.Canceled, completion.Failed)
 		} else if len(completion.Payloads) != 0 {
 			result = new(commonpb.Payloads)

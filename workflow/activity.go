@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/mfateev/sdk-go-poc/internal/activityref"
+	"github.com/mfateev/sdk-go-poc/internal/failurecodec"
 	"go.temporal.io/sdk/converter"
 	"go.temporal.io/sdk/temporal"
 	goWorkflow "go.temporal.io/sdk/workflow"
@@ -248,7 +249,15 @@ func ExecuteActivity(ctx context.Context, activity any, args ...any) Future {
 			var outcome ActivityOutcome
 			if f.err = json.Unmarshal(response, &outcome); f.err == nil {
 				f.payload = outcome.Payloads
-				if outcome.Failed || outcome.Error != "" {
+				if len(outcome.Failure) != 0 {
+					var transportErr error
+					f.err, transportErr = failurecodec.Decode(outcome.Failure, instanceDataConverter)
+					if transportErr != nil {
+						f.err = fmt.Errorf("workflow: decode activity failure: %w", transportErr)
+					} else if outcome.Canceled {
+						f.err = failurecodec.WithCancellation(f.err, ctx.Err())
+					}
+				} else if outcome.Failed || outcome.Error != "" {
 					if outcome.Canceled && ctx.Err() != nil {
 						f.err = ctx.Err()
 					} else if outcome.Canceled {
@@ -266,6 +275,7 @@ func ExecuteActivity(ctx context.Context, activity any, args ...any) Future {
 
 // ActivityOutcome carries the copied result of an activity completion.
 type ActivityOutcome struct {
+	Failure  []byte `json:"failure,omitempty"`
 	Failed   bool   `json:"failed,omitempty"`
 	Payloads []byte `json:"payloads"`
 	Error    string `json:"error,omitempty"`

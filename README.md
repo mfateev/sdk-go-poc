@@ -289,10 +289,17 @@ options and ultimately the workflow task queue. Server retry defaults are
 preserved; set `RetryPolicy.MaximumAttempts: 1` to disable retries.
 
 The result boundary still supports default-converter JSON/bytes/null values.
-Structured Temporal failures across the byte boundary remain feature 7 work:
-non-cancellation failures currently arrive as text. The SDK default failure
-converter's protobuf clone needs further ownership support before it can run
-inside an isolate. Custom converters remain feature 8 work.
+Activities and workflow completion preserve the pinned SDK's structured error
+types, causes, details, retry metadata, and heartbeat details across the byte
+boundary. The default SDK failure converter runs under the receiving owner's
+allocator. The compiler supplies a checked generated-value `proto.Clone` path;
+it copies mutable values without exposing shared coder caches or invoking custom
+message callbacks. Ordinary host protobuf operations retain their implementation.
+The internal Failure wire codec supports the pinned schema and ordinary payloads;
+unknown fields, extensions, and external payload references remain unsupported.
+This does not enable general protobuf workflow arguments/results. Custom data
+and failure converters remain feature 8 work. Child workflows, queries, and
+updates remain pending feature 7 work.
 
 ### Continue-as-new and workflow versioning
 

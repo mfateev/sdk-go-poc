@@ -72,6 +72,9 @@ func (e *activityEnvironment) WorkflowInfo() *goWorkflow.Info {
 	return &goWorkflow.Info{TaskQueueName: "test"}
 }
 func (e *activityEnvironment) GenerateSequence() int64 { return 1 }
+func (e *activityEnvironment) GetDataConverter() converter.DataConverter {
+	return converter.GetDefaultDataConverter()
+}
 func (e *activityEnvironment) ExecuteActivity(p bindings.ExecuteActivityParams, callback bindings.ResultHandler) bindings.ActivityID {
 	e.name = p.ActivityType.Name
 	e.callback = callback

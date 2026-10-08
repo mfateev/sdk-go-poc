@@ -14,6 +14,7 @@ import (
 	"time"
 
 	gogoproto "github.com/gogo/protobuf/proto"
+	"github.com/mfateev/sdk-go-poc/internal/failurecodec"
 	"github.com/mfateev/sdk-go-poc/internal/payloadwire"
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/converter"
@@ -384,6 +385,7 @@ type ActivityResult[R any] struct {
 
 // Completion is the wire representation of a workflow result.
 type Completion struct {
+	Failure       []byte                `json:"failure,omitempty"`
 	Failed        bool                  `json:"failed,omitempty"`
 	ContinueAsNew *ContinueAsNewRequest `json:"continue_as_new,omitempty"`
 	Canceled      bool                  `json:"canceled,omitempty"`
@@ -394,6 +396,7 @@ type Completion struct {
 // PayloadCompletion carries serialized Temporal Payloads produced by a typed
 // handler, or its error. The host forwards these payloads without conversion.
 type PayloadCompletion struct {
+	Failure       []byte                `json:"failure,omitempty"`
 	Failed        bool                  `json:"failed,omitempty"`
 	ContinueAsNew *ContinueAsNewRequest `json:"continue_as_new,omitempty"`
 	Canceled      bool                  `json:"canceled,omitempty"`
@@ -508,6 +511,12 @@ func Complete(result []byte, cause error) error {
 		completion.Failed = true
 		completion.Error = cause.Error()
 		completion.Canceled = errors.Is(cause, context.Canceled)
+		if completion.ContinueAsNew == nil {
+			completion.Failure, err = failurecodec.Encode(cause, instanceDataConverter)
+			if err != nil {
+				return err
+			}
+		}
 	}
 	payload, err := json.Marshal(completion)
 	if err != nil {
@@ -528,6 +537,12 @@ func completePayloads(result *commonpb.Payloads, cause error) error {
 		completion.Failed = true
 		completion.Error = cause.Error()
 		completion.Canceled = errors.Is(cause, context.Canceled)
+		if completion.ContinueAsNew == nil {
+			completion.Failure, err = failurecodec.Encode(cause, instanceDataConverter)
+			if err != nil {
+				return err
+			}
+		}
 	} else if result != nil {
 		var err error
 		completion.Payloads, err = payloadwire.Encode(result)

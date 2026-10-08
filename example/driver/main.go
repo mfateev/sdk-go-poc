@@ -21,10 +21,13 @@ import (
 	"github.com/mfateev/sdk-go-poc/example/signal"
 	"github.com/mfateev/sdk-go-poc/temporalbridge"
 	commonpb "go.temporal.io/api/common/v1"
+	enumspb "go.temporal.io/api/enums/v1"
+	failurepb "go.temporal.io/api/failure/v1"
 	"go.temporal.io/sdk/converter"
 	bindings "go.temporal.io/sdk/internalbindings"
 	"go.temporal.io/sdk/temporal"
 	goWorkflow "go.temporal.io/sdk/workflow"
+	"google.golang.org/protobuf/proto"
 )
 
 type environment struct {
@@ -94,6 +97,7 @@ func definitionFor(fn any) bindings.WorkflowDefinition {
 
 func main() {
 	runMetadataServices()
+	runStructuredFailures()
 	d := definitionFor(order.OrderWorkflow)
 	e := &environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}
 	input, err := e.GetDataConverter().ToPayloads([]byte("hello"))
@@ -681,7 +685,7 @@ func runMetadataServices() {
 	}
 	for _, procs := range []int{1, 2, 8} {
 		runtime.GOMAXPROCS(procs)
-		for _, mode := range []string{"build", "reject visitor", "reject builder", "reject descriptor", "reject mutation", "private registry", "private message info", "build"} {
+		for _, mode := range []string{"build", "reject visitor", "reject builder", "reject descriptor", "reject mutation", "reject clone", "private registry", "private message info", "build"} {
 			d := definitionFor(metadata.MetadataWorkflow)
 			e := &environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}
 			input, err := e.GetDataConverter().ToPayloads(mode)
@@ -693,7 +697,7 @@ func runMetadataServices() {
 				var failure any
 				func() { defer func() { failure = recover() }(); d.OnWorkflowTaskStarted(5 * time.Second) }()
 				fault, ok := failure.(*isolate.EffectError)
-				operation := map[string]string{"reject visitor": "RangeMessages", "reject builder": "Builder.Build", "reject descriptor": "metadata callback", "reject mutation": "RegisterMessage"}[mode]
+				operation := map[string]string{"reject visitor": "RangeMessages", "reject builder": "Builder.Build", "reject descriptor": "metadata callback", "reject mutation": "RegisterMessage", "reject clone": "unaudited protobuf clone type"}[mode]
 				if !ok || !strings.Contains(fault.Operation, operation) || !strings.Contains(fault.Stack, "metadata.MetadataWorkflow") || e.completes != 0 || probe.CallbackProbeCount() != 0 {
 					panic(fmt.Sprintf("%s task fault: %v completions=%d callbacks=%d", mode, failure, e.completes, probe.CallbackProbeCount()))
 				}
@@ -727,6 +731,71 @@ func runMetadataServices() {
 				panic("isolate metadata service invoked host callback")
 			}
 			d.Close()
+		}
+	}
+}
+
+func runStructuredFailures() {
+	dc := converter.GetDefaultDataConverter()
+	fc := temporal.NewDefaultFailureConverter(temporal.DefaultFailureConverterOptions{DataConverter: dc})
+	details, err := dc.ToPayloads("detail", int64(9007199254740993), []byte("private"))
+	if err != nil {
+		panic(err)
+	}
+	heartbeat, err := dc.ToPayloads("heartbeat")
+	if err != nil {
+		panic(err)
+	}
+	app := fc.ErrorToFailure(temporal.NewApplicationErrorWithOptions("bad", "invalid", temporal.ApplicationErrorOptions{NonRetryable: true, NextRetryDelay: 3 * time.Second}))
+	app.GetApplicationFailureInfo().Details = details
+	failure := &failurepb.Failure{Message: "activity failed", FailureInfo: &failurepb.Failure_ActivityFailureInfo{ActivityFailureInfo: &failurepb.ActivityFailureInfo{ActivityId: "activity-id", ActivityType: &commonpb.ActivityType{Name: "echo"}, ScheduledEventId: 3, StartedEventId: 4, RetryState: enumspb.RETRY_STATE_MAXIMUM_ATTEMPTS_REACHED}}, Cause: &failurepb.Failure{Message: "heartbeat timed out", FailureInfo: &failurepb.Failure_TimeoutFailureInfo{TimeoutFailureInfo: &failurepb.TimeoutFailureInfo{TimeoutType: enumspb.TIMEOUT_TYPE_HEARTBEAT, LastHeartbeatDetails: heartbeat}}, Cause: app}}
+	for _, procs := range []int{1, 2, 8} {
+		runtime.GOMAXPROCS(procs)
+		for _, returnFailure := range []bool{false, true} {
+			// Two active instances plus host conversion exercise shared type
+			// initialization while all message contents remain independently owned.
+			var definitions []bindings.WorkflowDefinition
+			var environments []*environment
+			for range 2 {
+				d := definitionFor(metadata.StructuredFailureWorkflow)
+				e := &environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}
+				input, err := dc.ToPayloads(returnFailure)
+				if err != nil {
+					panic(err)
+				}
+				d.Execute(e, nil, input)
+				d.OnWorkflowTaskStarted(5 * time.Second)
+				definitions, environments = append(definitions, d), append(environments, e)
+			}
+			for i, d := range definitions {
+				e := environments[i]
+				e.activity(nil, fc.FailureToError(failure))
+				d.OnWorkflowTaskStarted(5 * time.Second)
+				var output *failurepb.Failure
+				if returnFailure {
+					var activity *temporal.ActivityError
+					if !errors.As(e.err, &activity) {
+						panic(fmt.Sprintf("workflow failure lost SDK type: %v", e.err))
+					}
+					output = fc.ErrorToFailure(e.err)
+				} else {
+					if e.err != nil {
+						panic(e.err)
+					}
+					var data []byte
+					if err := dc.FromPayloads(e.result, &data); err != nil {
+						panic(err)
+					}
+					output = new(failurepb.Failure)
+					if err := proto.Unmarshal(data, output); err != nil {
+						panic(err)
+					}
+				}
+				if !proto.Equal(failure, output) {
+					panic("structured failure round trip changed protobuf fields")
+				}
+				d.Close()
+			}
 		}
 	}
 }
