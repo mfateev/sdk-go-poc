@@ -122,3 +122,34 @@ func TestRejectsActivityWithoutStandardContext(t *testing.T) {
 type contextlessActivities struct{}
 
 func (*contextlessActivities) Wrong(string) error { return nil }
+
+func TestWorkflowAliasesTrackOrdinaryRegistrations(t *testing.T) {
+	var suite testsuite.WorkflowTestSuite
+	env := suite.NewTestWorkflowEnvironment()
+	w := Wrap(&testWorker{env: env}).(*isolateWorker)
+	resolve := w.workflows.resolve
+	w.RegisterWorkflowWithOptions(ordinary, goWorkflow.RegisterOptions{Name: "ordinary-alias"})
+	if resolve("ordinary") != "ordinary-alias" {
+		t.Fatal("workflow registration alias not tracked")
+	}
+	if resolve("unregistered") != "unregistered" {
+		t.Fatal("literal name changed")
+	}
+}
+
+func TestReplayWorkflowAliasingCanBeDisabled(t *testing.T) {
+	for _, disabled := range []bool{false, true} {
+		r, err := NewWorkflowReplayerWithOptions(WorkflowReplayerOptions{DisableRegistrationAliasing: disabled})
+		if err != nil {
+			t.Fatal(err)
+		}
+		r.RegisterWorkflowWithOptions(ordinary, goWorkflow.RegisterOptions{Name: "ordinary-alias"})
+		want := "ordinary-alias"
+		if disabled {
+			want = "ordinary"
+		}
+		if got := r.(*isolateReplayer).workflows.resolve("ordinary"); got != want {
+			t.Fatalf("disabled=%t: got %q, want %q", disabled, got, want)
+		}
+	}
+}

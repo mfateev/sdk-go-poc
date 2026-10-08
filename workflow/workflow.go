@@ -22,21 +22,24 @@ import (
 
 // Operation numbers are a wire contract. Never renumber an existing operation.
 const (
-	OpInput            uint32 = 1
-	OpActivity         uint32 = 2
-	OpSleep            uint32 = 3
-	OpSignal           uint32 = 4
-	OpComplete         uint32 = 5
-	OpStart            uint32 = 6
-	OpStartPayloads    uint32 = 7
-	OpCompletePayloads uint32 = 8
-	OpActivityPayloads uint32 = 9
-	OpWorkflowCancel   uint32 = 10
-	OpCancellableCall  uint32 = 11
-	OpCancelCall       uint32 = 12
-	OpScheduleActivity uint32 = 13
-	OpAwaitActivity    uint32 = 14
-	OpCancelActivity   uint32 = 15
+	OpInput               uint32 = 1
+	OpActivity            uint32 = 2
+	OpSleep               uint32 = 3
+	OpSignal              uint32 = 4
+	OpComplete            uint32 = 5
+	OpStart               uint32 = 6
+	OpStartPayloads       uint32 = 7
+	OpCompletePayloads    uint32 = 8
+	OpActivityPayloads    uint32 = 9
+	OpWorkflowCancel      uint32 = 10
+	OpCancellableCall     uint32 = 11
+	OpCancelCall          uint32 = 12
+	OpScheduleActivity    uint32 = 13
+	OpAwaitActivity       uint32 = 14
+	OpCancelActivity      uint32 = 15
+	OpGetVersion          uint32 = 16
+	OpIsReplaying         uint32 = 17
+	OpResolveWorkflowName uint32 = 18
 )
 
 // Handler is a named workflow function. Each execution receives its own
@@ -205,10 +208,11 @@ type Start struct {
 // PayloadStart carries the entry name and serialized Temporal Payloads. The
 // bytes cross the isolate boundary; Go argument values do not.
 type PayloadStart struct {
-	TaskQueue string `json:"task_queue,omitempty"`
-	Canceled  bool   `json:"canceled,omitempty"`
-	Name      string `json:"name"`
-	Payloads  []byte `json:"payloads"`
+	TaskQueue string     `json:"task_queue,omitempty"`
+	Options   RunOptions `json:"options"`
+	Canceled  bool       `json:"canceled,omitempty"`
+	Name      string     `json:"name"`
+	Payloads  []byte     `json:"payloads"`
 }
 
 // Run selects the registered function, calls it, and reports its result to the
@@ -222,7 +226,7 @@ func Run() error {
 	if err := json.Unmarshal(payload, &start); err != nil {
 		return Complete(nil, fmt.Errorf("workflow: decode start: %w", err))
 	}
-	ctx, cancel := executionContext(start.Canceled, start.TaskQueue)
+	ctx, cancel := executionContext(start.Canceled, start.TaskQueue, start.Options)
 	defer cancel()
 	if handler, ok := typedHandlers[start.Name]; ok {
 		payloads, err := decodePayloads(start.Payloads)
@@ -297,7 +301,7 @@ func RunFunction(handle isolate.Handle) error {
 	if err != nil {
 		return completePayloads(nil, fmt.Errorf("workflow: decode input payloads: %w", err))
 	}
-	ctx, cancel := executionContext(start.Canceled, start.TaskQueue)
+	ctx, cancel := executionContext(start.Canceled, start.TaskQueue, start.Options)
 	defer cancel()
 	var result *commonpb.Payloads
 	err = handle.Invoke(func(args ...isolate.Value) error {
@@ -380,17 +384,21 @@ type ActivityResult[R any] struct {
 
 // Completion is the wire representation of a workflow result.
 type Completion struct {
-	Canceled bool   `json:"canceled,omitempty"`
-	Result   []byte `json:"result"`
-	Error    string `json:"error,omitempty"`
+	Failed        bool                  `json:"failed,omitempty"`
+	ContinueAsNew *ContinueAsNewRequest `json:"continue_as_new,omitempty"`
+	Canceled      bool                  `json:"canceled,omitempty"`
+	Result        []byte                `json:"result"`
+	Error         string                `json:"error,omitempty"`
 }
 
 // PayloadCompletion carries serialized Temporal Payloads produced by a typed
 // handler, or its error. The host forwards these payloads without conversion.
 type PayloadCompletion struct {
-	Canceled bool   `json:"canceled,omitempty"`
-	Payloads []byte `json:"payloads"`
-	Error    string `json:"error,omitempty"`
+	Failed        bool                  `json:"failed,omitempty"`
+	ContinueAsNew *ContinueAsNewRequest `json:"continue_as_new,omitempty"`
+	Canceled      bool                  `json:"canceled,omitempty"`
+	Payloads      []byte                `json:"payloads"`
+	Error         string                `json:"error,omitempty"`
 }
 
 // Input returns the workflow's first byte-slice argument.
@@ -492,6 +500,12 @@ func GetSignalChannel(ctx context.Context, name string) <-chan SignalResult {
 func Complete(result []byte, cause error) error {
 	completion := Completion{Result: result}
 	if cause != nil {
+		var err error
+		completion.ContinueAsNew, err = continuationRequest(cause)
+		if err != nil {
+			return err
+		}
+		completion.Failed = true
 		completion.Error = cause.Error()
 		completion.Canceled = errors.Is(cause, context.Canceled)
 	}
@@ -506,6 +520,12 @@ func Complete(result []byte, cause error) error {
 func completePayloads(result *commonpb.Payloads, cause error) error {
 	completion := PayloadCompletion{}
 	if cause != nil {
+		var err error
+		completion.ContinueAsNew, err = continuationRequest(cause)
+		if err != nil {
+			return err
+		}
+		completion.Failed = true
 		completion.Error = cause.Error()
 		completion.Canceled = errors.Is(cause, context.Canceled)
 	} else if result != nil {

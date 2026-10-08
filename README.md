@@ -269,6 +269,46 @@ non-cancellation failures currently arrive as text. The SDK default failure
 converter's protobuf clone needs further ownership support before it can run
 inside an isolate. Custom converters remain feature 8 work.
 
+### Continue-as-new and workflow versioning
+
+Use the SDK names and error type with a native context:
+
+```go
+if workflow.GetVersion(ctx, "change-id", workflow.DefaultVersion, 1) == 1 {
+    // The new behavior, recorded by the host SDK's version marker.
+}
+ctx = workflow.WithWorkflowRunTimeout(ctx, time.Hour)
+return workflow.NewContinueAsNewError(ctx, MyWorkflow, nextInput)
+```
+
+`NewContinueAsNewError` and `NewContinueAsNewErrorWithOptions` produce the
+SDK's `ContinueAsNewError`. Returning it, including a wrapped error, delegates
+the continuation command to the host SDK. Each new run starts a fresh isolate
+with fresh globals; the old run and its pending local callbacks retire before
+completion is published. Workflow function references resolve registration
+aliases just as activity references do. Literal names are used verbatim.
+Timeouts and the task queue inherit the current run unless overridden with the
+SDK's workflow context option helpers. Retry policy, backoff and initial
+versioning behavior use `ContinueAsNewErrorOptions`.
+
+`GetVersion` delegates marker creation, recorded-version lookup and supported
+range checks to the pinned SDK. An old history without the marker returns
+`DefaultVersion`; repeated calls reuse the recorded version. An unsupported
+recorded version fails the Workflow Task. `IsReplaying` exposes the SDK replay
+flag for diagnostics; never use it to change workflow commands or results.
+Custom context propagators and converters remain outside this checkpoint.
+
+`example/continuation/check` tests compiled fresh runs and replays saved live
+histories, including the unsupported-version negative case:
+
+```bash
+../golang-go/bin/go test ./example/continuation/check
+../golang-go/bin/go build -o /tmp/isolate-continuation-check ./example/continuation/check
+/tmp/isolate-continuation-check -history-dir example/continuation/testdata
+# Optional: record new fixtures against a local Temporal development server.
+/tmp/isolate-continuation-check -live 127.0.0.1:7233 -history-dir /tmp/continuation-histories
+```
+
 `workflow.Sleep(ctx, d)`, `NextSignal(ctx)`, and `GetSignalChannel(ctx, name)`
 also honor cancellation. Native timers can be used in `select` alongside
 `ctx.Done()`.

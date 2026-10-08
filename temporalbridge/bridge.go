@@ -45,6 +45,8 @@ type Factory struct {
 	// ResolveActivity maps function references to host registration aliases.
 	// It runs only on the host and is never passed into an isolate.
 	ResolveActivity func(string) string
+	// ResolveWorkflow maps function references to workflow registration aliases.
+	ResolveWorkflow func(string) string
 	// ResolveLogHandler reads worker configuration on the host for each record.
 	ResolveLogHandler func() LogHandler
 	// ResolveResourceOptions snapshots host policy for each new execution.
@@ -65,7 +67,7 @@ func (f Factory) NewWorkflowDefinition() bindings.WorkflowDefinition {
 	if err := resources.Validate(); err != nil {
 		panic(err)
 	}
-	return &definition{resources: resources, program: f.Program, entryName: f.EntryName, resolveActivity: f.ResolveActivity, resolveLogHandler: f.ResolveLogHandler}
+	return &definition{resources: resources, program: f.Program, entryName: f.EntryName, resolveWorkflow: f.ResolveWorkflow, resolveActivity: f.ResolveActivity, resolveLogHandler: f.ResolveLogHandler}
 }
 
 type reply struct {
@@ -96,6 +98,7 @@ type definition struct {
 	calls             map[uint64]*callState
 	callsByCommand    map[*isolate.Command]*callState
 	earlyCancel       map[uint64]bool
+	resolveWorkflow   func(string) string
 	resolveActivity   func(string) string
 	resolveLogHandler func() LogHandler
 	failureStack      string
@@ -382,11 +385,11 @@ func (d *definition) finishWorkflow(result *commonpb.Payloads, err error) {
 	env.Complete(result, err)
 }
 
-func completionError(message string, canceled bool) error {
+func completionError(message string, canceled, failed bool) error {
 	if canceled {
 		return temporal.NewCanceledError()
 	}
-	if message != "" {
+	if failed || message != "" {
 		return errors.New(message)
 	}
 	return nil
@@ -395,6 +398,8 @@ func completionError(message string, canceled bool) error {
 // handle emits or answers one host command. Replies are held until suspension.
 func (d *definition) handle(command *isolate.Command) error {
 	switch command.Op {
+	case workflow.OpGetVersion, workflow.OpIsReplaying, workflow.OpResolveWorkflowName:
+		return d.handleVersion(command)
 	case workflow.OpScheduleActivity, workflow.OpAwaitActivity, workflow.OpCancelActivity:
 		return d.handleActivity(command)
 	case isolate.LogOp:
@@ -503,7 +508,7 @@ func (d *definition) handle(command *isolate.Command) error {
 				return err
 			}
 		}
-		payload, err := json.Marshal(workflow.PayloadStart{Name: d.entryName, Payloads: input, Canceled: d.canceled, TaskQueue: d.env.WorkflowInfo().TaskQueueName})
+		payload, err := json.Marshal(workflow.PayloadStart{Name: d.entryName, Payloads: input, Canceled: d.canceled, TaskQueue: d.env.WorkflowInfo().TaskQueueName, Options: workflow.RunOptions{Namespace: d.env.WorkflowInfo().Namespace, TaskQueue: d.env.WorkflowInfo().TaskQueueName, WorkflowExecutionTimeout: d.env.WorkflowInfo().WorkflowExecutionTimeout, WorkflowRunTimeout: d.env.WorkflowInfo().WorkflowRunTimeout, WorkflowTaskTimeout: d.env.WorkflowInfo().WorkflowTaskTimeout}})
 		if err != nil {
 			return err
 		}
@@ -618,12 +623,15 @@ func (d *definition) handle(command *isolate.Command) error {
 		}
 		var result *commonpb.Payloads
 		var err error
-		if completion.Error != "" {
-			err = completionError(completion.Error, completion.Canceled)
+		if completion.ContinueAsNew != nil {
+			return d.finishContinuation(completion.ContinueAsNew)
+		}
+		if completion.Failed || completion.Error != "" {
+			err = completionError(completion.Error, completion.Canceled, completion.Failed)
 		} else {
 			result, err = d.env.GetDataConverter().ToPayloads(completion.Result)
 		}
-		if err == nil || completion.Error != "" {
+		if err == nil || completion.Failed || completion.Error != "" {
 			d.finishWorkflow(result, err)
 			return nil
 		}
@@ -635,8 +643,11 @@ func (d *definition) handle(command *isolate.Command) error {
 		}
 		var result *commonpb.Payloads
 		var err error
-		if completion.Error != "" {
-			err = completionError(completion.Error, completion.Canceled)
+		if completion.ContinueAsNew != nil {
+			return d.finishContinuation(completion.ContinueAsNew)
+		}
+		if completion.Failed || completion.Error != "" {
+			err = completionError(completion.Error, completion.Canceled, completion.Failed)
 		} else if len(completion.Payloads) != 0 {
 			result = new(commonpb.Payloads)
 			if err := proto.Unmarshal(completion.Payloads, result); err != nil {
@@ -799,7 +810,7 @@ func (d *definition) Close() {
 		d.pending, d.immediate, d.signals, d.wantSignals = nil, nil, nil, nil
 		d.cancelWaiter, d.input = nil, nil
 		d.program = isolate.Program{}
-		d.resolveActivity, d.resolveLogHandler = nil, nil
+		d.resolveActivity, d.resolveLogHandler, d.resolveWorkflow = nil, nil, nil
 	}
 	if d.instance == nil {
 		d.env = nil

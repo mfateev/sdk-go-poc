@@ -203,7 +203,7 @@ func ExecuteActivity(ctx context.Context, activity any, args ...any) Future {
 			var outcome ActivityOutcome
 			if f.err = json.Unmarshal(response, &outcome); f.err == nil {
 				f.payload = outcome.Payloads
-				if outcome.Error != "" {
+				if outcome.Failed || outcome.Error != "" {
 					if outcome.Canceled && ctx.Err() != nil {
 						f.err = ctx.Err()
 					} else if outcome.Canceled {
@@ -221,6 +221,7 @@ func ExecuteActivity(ctx context.Context, activity any, args ...any) Future {
 
 // ActivityOutcome carries the copied result of an activity completion.
 type ActivityOutcome struct {
+	Failed   bool   `json:"failed,omitempty"`
 	Payloads []byte `json:"payloads"`
 	Error    string `json:"error,omitempty"`
 	Canceled bool   `json:"canceled,omitempty"`

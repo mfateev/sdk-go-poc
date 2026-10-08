@@ -41,7 +41,9 @@ func activityOptions(o workflow.ActivityOptions, taskQueue string, sequence int6
 			NonRetryableErrorTypes: r.NonRetryableErrorTypes,
 		}
 	}
-	p.Priority = &commonpb.Priority{PriorityKey: int32(o.Priority.PriorityKey), FairnessKey: o.Priority.FairnessKey, FairnessWeight: o.Priority.FairnessWeight}
+	if o.Priority != (workflow.Priority{}) {
+		p.Priority = &commonpb.Priority{PriorityKey: int32(o.Priority.PriorityKey), FairnessKey: o.Priority.FairnessKey, FairnessWeight: o.Priority.FairnessWeight}
+	}
 	return p
 }
 
@@ -86,6 +88,7 @@ func (d *definition) handleActivity(command *isolate.Command) error {
 				outcome.Payloads, cause = proto.MarshalOptions{Deterministic: true}.Marshal(result)
 			}
 			if cause != nil {
+				outcome.Failed = true
 				outcome.Error = cause.Error()
 				outcome.Canceled = temporal.IsCanceledError(cause)
 			}

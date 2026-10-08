@@ -129,3 +129,9 @@ func TestConsumedActivityRetiresOutcomeFromRetainedSDKCallback(t *testing.T) {
 		t.Fatal("retired callback completed again")
 	}
 }
+
+func TestDefaultActivityPriorityRemainsAbsent(t *testing.T) {
+	if p := activityOptions(workflow.ActivityOptions{}, "workflow", 1); p.Priority != nil || p.RetryPolicy != nil {
+		t.Fatal("default server policies were overridden")
+	}
+}
