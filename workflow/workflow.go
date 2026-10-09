@@ -46,6 +46,12 @@ const (
 	OpRegisterUpdate      uint32 = 21
 	OpNextUpdate          uint32 = 22
 	OpCompleteUpdate      uint32 = 23
+	OpScheduleChild       uint32 = 24
+	OpAwaitChild          uint32 = 25
+	OpAwaitChildExecution uint32 = 26
+	OpCancelChild         uint32 = 27
+	OpSignalChild         uint32 = 28
+	OpAwaitChildSignal    uint32 = 29
 )
 
 // Handler is a named workflow function. Each execution receives its own

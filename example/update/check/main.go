@@ -158,7 +158,7 @@ func run() {
 	}
 	e.state(15)
 	e.finished(true)
-	for _, mode := range []string{"exit", "goexit", "environment", "mutex", "waitgroup", "cond", "field", "map", "delete", "clear", "slice", "copy", "package", "atomic", "reflect", "callback", "error-callback", "goroutine", "channel", "select", "activity", "timer", "raw", "panic", "error"} {
+	for _, mode := range []string{"exit", "goexit", "environment", "mutex", "waitgroup", "cond", "field", "map", "delete", "clear", "slice", "copy", "package", "atomic", "reflect", "callback", "error-callback", "goroutine", "channel", "select", "activity", "child", "timer", "raw", "panic", "error"} {
 		o := e.send("bad", "bad-"+mode, mode)
 		d.OnWorkflowTaskStarted(5 * time.Second)
 		if o.rejected != 1 || o.accepted != 0 || o.completed != 0 || o.err == nil {

@@ -138,6 +138,8 @@ func BadHandler(ctx context.Context, state *State, mode string) (string, error) 
 		}
 	case "activity":
 		workflow.ExecuteActivity(ctx, "forbidden")
+	case "child":
+		workflow.ExecuteChildWorkflow(ctx, "forbidden")
 	case "timer":
 		time.Sleep(time.Second)
 	case "raw":

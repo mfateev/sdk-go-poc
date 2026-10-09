@@ -90,6 +90,8 @@ type callState struct {
 }
 
 type definition struct {
+	children            map[uint64]*childState
+	childSignals        map[uint64]*activityState
 	updateHandlers      map[string]workflow.UpdateRegistration
 	updates             map[string]*updateState
 	queuedUpdates       []*updateState
@@ -436,6 +438,8 @@ func (d *definition) handle(command *isolate.Command) error {
 		return nil
 	}
 	switch command.Op {
+	case workflow.OpScheduleChild, workflow.OpAwaitChild, workflow.OpAwaitChildExecution, workflow.OpCancelChild, workflow.OpSignalChild, workflow.OpAwaitChildSignal:
+		return d.handleChild(command)
 	case workflow.OpRegisterUpdate, workflow.OpNextUpdate, workflow.OpCompleteUpdate:
 		return d.handleUpdate(command)
 	case workflow.OpRegisterQuery, workflow.OpQuery:
@@ -877,6 +881,17 @@ func (d *definition) Close() {
 }
 
 func (d *definition) retireOperations() {
+	for _, state := range d.children {
+		state.resultWaiter, state.startWaiter = nil, nil
+		state.result, state.start, state.cancel = nil, nil, nil
+		state.retired = true
+	}
+	d.children = nil
+	for _, state := range d.childSignals {
+		state.waiter, state.payload = nil, nil
+		state.retired = true
+	}
+	d.childSignals = nil
 	for _, state := range d.updates {
 		state.callbacks, state.payload = nil, nil
 	}

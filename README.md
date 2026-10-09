@@ -298,7 +298,61 @@ message callbacks. Ordinary host protobuf operations retain their implementation
 The internal Failure wire codec supports the pinned schema and ordinary payloads;
 unknown fields, extensions, and external payload references remain unsupported.
 This does not enable general protobuf workflow arguments/results. Custom data
-and failure converters remain feature 8 work. Child workflows remain pending feature 7 work.
+and failure converters remain feature 8 work.
+
+### Child workflows
+
+`ExecuteChildWorkflow`, `ChildWorkflowOptions`, `WithChildWorkflowOptions`,
+`GetChildWorkflowOptions` and `ChildWorkflowFuture` follow the pinned SDK API
+with native contexts. Function references resolve registration aliases on the
+host; strings are used as supplied. Children can be isolate workflows or
+ordinary SDK workflows. Each isolate child and each retry/continued run receives
+fresh isolate state.
+
+```go
+ctx = workflow.WithChildWorkflowOptions(ctx, workflow.ChildWorkflowOptions{
+    WorkflowRunTimeout: time.Minute,
+    WaitForCancellation: true,
+})
+child := workflow.ExecuteChildWorkflow(ctx, ChildWorkflow, input)
+var execution workflow.Execution
+if err := child.GetChildWorkflowExecution().Get(ctx, &execution); err != nil {
+    return err
+}
+return child.Get(ctx, &result)
+```
+
+Scheduling finishes before the call returns, even when the future is ignored.
+Results support repeatable `Get` and the same `ToChannel`/`EncodedValue` adapter
+as activity futures. Canceling the execution context requests child cancellation
+after initiation; `WaitForCancellation` keeps the SDK completion policy.
+Canceling a context used only to wait does not abandon the future.
+`SignalChildWorkflow` waits for initiation and signals the current child run,
+including after continue-as-new. Signals to isolate workflows currently use
+the native signal channel's byte-slice input convention.
+
+The host SDK owns IDs, retry/cron behavior, timeouts, parent-close policy,
+versioning, priority and summaries. Memo and untyped search-attribute values
+cross as encoded payloads, preserving integers larger than JSON float precision.
+Nonempty **typed search attributes are explicitly unsupported** in this POC:
+the SDK stores their keys in an interface-key map, which needs a deterministic
+iteration audit. Custom headers, context propagators and converters remain
+deferred. Cache eviction detaches local callbacks without canceling server-side
+children; parent completion follows the configured parent-close policy.
+
+`example/child/check` tests native dispatch at GOMAXPROCS 1/2/8, cancellation
+before/after initiation, signals, repeated future reads, option forwarding,
+failed/duplicate starts and late callbacks after eviction. Checked-in histories
+cover ordinary and isolate children, structured failures, retries and
+continue-as-new. Build and run with the isolate toolchain:
+
+```sh
+../golang-go/bin/go test ./example/child/check
+../golang-go/bin/go build -race -o /tmp/isolate-child-check ./example/child/check
+GOGC=1 /tmp/isolate-child-check -history-dir example/child/testdata
+# Optional: with a Temporal development server on localhost:7233
+/tmp/isolate-child-check -address localhost:7233
+```
 
 ### Queries
 

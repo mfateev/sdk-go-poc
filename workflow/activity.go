@@ -131,7 +131,7 @@ func (f *activityFuture) ToChannel() <-chan FutureResult {
 		}
 		payloads, err := decodePayloads(f.payload)
 		if err == nil && len(payloads.Payloads) > 1 {
-			err = fmt.Errorf("workflow: activity returned %d payloads, want 1", len(payloads.Payloads))
+			err = fmt.Errorf("workflow: operation returned %d payloads, want 1", len(payloads.Payloads))
 		}
 		if err != nil {
 			results <- FutureResult{Err: err}
@@ -178,7 +178,7 @@ func (f *activityFuture) Get(ctx context.Context, valuePtr any) error {
 		return nil
 	}
 	if len(payloads.Payloads) != 1 {
-		return fmt.Errorf("workflow: activity returned %d payloads, want 1", len(payloads.Payloads))
+		return fmt.Errorf("workflow: operation returned %d payloads, want 1", len(payloads.Payloads))
 	}
 	return instanceDataConverter.FromPayloads(payloads, valuePtr)
 }
@@ -282,9 +282,10 @@ func ExecuteActivity(ctx context.Context, activity any, args ...any) Future {
 
 // ActivityOutcome carries the copied result of an activity completion.
 type ActivityOutcome struct {
-	Failure  []byte `json:"failure,omitempty"`
-	Failed   bool   `json:"failed,omitempty"`
-	Payloads []byte `json:"payloads"`
-	Error    string `json:"error,omitempty"`
-	Canceled bool   `json:"canceled,omitempty"`
+	ErrorKind string `json:"error_kind,omitempty"`
+	Failure   []byte `json:"failure,omitempty"`
+	Failed    bool   `json:"failed,omitempty"`
+	Payloads  []byte `json:"payloads"`
+	Error     string `json:"error,omitempty"`
+	Canceled  bool   `json:"canceled,omitempty"`
 }

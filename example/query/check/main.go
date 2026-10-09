@@ -122,7 +122,7 @@ func run() {
 			_, err := e.query("random", nil, nil)
 			check(err)
 		}
-		for _, mode := range []string{"exit", "goexit", "environment", "mutex", "waitgroup", "cond", "field", "map", "delete", "clear", "slice", "copy", "package", "atomic", "reflect", "callback", "error-callback", "goroutine", "channel", "select", "activity", "timer", "raw", "panic", "error"} {
+		for _, mode := range []string{"exit", "goexit", "environment", "mutex", "waitgroup", "cond", "field", "map", "delete", "clear", "slice", "copy", "package", "atomic", "reflect", "callback", "error-callback", "goroutine", "channel", "select", "activity", "child", "timer", "raw", "panic", "error"} {
 			input, err := e.GetDataConverter().ToPayloads(mode)
 			check(err)
 			if _, err := e.query("bad", input, nil); err == nil {
