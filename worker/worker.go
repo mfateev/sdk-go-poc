@@ -61,6 +61,7 @@ type isolateWorker struct {
 	activities          activityAliases
 	logs                logConfiguration
 	resources           resourceConfiguration
+	converters          converterConfiguration
 	failWorkflowOnPanic bool
 }
 
@@ -137,7 +138,7 @@ func (w *isolateWorker) RegisterWorkflowWithOptions(fn any, options goWorkflow.R
 		factory.ResolveWorkflow = w.workflows.resolve
 		fn = factory
 	}
-	w.Worker.RegisterWorkflowWithOptions(resourceFactory(fn, &w.resources), options)
+	w.Worker.RegisterWorkflowWithOptions(converterFactory(resourceFactory(fn, &w.resources), &w.converters), options)
 	w.workflows.register(original, activity.RegisterOptions{Name: options.Name})
 }
 
@@ -163,6 +164,7 @@ type isolateReplayer struct {
 	activities activityAliases
 	logs       logConfiguration
 	resources  resourceConfiguration
+	converters converterConfiguration
 }
 
 func (r *isolateReplayer) RegisterActivity(fn any) {
@@ -187,7 +189,7 @@ func (r *isolateReplayer) RegisterWorkflowWithOptions(fn any, options goWorkflow
 		factory.ResolveWorkflow = r.workflows.resolve
 		fn = factory
 	}
-	r.WorkflowReplayer.RegisterWorkflowWithOptions(resourceFactory(fn, &r.resources), options)
+	r.WorkflowReplayer.RegisterWorkflowWithOptions(converterFactory(resourceFactory(fn, &r.resources), &r.converters), options)
 	r.workflows.register(original, activity.RegisterOptions{Name: options.Name})
 }
 

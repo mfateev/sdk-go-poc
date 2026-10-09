@@ -10,6 +10,8 @@ import (
 	"reflect"
 
 	"github.com/mfateev/sdk-go-poc/internal/failurecodec"
+	"github.com/mfateev/sdk-go-poc/internal/payloadwire"
+	"go.temporal.io/sdk/converter"
 	"go.temporal.io/sdk/temporal"
 	goWorkflow "go.temporal.io/sdk/workflow"
 )
@@ -97,7 +99,7 @@ func completeOperation(f *activityFuture, response []byte, err error, ctx contex
 			}
 			if f.err == nil && len(outcome.Failure) != 0 {
 				var transportErr error
-				f.err, transportErr = failurecodec.Decode(outcome.Failure, instanceDataConverter)
+				f.err, transportErr = failurecodec.Decode(outcome.Failure, currentDataConverter())
 				if transportErr != nil {
 					f.err = fmt.Errorf("workflow: decode operation failure: %w", transportErr)
 				}
@@ -132,7 +134,7 @@ func encodeOptionValues(values map[string]any) (map[string][]byte, error) {
 // child IDs, retries, parent-close policy and cancellation completion semantics.
 func ExecuteChildWorkflow(ctx context.Context, fn any, args ...any) ChildWorkflowFuture {
 	assertWritable()
-	f := &childFuture{activityFuture: &activityFuture{done: make(chan struct{})}, execution: &activityFuture{done: make(chan struct{})}}
+	f := &childFuture{activityFuture: &activityFuture{done: make(chan struct{})}, execution: &activityFuture{done: make(chan struct{}), dataConverter: converter.NewCompositeDataConverter(converter.NewJSONPayloadConverter())}}
 	fail := func(err error) ChildWorkflowFuture {
 		completeOperation(f.activityFuture, nil, err, context.Background())
 		completeOperation(f.execution, nil, err, context.Background())
@@ -177,7 +179,7 @@ func ExecuteChildWorkflow(ctx context.Context, fn any, args ...any) ChildWorkflo
 	if err != nil {
 		return fail(err)
 	}
-	search, err := encodeOptionValues(o.SearchAttributes)
+	search, err := encodeSearchAttributeValues(o.SearchAttributes)
 	if err != nil {
 		return fail(err)
 	}
@@ -234,4 +236,23 @@ func (f *childFuture) SignalChildWorkflow(ctx context.Context, name string, data
 		completeOperation(result, r, err, ctx)
 	}()
 	return result
+}
+
+func encodeSearchAttributeValues(values map[string]any) (map[string][]byte, error) {
+	if values == nil {
+		return nil, nil
+	}
+	dc := converter.NewCompositeDataConverter(converter.NewNilPayloadConverter(), converter.NewJSONPayloadConverter())
+	result := make(map[string][]byte, len(values))
+	for key, value := range values {
+		p, err := dc.ToPayloads(value)
+		if err != nil {
+			return nil, err
+		}
+		result[key], err = payloadwire.Encode(p)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return result, nil
 }

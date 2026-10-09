@@ -114,10 +114,12 @@ func (v *futureValue) Get(valuePtr any) error {
 }
 
 type activityFuture struct {
-	ready   atomic.Bool
-	done    chan struct{}
-	payload []byte
-	err     error
+	// Execution handles are SDK metadata, encoded with built-in JSON.
+	dataConverter converter.DataConverter
+	ready         atomic.Bool
+	done          chan struct{}
+	payload       []byte
+	err           error
 }
 
 func (f *activityFuture) ToChannel() <-chan FutureResult {
@@ -180,7 +182,11 @@ func (f *activityFuture) Get(ctx context.Context, valuePtr any) error {
 	if len(payloads.Payloads) != 1 {
 		return fmt.Errorf("workflow: operation returned %d payloads, want 1", len(payloads.Payloads))
 	}
-	return instanceDataConverter.FromPayloads(payloads, valuePtr)
+	dc := f.dataConverter
+	if dc == nil {
+		dc = currentDataConverter()
+	}
+	return dc.FromPayloads(payloads, valuePtr)
 }
 
 // ExecuteActivity accepts a registered function reference or activity type name,
@@ -257,7 +263,7 @@ func ExecuteActivity(ctx context.Context, activity any, args ...any) Future {
 				f.payload = outcome.Payloads
 				if len(outcome.Failure) != 0 {
 					var transportErr error
-					f.err, transportErr = failurecodec.Decode(outcome.Failure, instanceDataConverter)
+					f.err, transportErr = failurecodec.Decode(outcome.Failure, currentDataConverter())
 					if transportErr != nil {
 						f.err = fmt.Errorf("workflow: decode activity failure: %w", transportErr)
 					} else if outcome.Canceled {

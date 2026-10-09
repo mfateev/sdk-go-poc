@@ -50,6 +50,10 @@ func (d *definition) finishContinuation(r *workflow.ContinueAsNewRequest) error 
 	if err := proto.Unmarshal(r.Payloads, input); err != nil {
 		return fmt.Errorf("decode continuation input: %w", err)
 	}
+	input, err := encodeTransport(input, d.env.GetDataConverter())
+	if err != nil {
+		return err
+	}
 	e := &bindings.ContinueAsNewError{WorkflowType: &bindings.WorkflowType{Name: r.Name}, Input: input,
 		TaskQueueName: r.Options.TaskQueue, WorkflowRunTimeout: r.Options.WorkflowRunTimeout,
 		WorkflowTaskTimeout: r.Options.WorkflowTaskTimeout, WorkflowExecutionTimeout: r.Options.WorkflowExecutionTimeout,

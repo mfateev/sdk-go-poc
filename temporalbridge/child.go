@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"isolate"
 
-	"github.com/mfateev/sdk-go-poc/internal/failurecodec"
 	"github.com/mfateev/sdk-go-poc/workflow"
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/converter"
@@ -19,17 +18,22 @@ import (
 // waiters/results without requesting cancellation of server-side children.
 type childState struct {
 	namespace                                                                   string
+	dc                                                                          converter.DataConverter
 	resultWaiter, startWaiter                                                   *isolate.Command
 	result, start                                                               []byte
 	cancel                                                                      func()
 	done, started, resultRead, startRead, retired, synchronous, cancelRequested bool
 }
 
-func (d *definition) operationOutcome(result *commonpb.Payloads, cause error) []byte {
+func (d *definition) operationOutcome(result *commonpb.Payloads, cause error, converters ...converter.DataConverter) []byte {
+	dc := d.env.GetDataConverter()
+	if len(converters) > 0 {
+		dc = converters[0]
+	}
 	o := workflow.ActivityOutcome{}
 	if cause == nil && result != nil {
 		var err error
-		o.Payloads, err = proto.MarshalOptions{Deterministic: true}.Marshal(result)
+		o.Payloads, err = inboundPayloadBytes(result, dc)
 		if err != nil {
 			panic(err)
 		}
@@ -45,7 +49,7 @@ func (d *definition) operationOutcome(result *commonpb.Payloads, cause error) []
 			o.ErrorKind = "namespace-not-found"
 		}
 		var err error
-		o.Failure, err = failurecodec.Encode(cause, d.env.GetDataConverter())
+		o.Failure, err = encodeInboundFailure(cause, dc)
 		if err != nil {
 			panic(fmt.Errorf("encode child operation failure: %w", err))
 		}
@@ -77,11 +81,21 @@ func decodeOptionValues(values map[string][]byte) (map[string]any, error) {
 
 func (d *definition) childParams(request workflow.ChildRequest) (bindings.ExecuteWorkflowParams, error) {
 	o := request.Options
+	o.WorkflowID = d.prepareChildID(o.WorkflowID)
+	namespace := o.Namespace
+	if namespace == "" {
+		namespace = d.env.WorkflowInfo().Namespace
+	}
+	dc := d.workflowDataConverter(namespace, o.WorkflowID)
 	if request.Function && d.resolveWorkflow != nil {
 		request.Name = d.resolveWorkflow(request.Name)
 	}
 	input := new(commonpb.Payloads)
 	if err := proto.Unmarshal(request.Payloads, input); err != nil {
+		return bindings.ExecuteWorkflowParams{}, err
+	}
+	input, err := encodeTransport(input, dc)
+	if err != nil {
 		return bindings.ExecuteWorkflowParams{}, err
 	}
 	memo, err := decodeOptionValues(request.Memo)
@@ -105,7 +119,7 @@ func (d *definition) childParams(request workflow.ChildRequest) (bindings.Execut
 		RetryPolicy: activity.RetryPolicy, Priority: activity.Priority, CronSchedule: o.CronSchedule,
 		Memo: memo, SearchAttributes: search, ParentClosePolicy: o.ParentClosePolicy, VersioningIntent: o.VersioningIntent,
 		StaticSummary: o.StaticSummary, StaticDetails: o.StaticDetails,
-		DataConverter: d.env.GetDataConverter(), RootDataConverter: d.env.GetDataConverter(),
+		DataConverter: dc, RootDataConverter: d.rootDataConverter(),
 	}, WorkflowType: &bindings.WorkflowType{Name: request.Name}, Input: input}
 	return p, nil
 }
@@ -126,7 +140,7 @@ func (d *definition) childStarted(id uint64, s *childState, execution bindings.W
 	var result *commonpb.Payloads
 	if cause == nil {
 		var err error
-		result, err = d.env.GetDataConverter().ToPayloads(execution)
+		result, err = converter.GetDefaultDataConverter().ToPayloads(execution)
 		if err != nil {
 			panic(err)
 		}
@@ -139,7 +153,7 @@ func (d *definition) childStarted(id uint64, s *childState, execution bindings.W
 			}
 		}
 	}
-	s.start = d.operationOutcome(result, cause)
+	s.start = d.operationOutcome(result, cause, converter.GetDefaultDataConverter())
 	if s.startWaiter != nil {
 		d.finish(s.startWaiter, nil, s.start, nil, s.synchronous)
 		s.startWaiter, s.start, s.startRead = nil, nil, true
@@ -169,7 +183,7 @@ func (d *definition) handleChild(command *isolate.Command) error {
 		if err != nil {
 			return err
 		}
-		s := &childState{synchronous: true, namespace: params.Namespace}
+		s := &childState{synchronous: true, namespace: params.Namespace, dc: params.DataConverter}
 		d.children[r.ID] = s
 		id := r.ID
 		d.env.ExecuteChildWorkflow(params, func(result *commonpb.Payloads, cause error) {
@@ -182,7 +196,7 @@ func (d *definition) handleChild(command *isolate.Command) error {
 			if !s.started && cause != nil {
 				d.childStarted(id, s, bindings.WorkflowExecution{}, cause)
 			}
-			s.result = d.operationOutcome(result, cause)
+			s.result = d.operationOutcome(result, cause, s.dc)
 			if s.resultWaiter != nil {
 				d.finish(s.resultWaiter, nil, s.result, nil, s.synchronous)
 				s.resultWaiter, s.result, s.resultRead = nil, nil, true
@@ -259,6 +273,15 @@ func (d *definition) handleChildSignal(command *isolate.Command) error {
 		if err := proto.Unmarshal(r.Payloads, input); err != nil {
 			return err
 		}
+		namespace := r.Namespace
+		if namespace == "" {
+			namespace = d.env.WorkflowInfo().Namespace
+		}
+		dc := d.workflowDataConverter(namespace, r.WorkflowID)
+		input, err := encodeTransport(input, dc)
+		if err != nil {
+			return err
+		}
 		s := &activityState{synchronous: true}
 		d.childSignals[r.ID] = s
 		id := r.ID
@@ -266,7 +289,7 @@ func (d *definition) handleChildSignal(command *isolate.Command) error {
 			if d.closed || s.retired || s.done {
 				return
 			}
-			s.done, s.payload = true, d.operationOutcome(result, cause)
+			s.done, s.payload = true, d.operationOutcome(result, cause, dc)
 			if s.waiter != nil {
 				d.finish(s.waiter, nil, s.payload, nil, s.synchronous)
 				s.waiter, s.payload, s.retired = nil, nil, true

@@ -66,7 +66,7 @@ func (d *definition) query(name string, input *commonpb.Payloads, _ *commonpb.He
 		slices.Sort(keys)
 		return nil, fmt.Errorf("unknown queryType %v. KnownQueryTypes=%v", name, keys)
 	}
-	raw, err := proto.MarshalOptions{Deterministic: true}.Marshal(input)
+	raw, err := inboundPayloadBytes(input, d.env.GetDataConverter())
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (d *definition) query(name string, input *commonpb.Payloads, _ *commonpb.He
 	if err := proto.Unmarshal(response.Payloads, result); err != nil {
 		return nil, err
 	}
-	return result, nil
+	return encodeTransport(result, d.env.GetDataConverter())
 }
 
 // runReadOnly admits the shared query/validation service at an exact fence.

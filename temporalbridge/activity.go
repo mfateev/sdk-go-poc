@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"isolate"
 
-	"github.com/mfateev/sdk-go-poc/internal/failurecodec"
 	"github.com/mfateev/sdk-go-poc/workflow"
 	commonpb "go.temporal.io/api/common/v1"
 	bindings "go.temporal.io/sdk/internalbindings"
@@ -76,7 +75,14 @@ func (d *definition) handleActivity(command *isolate.Command) error {
 		if err := proto.Unmarshal(request.Payloads, input); err != nil {
 			return fmt.Errorf("decode activity arguments: %w", err)
 		}
-		params := bindings.ExecuteActivityParams{ExecuteActivityOptions: activityOptions(o, d.env.WorkflowInfo().TaskQueueName, d.env.GenerateSequence()), ActivityType: bindings.ActivityType{Name: request.Name}, Input: input}
+		options := activityOptions(o, d.env.WorkflowInfo().TaskQueueName, d.env.GenerateSequence())
+		dc := d.activityDataConverter(request.Name, options.TaskQueueName)
+		input, err := encodeTransport(input, dc)
+		if err != nil {
+			return err
+		}
+		params := bindings.ExecuteActivityParams{ExecuteActivityOptions: options, ActivityType: bindings.ActivityType{Name: request.Name}, Input: input, DataConverter: dc,
+			FailureConverter: temporal.NewDefaultFailureConverter(temporal.DefaultFailureConverterOptions{DataConverter: dc})}
 		state := &activityState{synchronous: true}
 		d.activities[request.ID] = state
 		callID := request.ID // Do not retain the request or its argument bytes in SDK callbacks.
@@ -86,14 +92,14 @@ func (d *definition) handleActivity(command *isolate.Command) error {
 			}
 			outcome := workflow.ActivityOutcome{}
 			if cause == nil && result != nil {
-				outcome.Payloads, cause = proto.MarshalOptions{Deterministic: true}.Marshal(result)
+				outcome.Payloads, cause = inboundPayloadBytes(result, dc)
 			}
 			if cause != nil {
 				outcome.Failed = true
 				outcome.Error = cause.Error()
 				outcome.Canceled = temporal.IsCanceledError(cause)
 				var err error
-				outcome.Failure, err = failurecodec.Encode(cause, d.env.GetDataConverter())
+				outcome.Failure, err = encodeInboundFailure(cause, dc)
 				if err != nil {
 					panic(fmt.Errorf("encode activity failure: %w", err))
 				}

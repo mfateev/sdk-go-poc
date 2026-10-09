@@ -120,7 +120,7 @@ func RegisterTyped[A, R any](name string, handler func(context.Context, A) (R, e
 		if isProtoValue(any(arg)) || isProtoValue(any(&arg)) {
 			return nil, errors.New("workflow: protobuf values are outside the isolate POC subset")
 		}
-		if err := instanceDataConverter.FromPayloads(payloads, &arg); err != nil {
+		if err := currentDataConverter().FromPayloads(payloads, &arg); err != nil {
 			return nil, fmt.Errorf("workflow: decode arguments: %w", err)
 		}
 		result, err := handler(ctx, arg)
@@ -143,7 +143,7 @@ func RegisterTyped2[A, B, R any](name string, handler func(context.Context, A, B
 			isProtoValue(any(second)) || isProtoValue(any(&second)) {
 			return nil, errors.New("workflow: protobuf values are outside the isolate POC subset")
 		}
-		if err := instanceDataConverter.FromPayloads(payloads, &first, &second); err != nil {
+		if err := currentDataConverter().FromPayloads(payloads, &first, &second); err != nil {
 			return nil, fmt.Errorf("workflow: decode arguments: %w", err)
 		}
 		result, err := handler(ctx, first, second)
@@ -168,7 +168,7 @@ func encodeTypedResult[R any](result R, cause error) (*commonpb.Payloads, error)
 	if isProtoValue(any(result)) || isProtoValue(any(&result)) {
 		return nil, errors.New("workflow: protobuf values are outside the isolate POC subset")
 	}
-	payloads, err := instanceDataConverter.ToPayloads(result)
+	payloads, err := currentDataConverter().ToPayloads(result)
 	if err != nil {
 		return nil, fmt.Errorf("workflow: encode result: %w", err)
 	}
@@ -201,6 +201,9 @@ func checkPOCEncodings(payloads *commonpb.Payloads) error {
 		if payload == nil {
 			return fmt.Errorf("workflow: nil payload at argument %d", i)
 		}
+		if instanceConverterFactory.Name() != "" {
+			continue
+		}
 		encoding := string(payload.GetMetadata()[converter.MetadataEncoding])
 		switch encoding {
 		case converter.MetadataEncodingNil, converter.MetadataEncodingBinary, converter.MetadataEncodingJSON:
@@ -220,11 +223,12 @@ type Start struct {
 // PayloadStart carries the entry name and serialized Temporal Payloads. The
 // bytes cross the isolate boundary; Go argument values do not.
 type PayloadStart struct {
-	TaskQueue string     `json:"task_queue,omitempty"`
-	Options   RunOptions `json:"options"`
-	Canceled  bool       `json:"canceled,omitempty"`
-	Name      string     `json:"name"`
-	Payloads  []byte     `json:"payloads"`
+	ConverterConfig []byte     `json:"converter_config,omitempty"`
+	TaskQueue       string     `json:"task_queue,omitempty"`
+	Options         RunOptions `json:"options"`
+	Canceled        bool       `json:"canceled,omitempty"`
+	Name            string     `json:"name"`
+	Payloads        []byte     `json:"payloads"`
 }
 
 // Run selects the registered function, calls it, and reports its result to the
@@ -277,7 +281,7 @@ func decodeBytes(data []byte) ([]byte, error) {
 		return nil, err
 	}
 	var value []byte
-	if err := instanceDataConverter.FromPayloads(&payloads, &value); err != nil {
+	if err := currentDataConverter().FromPayloads(&payloads, &value); err != nil {
 		return nil, err
 	}
 	return value, nil
@@ -301,6 +305,12 @@ func decodePayloads(data []byte) (*commonpb.Payloads, error) {
 // //go:isolate functions. Typed invocation and default-converter operations
 // execute here, behind the isolate's copied-byte boundary.
 func RunFunction(handle isolate.Handle) error {
+	return RunFunctionWithDataConverter(handle, isolate.Handle{})
+}
+
+// RunFunctionWithDataConverter constructs the worker-configured serializer
+// inside the workflow owner before decoding arguments or invoking user code.
+func RunFunctionWithDataConverter(handle, factory isolate.Handle) error {
 	startBytes, err := isolate.Call(OpStartPayloads, nil)
 	if err != nil {
 		return err
@@ -308,6 +318,9 @@ func RunFunction(handle isolate.Handle) error {
 	var start PayloadStart
 	if err := json.Unmarshal(startBytes, &start); err != nil {
 		return completePayloads(nil, fmt.Errorf("workflow: decode start: %w", err))
+	}
+	if err := configureDataConverter(factory, start.ConverterConfig); err != nil {
+		return completePayloads(nil, fmt.Errorf("workflow: create data converter: %w", err))
 	}
 	payloads, err := decodePayloads(start.Payloads)
 	if err != nil {
@@ -336,7 +349,7 @@ func RunFunction(handle isolate.Handle) error {
 			}
 			pointers[i] = arg.Pointer
 		}
-		if err := instanceDataConverter.FromPayloads(payloads, pointers...); err != nil {
+		if err := currentDataConverter().FromPayloads(payloads, pointers...); err != nil {
 			return fmt.Errorf("workflow: decode arguments: %w", err)
 		}
 		return nil
@@ -349,7 +362,7 @@ func RunFunction(handle isolate.Handle) error {
 			return errors.New("workflow: protobuf values are outside the isolate POC subset")
 		}
 		var err error
-		result, err = instanceDataConverter.ToPayloads(value.Value)
+		result, err = currentDataConverter().ToPayloads(value.Value)
 		if err != nil {
 			return fmt.Errorf("workflow: encode result: %w", err)
 		}
@@ -378,8 +391,11 @@ type ActivityPayloadRequest struct {
 
 // Signal is one incoming workflow signal.
 type Signal struct {
-	Name  string `json:"name"`
-	Input []byte `json:"input"`
+	// Payloads is the plain serialized envelope; nextSignal decodes Input under
+	// the receiving isolate owner, after host codecs have been removed.
+	Payloads []byte `json:"payloads,omitempty"`
+	Name     string `json:"name"`
+	Input    []byte `json:"input"`
 }
 
 // SignalResult carries one signal or an error from its host call.
@@ -424,7 +440,7 @@ func encodeActivityArgs(args []any) ([]byte, error) {
 			return nil, errors.New("workflow: protobuf values are outside the isolate POC subset")
 		}
 	}
-	payloads, err := instanceDataConverter.ToPayloads(args...)
+	payloads, err := currentDataConverter().ToPayloads(args...)
 	if err != nil {
 		return nil, fmt.Errorf("workflow: encode activity arguments: %w", err)
 	}
@@ -449,7 +465,7 @@ func decodeActivityResult[R any](response []byte) (R, error) {
 	if len(payloads.Payloads) != 1 {
 		return result, fmt.Errorf("workflow: activity returned %d payloads, want 1", len(payloads.Payloads))
 	}
-	if err := instanceDataConverter.FromPayloads(payloads, &result); err != nil {
+	if err := currentDataConverter().FromPayloads(payloads, &result); err != nil {
 		var zero R
 		return zero, fmt.Errorf("workflow: decode activity result: %w", err)
 	}
@@ -479,6 +495,17 @@ func nextSignal(ctx context.Context, name string) (Signal, error) {
 		return signal, err
 	}
 	err = json.Unmarshal(payload, &signal)
+	if err == nil && len(signal.Payloads) != 0 {
+		var values *commonpb.Payloads
+		values, err = decodePayloads(signal.Payloads)
+		if err == nil {
+			err = checkArgumentCount(values, 1)
+		}
+		if err == nil {
+			err = currentDataConverter().FromPayloads(values, &signal.Input)
+		}
+		signal.Payloads = nil
+	}
 	return signal, err
 }
 
@@ -523,7 +550,7 @@ func Complete(result []byte, cause error) error {
 		completion.Error = cause.Error()
 		completion.Canceled = errors.Is(cause, context.Canceled)
 		if completion.ContinueAsNew == nil {
-			completion.Failure, err = failurecodec.Encode(cause, instanceDataConverter)
+			completion.Failure, err = failurecodec.Encode(cause, currentDataConverter())
 			if err != nil {
 				return err
 			}
@@ -549,7 +576,7 @@ func completePayloads(result *commonpb.Payloads, cause error) error {
 		completion.Error = cause.Error()
 		completion.Canceled = errors.Is(cause, context.Canceled)
 		if completion.ContinueAsNew == nil {
-			completion.Failure, err = failurecodec.Encode(cause, instanceDataConverter)
+			completion.Failure, err = failurecodec.Encode(cause, currentDataConverter())
 			if err != nil {
 				return err
 			}

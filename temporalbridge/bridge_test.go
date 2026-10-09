@@ -6,7 +6,6 @@ import (
 	"errors"
 	goWorkflow "go.temporal.io/sdk/workflow"
 	"isolate"
-	"strings"
 	"testing"
 	"time"
 
@@ -25,12 +24,23 @@ type converterEnvironment struct {
 func (e *converterEnvironment) GetDataConverter() converter.DataConverter { return e.converter }
 func (e *converterEnvironment) Complete(_ *commonpb.Payloads, err error)  { e.err = err }
 
-func TestRejectsCustomWorkerDataConverter(t *testing.T) {
-	env := &converterEnvironment{converter: converter.NewCompositeDataConverter(converter.NewJSONPayloadConverter())}
-	d := &definition{env: env}
-	d.OnWorkflowTaskStarted(time.Second)
-	if !d.completed || env.err == nil || !strings.Contains(env.err.Error(), "default data converter") {
-		t.Fatalf("custom converter result: completed=%t, error=%v", d.completed, env.err)
+func TestCustomWorkerDataConverterPreservesRawPayloads(t *testing.T) {
+	dc := converter.NewCompositeDataConverter(converter.NewJSONPayloadConverter())
+	plain, err := dc.ToPayloads(int64(9007199254740993))
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded, err := encodeTransport(plain, dc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	decoded, err := decodeTransport(encoded, dc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got int64
+	if err := dc.FromPayloads(decoded, &got); err != nil || got != 9007199254740993 {
+		t.Fatalf("value=%d err=%v", got, err)
 	}
 }
 

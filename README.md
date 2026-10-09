@@ -139,22 +139,20 @@ it completed on the local server and replayed in fresh processes. Ordinary
 `PlainEcho` continued to work on the same worker.
 See [the implementation plan](https://github.com/mfateev/golang-go/blob/task/modify-go-runtime-for-isolates/doc/isolates/TEMPORAL_POC.md).
 
-The isolate adapter requires Temporal's default data converter on the worker
-and rejects a custom converter when an isolate workflow task starts. Byte handlers
-remain supported. Typed handlers receive protobuf-serialized Temporal
-`Payloads` through the isolate byte boundary, decode their arguments with
-a fresh default converter inside the isolate, and encode their
-result there. The host forwards typed result payloads without converting them.
-The isolate's small protobuf wire codec accepts ordinary payload metadata and
-data. Its supported encodings are `binary/null`, `binary/plain`, and
-`json/plain`; protobuf message encodings and external payload references fail
-with a workflow error. Custom worker converters, payload codecs, serialization
-context, and a full boundary type check remain TODOs. The workflow package
-creates a separate default converter inside each isolate, including its converter
-map, ordered list and mutable converter values. Shared type metadata uses the audited
-runtime services. The host worker retains its standard default converter. The build
-still treats the converter's external dependency graph as process-owned for
-this trusted POC; its mutable caches and effects need an ownership audit.
+Typed handlers receive protobuf-serialized Temporal `Payloads` through the
+copied-byte boundary. An isolate-owned serializer decodes arguments and encodes
+results. Temporal's default serializer is used unless the worker configures a
+marked factory through `worker.SetIsolateDataConverter` (see below). Default
+supported encodings are `binary/null`, `binary/plain`, and `json/plain`; a custom
+factory can supply additional value encodings. Arbitrary protobuf values and
+external payload references at this boundary remain unsupported.
+
+The host applies configured codecs using `converter.RawValue`, preserving the
+plain serialized values without deserializing application types on the host.
+Converter maps, ordered lists and mutable value converters are isolate-owned;
+shared type metadata uses audited runtime services. The pinned converter/SDK
+external dependency graph remains process-owned and subject to compulsory
+ownership and effect checks. Ordinary SDK workflows retain their converter.
 
 Mark each workflow function and register it through the POC worker package:
 
@@ -297,8 +295,8 @@ it copies mutable values without exposing shared coder caches or invoking custom
 message callbacks. Ordinary host protobuf operations retain their implementation.
 The internal Failure wire codec supports the pinned schema and ordinary payloads;
 unknown fields, extensions, and external payload references remain unsupported.
-This does not enable general protobuf workflow arguments/results. Custom data
-and failure converters remain feature 8 work.
+This does not enable general protobuf workflow arguments/results. Worker-configured deterministic serializers and host codecs are supported below;
+custom failure converter implementations remain deferred.
 
 ### Child workflows
 
@@ -369,8 +367,7 @@ the isolate. The same execution mode is intended for update validators.
 Completed workflows with registered query handlers retain their state until
 cache eviction. Eviction revokes the retained goroutines and releases both
 allocator caches. This intentionally uses more cache memory than immediately
-destroying completed workflows. Queries use the default converter's existing
-JSON/bytes/null subset. Custom query headers, context propagation, variadic
+destroying completed workflows. Queries use the workflow's configured serializer with scratch-owned caches. Custom query headers, context propagation, variadic
 handlers and arbitrary protobuf values are deferred. A non-yielding handler
 can still exceed the task deadline; hard containment of CPU loops remains a
 productization limitation.
@@ -402,7 +399,7 @@ their completion has reached the host SDK.
 
 Validation decodes arguments under the scratch owner; accepted handlers decode
 again under the workflow owner. Custom decoder callbacks must be pure during
-validation. Variadic handlers, custom converters/context propagation and rich
+validation. Variadic handlers, context propagation and rich
 validator panic stack diagnostics remain outside this POC. See
 `example/update/check` for compiled mutation/cancellation/concurrency checks and
 its checked-in live update history; `-address localhost:7233` records a fresh run.
@@ -462,10 +459,9 @@ metadata only and never execute activities. Unaliased functions need no replay
 activity registration. Registration rejects POC activities and marked workflows
 that omit the required standard context parameter.
 
-Arguments/results still use Temporal's default converter inside the isolate
-and cross `Call` as protobuf-serialized `Payloads`. The supported values remain
-JSON/bytes/null; custom converters and protobuf message arguments/results are
-TODOs. Adding context parameters does not add context data to workflow or
+Arguments/results use the isolate-owned default or worker-configured serializer
+and cross `Call` as protobuf-serialized `Payloads`. Default supported values are
+JSON/bytes/null. Arbitrary protobuf message arguments/results remain deferred. Adding context parameters does not add context data to workflow or
 activity histories. Activities now use SDK-style futures with a mandatory standard Go context.
 
 Cancellation examples are registered on the example worker: `ActivityWorkflow`
@@ -497,7 +493,7 @@ and verifies that subsequent workflows still run in the same host.
 
 Marked workflow builds make the compiler heap checks mandatory. The supported
 default converter and native workflow operations have ownership regression
-coverage; custom converter support remains deferred.
+coverage; custom serializers are constructed under the isolate owner as described below.
 
 ## Workflow effects and logging
 
@@ -676,4 +672,101 @@ Run the compiled resource integration checks with the fork:
 
 ```bash
 ../golang-go/bin/go test ./example/resources/check
+```
+
+## Worker-configured isolate data converters
+
+Create the deterministic value serializer inside each workflow isolate:
+
+```go
+// This function can live in a separate package from the workflows.
+//go:isolate
+func NewWorkflowConverter(config []byte) (converter.DataConverter, error) {
+    // Parse copied configuration here. Construct new converter/cache objects.
+    return converter.NewCompositeDataConverter(
+        converter.NewNilPayloadConverter(),
+        converter.NewByteSlicePayloadConverter(),
+        converter.NewJSONPayloadConverter(),
+    ), nil
+}
+
+w := worker.New(client, taskQueue, worker.Options{})
+w.RegisterWorkflow(MyWorkflow)
+err := worker.SetIsolateDataConverter(w, worker.DataConverterOptions{
+    Factory: NewWorkflowConverter,
+    Config:  []byte(`{"schema":1}`),
+})
+if err != nil { return err }
+```
+
+The factory must be a top-level `//go:isolate` function with this exact signature.
+Closures and host-owned converter instances cannot be passed into an isolate.
+The compiler adds the factory's package/dependencies to the workflow's selected
+state; common dependencies initialize once. The factory runs inside the isolate
+before workflow arguments are decoded. It receives a private copy of `Config`.
+A factory can allocate mutable caches and use deterministic Go operations; all
+ownership and external-effect checks still apply to it and its callbacks.
+
+The setting works on workers and replayers and can follow workflow registration.
+Each new execution snapshots the factory/configuration; cached executions keep
+their existing serializer. An empty `DataConverterOptions{}` restores the default
+for new executions. Replay must use the same serializer format/configuration as
+historical executions. Ordinary SDK workflows and host activities retain their
+usual configured converter.
+
+Read-only queries and update validators construct fresh scratch-owned converters
+for their conversions using the same factory/configuration. Converter caches can
+be updated there without changing cached workflow state. Writes from factories,
+marshal callbacks or error methods to retained workflow state still panic before
+mutation. A rejected query does not terminate its isolate.
+
+### Encryption, compression and remote codecs
+
+Configure the host as in the regular SDK:
+
+```go
+hostSerializer, err := NewWorkflowConverter(config) // Separate host-owned object.
+if err != nil { return err }
+hostDC := converter.NewCodecDataConverter(hostSerializer, payloadCodec)
+c, err := client.Dial(client.Options{DataConverter: hostDC})
+```
+
+The host serializer must match the isolate factory's plain wire format and honor
+Temporal's `converter.RawValue` contract. Plain payloads cross the copied-byte
+boundary. The host data converter receives `RawValue`, applying codecs while
+skipping application value conversion. Encryption keys, random nonces, HTTP codec
+clients and external I/O stay on the host. Signals decode their Go byte values
+under the receiving isolate owner too. Failure details and encrypted common
+failure attributes are transformed across the entire cause chain.
+
+Workflow, activity, child and external-signal codec contexts are supplied on the
+host. Codecs must be self-describing on decode: SDK failure conversion may omit
+context, and standalone SDK replay supplies synthetic namespace/execution IDs.
+Auto-generated child IDs are determined before encryption using the pinned
+SDK's current run ID and sequence, preserving its usual ID convention. The POC
+reads that private string field on the host and rejects an incompatible SDK layout;
+an upstream bindings hook remains a productization task. SDK search attributes
+use their default serialization and bypass application codecs.
+
+Current restrictions and follow-ups:
+
+- Host codecs must preserve payload count and support encoding/decoding individual
+  payloads. Batch codecs that combine multiple payloads are deferred and rejected
+  when they violate the single-payload contract. Codec failures fail the Workflow
+  Task. Remote codecs therefore currently make one request per payload.
+- Isolate value serializers must use context-independent formats. Per-operation
+  serializer context, `workflow.WithDataConverter`, and custom failure converter
+  implementations need further integration.
+- General protobuf argument/result values and external payload references at the
+  isolate wire boundary remain unsupported. SDK external-storage retrieval stays
+  on the host; end-to-end storage integration has not been validated.
+
+Run the compiled converter checks, optionally with a Temporal development server:
+
+```sh
+../golang-go/bin/go build -o /tmp/isolate-converter-check ./example/converter/check
+/tmp/isolate-converter-check -history-dir ./example/converter/testdata
+/tmp/isolate-converter-check -address 127.0.0.1:7233
+/tmp/isolate-converter-check -history /tmp/feature8-Workflow-history.json
+/tmp/isolate-converter-check -history /tmp/feature8-Parent-history.json
 ```

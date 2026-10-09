@@ -26,6 +26,9 @@ func (e *continuationEnvironment) GetVersion(id string, min, max workflow.Versio
 	return 2
 }
 func (*continuationEnvironment) IsReplaying() bool { return true }
+func (*continuationEnvironment) GetDataConverter() converter.DataConverter {
+	return converter.GetDefaultDataConverter()
+}
 
 func TestVersionDelegatesHistoryAndBoundsToSDK(t *testing.T) {
 	e := new(continuationEnvironment)

@@ -171,7 +171,7 @@ func invokeQuery(handler any, raw []byte) (result []byte, err error) {
 		}
 		pointers[i], args[i] = p.Interface(), p.Elem()
 	}
-	if err := instanceDataConverter.FromPayloads(payloads, pointers...); err != nil {
+	if err := currentDataConverter().FromPayloads(payloads, pointers...); err != nil {
 		return nil, err
 	}
 	values := reflect.ValueOf(handler).Call(args)
@@ -182,7 +182,7 @@ func invokeQuery(handler any, raw []byte) (result []byte, err error) {
 	if isProtoValue(value) {
 		return nil, errors.New("workflow: protobuf values are outside the isolate POC subset")
 	}
-	payloads, err = instanceDataConverter.ToPayloads(value)
+	payloads, err = currentDataConverter().ToPayloads(value)
 	if err != nil {
 		return nil, err
 	}

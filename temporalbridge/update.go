@@ -7,7 +7,6 @@ import (
 	"isolate"
 	"slices"
 
-	"github.com/mfateev/sdk-go-poc/internal/failurecodec"
 	"github.com/mfateev/sdk-go-poc/workflow"
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/converter"
@@ -37,7 +36,7 @@ func (d *definition) queueUpdate(name, id string, input *commonpb.Payloads, _ *c
 		callbacks.Reject(errors.New("duplicate update ID"))
 		return
 	}
-	raw, err := proto.MarshalOptions{Deterministic: true}.Marshal(input)
+	raw, err := inboundPayloadBytes(input, d.env.GetDataConverter())
 	if err != nil {
 		callbacks.Reject(err)
 		return
@@ -79,7 +78,7 @@ func (d *definition) handleUpdate(command *isolate.Command) error {
 		var cause error
 		if len(r.Failure) != 0 {
 			var err error
-			cause, err = failurecodec.Decode(r.Failure, d.env.GetDataConverter())
+			cause, err = decodeOutboundFailure(r.Failure, d.env.GetDataConverter())
 			if err != nil {
 				return err
 			}
@@ -129,7 +128,7 @@ func (d *definition) admitUpdate() bool {
 		cause := error(errors.New(response.Error))
 		if len(response.Failure) != 0 {
 			var err error
-			cause, err = failurecodec.Decode(response.Failure, d.env.GetDataConverter())
+			cause, err = decodeOutboundFailure(response.Failure, d.env.GetDataConverter())
 			if err != nil {
 				d.failTask(err)
 			}

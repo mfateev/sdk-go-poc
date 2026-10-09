@@ -11,10 +11,8 @@ import (
 	"isolate"
 	"time"
 
-	"github.com/mfateev/sdk-go-poc/internal/failurecodec"
 	"github.com/mfateev/sdk-go-poc/workflow"
 	commonpb "go.temporal.io/api/common/v1"
-	"go.temporal.io/sdk/converter"
 	bindings "go.temporal.io/sdk/internalbindings"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/worker"
@@ -52,14 +50,27 @@ type Factory struct {
 	ResolveLogHandler func() LogHandler
 	// ResolveResourceOptions snapshots host policy for each new execution.
 	ResolveResourceOptions func() ResourceOptions
+	// ResolveDataConverter snapshots the isolate serializer factory and copied configuration.
+	ResolveDataConverter func() DataConverterOptions
 }
 
 func (f Factory) NewWorkflowDefinition() bindings.WorkflowDefinition {
+	var converters DataConverterOptions
+	if f.ResolveDataConverter != nil {
+		converters = f.ResolveDataConverter()
+	}
+	converters.Config = append([]byte(nil), converters.Config...)
 	if f.Function.Name() != "" {
 		// The runtime entry wrapper transfers compiler-created metadata by
 		// value. This dispatcher captures no host-owned closure state.
 		f.Program = f.Function.ProgramWithHandle(func(handle isolate.Handle) { _ = workflow.RunFunction(handle) })
+		if converters.Factory.Name() != "" {
+			f.Program = f.Function.ProgramWithSupport(converters.Factory, func(handle, factory isolate.Handle) { _ = workflow.RunFunctionWithDataConverter(handle, factory) })
+		}
 		f.EntryName = f.Function.Name()
+	}
+	if converters.Factory.Name() != "" && f.Function.Name() == "" {
+		panic("temporalbridge: configured converters require a marked workflow function")
 	}
 	var resources ResourceOptions
 	if f.ResolveResourceOptions != nil {
@@ -68,7 +79,7 @@ func (f Factory) NewWorkflowDefinition() bindings.WorkflowDefinition {
 	if err := resources.Validate(); err != nil {
 		panic(err)
 	}
-	return &definition{resources: resources, program: f.Program, entryName: f.EntryName, resolveWorkflow: f.ResolveWorkflow, resolveActivity: f.ResolveActivity, resolveLogHandler: f.ResolveLogHandler}
+	return &definition{converters: converters, resources: resources, program: f.Program, entryName: f.EntryName, resolveWorkflow: f.ResolveWorkflow, resolveActivity: f.ResolveActivity, resolveLogHandler: f.ResolveLogHandler}
 }
 
 type reply struct {
@@ -90,6 +101,7 @@ type callState struct {
 }
 
 type definition struct {
+	converters          DataConverterOptions
 	children            map[uint64]*childState
 	childSignals        map[uint64]*activityState
 	updateHandlers      map[string]workflow.UpdateRegistration
@@ -150,11 +162,11 @@ func (d *definition) Execute(env bindings.WorkflowEnvironment, _ *commonpb.Heade
 		if d.completed || d.closed {
 			return nil
 		}
-		var payload []byte
-		if err := env.GetDataConverter().FromPayloads(payloads, &payload); err != nil {
+		payload, err := inboundPayloadBytes(payloads, env.GetDataConverter())
+		if err != nil {
 			return err
 		}
-		d.signals = append(d.signals, workflow.Signal{Name: name, Input: payload})
+		d.signals = append(d.signals, workflow.Signal{Name: name, Payloads: payload})
 		return nil
 	})
 }
@@ -181,11 +193,6 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 	taskContext, cancelTask := context.WithTimeout(context.Background(), deadline)
 	defer cancelTask()
 	defer func() { d.observeResources("task", nil) }()
-	configured, ok := d.env.GetDataConverter().(*converter.CompositeDataConverter)
-	if !ok || configured != converter.GetDefaultDataConverter() {
-		d.fail(errors.New("isolate POC requires Temporal's default data converter"))
-		return
-	}
 	clock, ok := d.env.(interface{ Now() time.Time })
 	if !ok {
 		d.fail(errors.New("Temporal workflow environment does not expose history time"))
@@ -549,12 +556,12 @@ func (d *definition) handle(command *isolate.Command) error {
 		var input []byte
 		if d.input != nil {
 			var err error
-			input, err = proto.MarshalOptions{Deterministic: true}.Marshal(d.input)
+			input, err = inboundPayloadBytes(d.input, d.env.GetDataConverter())
 			if err != nil {
 				return err
 			}
 		}
-		payload, err := json.Marshal(workflow.PayloadStart{Name: d.entryName, Payloads: input, Canceled: d.canceled, TaskQueue: d.env.WorkflowInfo().TaskQueueName, Options: workflow.RunOptions{Namespace: d.env.WorkflowInfo().Namespace, TaskQueue: d.env.WorkflowInfo().TaskQueueName, WorkflowExecutionTimeout: d.env.WorkflowInfo().WorkflowExecutionTimeout, WorkflowRunTimeout: d.env.WorkflowInfo().WorkflowRunTimeout, WorkflowTaskTimeout: d.env.WorkflowInfo().WorkflowTaskTimeout}})
+		payload, err := json.Marshal(workflow.PayloadStart{ConverterConfig: d.converters.Config, Name: d.entryName, Payloads: input, Canceled: d.canceled, TaskQueue: d.env.WorkflowInfo().TaskQueueName, Options: workflow.RunOptions{Namespace: d.env.WorkflowInfo().Namespace, TaskQueue: d.env.WorkflowInfo().TaskQueueName, WorkflowExecutionTimeout: d.env.WorkflowInfo().WorkflowExecutionTimeout, WorkflowRunTimeout: d.env.WorkflowInfo().WorkflowRunTimeout, WorkflowTaskTimeout: d.env.WorkflowInfo().WorkflowTaskTimeout}})
 		if err != nil {
 			return err
 		}
@@ -567,11 +574,13 @@ func (d *definition) handle(command *isolate.Command) error {
 		if request.Name == "" || request.StartToCloseTimeout <= 0 {
 			return errors.New("invalid activity request")
 		}
-		input, err := d.env.GetDataConverter().ToPayloads(request.Input)
+		dc := d.activityDataConverter(request.Name, d.env.WorkflowInfo().TaskQueueName)
+		input, err := dc.ToPayloads(request.Input)
 		if err != nil {
 			return err
 		}
 		params := bindings.ExecuteActivityParams{
+			DataConverter: dc,
 			ExecuteActivityOptions: bindings.ExecuteActivityOptions{
 				TaskQueueName:       d.env.WorkflowInfo().TaskQueueName,
 				StartToCloseTimeout: request.StartToCloseTimeout,
@@ -587,7 +596,7 @@ func (d *definition) handle(command *isolate.Command) error {
 			}
 			var payload []byte
 			if cause == nil && result != nil {
-				cause = d.env.GetDataConverter().FromPayloads(result, &payload)
+				cause = dc.FromPayloads(result, &payload)
 			}
 			finish(payload, cause)
 		})
@@ -610,7 +619,13 @@ func (d *definition) handle(command *isolate.Command) error {
 				return fmt.Errorf("decode activity argument payloads: %w", err)
 			}
 		}
+		dc := d.activityDataConverter(request.Name, d.env.WorkflowInfo().TaskQueueName)
+		input, err := encodeTransport(input, dc)
+		if err != nil {
+			return err
+		}
 		params := bindings.ExecuteActivityParams{
+			DataConverter: dc,
 			ExecuteActivityOptions: bindings.ExecuteActivityOptions{
 				TaskQueueName:       d.env.WorkflowInfo().TaskQueueName,
 				StartToCloseTimeout: request.StartToCloseTimeout,
@@ -626,7 +641,7 @@ func (d *definition) handle(command *isolate.Command) error {
 			}
 			var payload []byte
 			if cause == nil && result != nil {
-				payload, cause = proto.MarshalOptions{Deterministic: true}.Marshal(result)
+				payload, cause = inboundPayloadBytes(result, dc)
 			}
 			finish(payload, cause)
 		})
@@ -674,7 +689,7 @@ func (d *definition) handle(command *isolate.Command) error {
 		}
 		if len(completion.Failure) != 0 {
 			var transportErr error
-			err, transportErr = failurecodec.Decode(completion.Failure, d.env.GetDataConverter())
+			err, transportErr = decodeOutboundFailure(completion.Failure, d.env.GetDataConverter())
 			if transportErr != nil {
 				return fmt.Errorf("decode workflow failure: %w", transportErr)
 			}
@@ -700,7 +715,7 @@ func (d *definition) handle(command *isolate.Command) error {
 		}
 		if len(completion.Failure) != 0 {
 			var transportErr error
-			err, transportErr = failurecodec.Decode(completion.Failure, d.env.GetDataConverter())
+			err, transportErr = decodeOutboundFailure(completion.Failure, d.env.GetDataConverter())
 			if transportErr != nil {
 				return fmt.Errorf("decode workflow failure: %w", transportErr)
 			}
@@ -710,6 +725,12 @@ func (d *definition) handle(command *isolate.Command) error {
 			result = new(commonpb.Payloads)
 			if err := proto.Unmarshal(completion.Payloads, result); err != nil {
 				return fmt.Errorf("decode workflow result payloads: %w", err)
+			}
+		}
+		if err == nil {
+			result, err = encodeTransport(result, d.env.GetDataConverter())
+			if err != nil {
+				return err
 			}
 		}
 		d.finishWorkflow(result, err)

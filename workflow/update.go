@@ -168,7 +168,7 @@ func updateArguments(fn any, ctx context.Context, raw []byte) ([]reflect.Value, 
 		}
 		pointers[i], args[i+offset] = p.Interface(), p.Elem()
 	}
-	if err := instanceDataConverter.FromPayloads(payloads, pointers...); err != nil {
+	if err := currentDataConverter().FromPayloads(payloads, pointers...); err != nil {
 		return nil, err
 	}
 	return args, nil
@@ -212,7 +212,7 @@ func validateUpdate(request QueryRequest) (failure []byte, err error) {
 	if cause == nil {
 		return nil, nil
 	}
-	return failurecodec.Encode(cause, instanceDataConverter)
+	return failurecodec.Encode(cause, currentDataConverter())
 }
 
 func serveUpdates() {
@@ -251,7 +251,7 @@ func executeUpdate(request UpdateRequest) {
 		if isProtoValue(value) {
 			cause = errors.New("workflow: protobuf values are outside the isolate POC subset")
 		} else {
-			payloads, err := instanceDataConverter.ToPayloads(value)
+			payloads, err := currentDataConverter().ToPayloads(value)
 			cause = err
 			if cause == nil {
 				completion.Payloads, cause = payloadwire.Encode(payloads)
@@ -260,7 +260,7 @@ func executeUpdate(request UpdateRequest) {
 	}
 	if cause != nil {
 		var err error
-		completion.Failure, err = failurecodec.Encode(cause, instanceDataConverter)
+		completion.Failure, err = failurecodec.Encode(cause, currentDataConverter())
 		if err != nil {
 			panic(err)
 		}
