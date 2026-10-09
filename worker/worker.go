@@ -187,6 +187,7 @@ func (r *isolateReplayer) RegisterWorkflowWithOptions(fn any, options goWorkflow
 	fn, options = registration(fn, options, r.activities.resolve, r.logs.resolve)
 	if factory, ok := fn.(temporalbridge.Factory); ok {
 		factory.ResolveWorkflow = r.workflows.resolve
+		factory.ReplayOnly = true
 		fn = factory
 	}
 	r.WorkflowReplayer.RegisterWorkflowWithOptions(converterFactory(resourceFactory(fn, &r.resources), &r.converters), options)

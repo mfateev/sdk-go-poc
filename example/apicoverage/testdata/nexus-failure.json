@@ -1,0 +1,205 @@
+{
+  "events":  [
+    {
+      "eventId":  "1",
+      "eventTime":  "2026-10-09T06:05:43.418537096Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED",
+      "taskId":  "1050930",
+      "workflowExecutionStartedEventAttributes":  {
+        "workflowType":  {
+          "name":  "Coverage"
+        },
+        "taskQueue":  {
+          "name":  "isolate-api-1791525935456451717",
+          "kind":  "TASK_QUEUE_KIND_NORMAL"
+        },
+        "input":  {
+          "payloads":  [
+            {
+              "metadata":  {
+                "encoding":  "anNvbi9wbGFpbg=="
+              },
+              "data":  "eyJNb2RlIjoibmV4dXMtZmFpbHVyZSIsIlRhcmdldCI6Im1pc3NpbmciLCJFbmRwb2ludCI6Imlzb2xhdGUtYXBpLTE3OTE1MjU5MzU0NTY0NjM1NTEifQ=="
+            }
+          ]
+        },
+        "workflowExecutionTimeout":  "0s",
+        "workflowRunTimeout":  "0s",
+        "workflowTaskTimeout":  "1s",
+        "originalExecutionRunId":  "01a11f44-787a-7830-808e-74185dd8a7d5",
+        "identity":  "191213@modify-go-runtime-for-isolates@",
+        "firstExecutionRunId":  "01a11f44-787a-7830-808e-74185dd8a7d5",
+        "attempt":  1,
+        "firstWorkflowTaskBackoff":  "0s",
+        "header":  {},
+        "workflowId":  "838f85bf-e4b2-439b-91c5-f82b20225764"
+      }
+    },
+    {
+      "eventId":  "2",
+      "eventTime":  "2026-10-09T06:05:43.418602679Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId":  "1050931",
+      "workflowTaskScheduledEventAttributes":  {
+        "taskQueue":  {
+          "name":  "isolate-api-1791525935456451717",
+          "kind":  "TASK_QUEUE_KIND_NORMAL"
+        },
+        "startToCloseTimeout":  "1s",
+        "attempt":  1
+      }
+    },
+    {
+      "eventId":  "3",
+      "eventTime":  "2026-10-09T06:05:43.428801054Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId":  "1050936",
+      "workflowTaskStartedEventAttributes":  {
+        "scheduledEventId":  "2",
+        "identity":  "191213@modify-go-runtime-for-isolates@",
+        "requestId":  "5aedfdd9-0360-4257-afce-085a7a884ceb",
+        "historySizeBytes":  "437",
+        "workerVersion":  {
+          "buildId":  "9e7aafc7f34463d6aa32613a2aea9e3b"
+        }
+      }
+    },
+    {
+      "eventId":  "4",
+      "eventTime":  "2026-10-09T06:05:43.440776596Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId":  "1050940",
+      "workflowTaskCompletedEventAttributes":  {
+        "scheduledEventId":  "2",
+        "startedEventId":  "3",
+        "identity":  "191213@modify-go-runtime-for-isolates@",
+        "workerVersion":  {
+          "buildId":  "9e7aafc7f34463d6aa32613a2aea9e3b"
+        },
+        "sdkMetadata":  {
+          "langUsedFlags":  [
+            3
+          ],
+          "sdkName":  "temporal-go",
+          "sdkVersion":  "1.49.0"
+        },
+        "meteringMetadata":  {}
+      }
+    },
+    {
+      "eventId":  "5",
+      "eventTime":  "2026-10-09T06:05:43.441097721Z",
+      "eventType":  "EVENT_TYPE_NEXUS_OPERATION_SCHEDULED",
+      "taskId":  "1050941",
+      "nexusOperationScheduledEventAttributes":  {
+        "endpoint":  "isolate-api-1791525935456463551",
+        "service":  "coverage",
+        "operation":  "failure",
+        "input":  {
+          "metadata":  {
+            "encoding":  "anNvbi9wbGFpbg=="
+          },
+          "data":  "Im5leHVzLWZhaWx1cmUi"
+        },
+        "scheduleToCloseTimeout":  "20s",
+        "workflowTaskCompletedEventId":  "4",
+        "requestId":  "d87f3f0d-e555-4877-9308-cc1f176a56da",
+        "endpointId":  "c2cba071-c5d6-4bca-b01c-e226256e148c",
+        "scheduleToStartTimeout":  "0s",
+        "startToCloseTimeout":  "0s"
+      }
+    },
+    {
+      "eventId":  "6",
+      "eventTime":  "2026-10-09T06:05:43.449897846Z",
+      "eventType":  "EVENT_TYPE_NEXUS_OPERATION_FAILED",
+      "taskId":  "1050946",
+      "nexusOperationFailedEventAttributes":  {
+        "scheduledEventId":  "5",
+        "failure":  {
+          "message":  "nexus operation completed unsuccessfully",
+          "cause":  {
+            "message":  "failed",
+            "source":  "GoSDK",
+            "applicationFailureInfo":  {
+              "type":  "OperationError",
+              "nonRetryable":  true
+            }
+          },
+          "nexusOperationExecutionFailureInfo":  {
+            "scheduledEventId":  "5",
+            "endpoint":  "isolate-api-1791525935456463551",
+            "service":  "coverage",
+            "operation":  "failure"
+          }
+        },
+        "requestId":  "d87f3f0d-e555-4877-9308-cc1f176a56da"
+      }
+    },
+    {
+      "eventId":  "7",
+      "eventTime":  "2026-10-09T06:05:43.449927138Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId":  "1050947",
+      "workflowTaskScheduledEventAttributes":  {
+        "taskQueue":  {
+          "name":  "modify-go-runtime-for-isolates:c48498f9-8593-4c0c-a80d-b1ab8d9cd246",
+          "kind":  "TASK_QUEUE_KIND_STICKY",
+          "normalName":  "isolate-api-1791525935456451717"
+        },
+        "startToCloseTimeout":  "1s",
+        "attempt":  1
+      }
+    },
+    {
+      "eventId":  "8",
+      "eventTime":  "2026-10-09T06:05:43.483426430Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId":  "1050951",
+      "workflowTaskStartedEventAttributes":  {
+        "scheduledEventId":  "7",
+        "identity":  "191213@modify-go-runtime-for-isolates@",
+        "requestId":  "1a2d5872-559d-49e8-be66-9638385e8fe5",
+        "historySizeBytes":  "1274",
+        "workerVersion":  {
+          "buildId":  "9e7aafc7f34463d6aa32613a2aea9e3b"
+        }
+      }
+    },
+    {
+      "eventId":  "9",
+      "eventTime":  "2026-10-09T06:05:43.506156971Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId":  "1050955",
+      "workflowTaskCompletedEventAttributes":  {
+        "scheduledEventId":  "7",
+        "startedEventId":  "8",
+        "identity":  "191213@modify-go-runtime-for-isolates@",
+        "workerVersion":  {
+          "buildId":  "9e7aafc7f34463d6aa32613a2aea9e3b"
+        },
+        "sdkMetadata":  {},
+        "meteringMetadata":  {}
+      }
+    },
+    {
+      "eventId":  "10",
+      "eventTime":  "2026-10-09T06:05:43.506195888Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED",
+      "taskId":  "1050956",
+      "workflowExecutionCompletedEventAttributes":  {
+        "result":  {
+          "payloads":  [
+            {
+              "metadata":  {
+                "encoding":  "anNvbi9wbGFpbg=="
+              },
+              "data":  "Im9rIg=="
+            }
+          ]
+        },
+        "workflowTaskCompletedEventId":  "9"
+      }
+    }
+  ]
+}

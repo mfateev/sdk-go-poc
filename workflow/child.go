@@ -93,9 +93,11 @@ func completeOperation(f *activityFuture, response []byte, err error, ctx contex
 				f.err = &temporal.ChildWorkflowExecutionAlreadyStartedError{}
 			case "namespace-not-found":
 				f.err = &temporal.NamespaceNotFoundError{}
+			case "external-not-found":
+				f.err = &temporal.UnknownExternalWorkflowExecutionError{}
 			case "":
 			default:
-				f.err = errors.New("workflow: unknown child operation error kind")
+				f.err = errors.New("workflow: unknown operation error kind")
 			}
 			if f.err == nil && len(outcome.Failure) != 0 {
 				var transportErr error

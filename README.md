@@ -334,7 +334,7 @@ versioning, priority and summaries. Memo and untyped search-attribute values
 cross as encoded payloads, preserving integers larger than JSON float precision.
 Nonempty **typed search attributes are explicitly unsupported** in this POC:
 the SDK stores their keys in an interface-key map, which needs a deterministic
-iteration audit. Custom headers, context propagators and converters remain
+iteration audit. Custom headers and context propagators remain
 deferred. Cache eviction detaches local callbacks without canceling server-side
 children; parent completion follows the configured parent-close policy.
 
@@ -770,3 +770,87 @@ Run the compiled converter checks, optionally with a Temporal development server
 /tmp/isolate-converter-check -history /tmp/feature8-Workflow-history.json
 /tmp/isolate-converter-check -history /tmp/feature8-Parent-history.json
 ```
+
+## Additional workflow APIs
+
+### External workflows
+
+`SignalExternalWorkflow(ctx, workflowID, runID, name, arg)` and
+`RequestCancelExternalWorkflow(ctx, workflowID, runID)` return repeatable Futures.
+They schedule before returning and resolve when the server acknowledges the
+request. An empty run ID targets the current run. `WithWorkflowNamespace` selects
+the target namespace. Context cancellation does not retract these commands,
+matching the SDK. Missing executions retain
+`temporal.UnknownExternalWorkflowExecutionError` identity.
+
+### Local activities
+
+```go
+ctx = workflow.WithLocalActivityOptions(ctx, workflow.LocalActivityOptions{
+    StartToCloseTimeout: time.Minute,
+})
+var result Result
+err := workflow.ExecuteLocalActivity(ctx, MyActivity, input).Get(ctx, &result)
+```
+
+Local activities execute outside the isolate through the SDK local worker. The
+SDK owns local result markers, in-task retries and timeouts; longer retry backoff
+uses durable workflow timers. Futures support repeatable Get and ToChannel.
+Arguments are serialized inside the isolate and decoded into the registered
+activity's exact Go types on the host. Codecs receive a local-activity context.
+
+Register local activity implementations on the worker, including function
+references: host-owned activity closures cannot cross the isolate boundary.
+Offline replay does not require implementations and never executes them.
+Activities and workflows must take context first, as elsewhere in this POC.
+
+### Sessions
+
+`CreateSession`, `RecreateSession`, `CompleteSession`, `GetSessionInfo`,
+`SessionOptions`, `SessionState` and `ErrSessionFailed` follow the SDK contracts
+with native contexts. Configure `worker.Options.EnableSessionWorker` as usual.
+Session activities use the SDK creation/completion activities and response signal
+protocol, then route user activities to the session worker's resource queue.
+Failure cancels the session context and further activities return ErrSessionFailed.
+Open session metadata is available through the SDK's built-in open-session query.
+CompleteSession is idempotent and recreate tokens retain the SDK JSON format.
+
+Session IDs use the original run ID and deterministic sequence, without
+SideEffect or random UUID generation. They are stable in standalone replay and
+after reset. Ordinary SDK workflows keep their existing session behavior; legacy
+SDK session histories containing UUID SideEffect markers are not migrated by this
+adapter. Session state/context objects remain isolate-owned.
+
+### Nexus
+
+`NewNexusClient(endpoint, service).ExecuteOperation(ctx, operation, input, options)`
+accepts an operation name or typed Nexus operation reference and returns a
+NexusOperationFuture. It supports Get, ToChannel and a separate
+GetNexusOperationExecution future exposing the operation token. The host SDK
+owns schedule/start/completion events and all four cancellation policies:
+abandon, try cancel, wait requested and wait completed (the default).
+Host codecs receive a Nexus serialization context. Services and handlers use
+the ordinary worker's RegisterNexusService API and run outside isolates.
+
+SideEffect and MutableSideEffect are intentionally omitted. External work belongs
+in activities or local activities. Custom headers/context propagation and the
+documented converter restrictions still apply to these APIs.
+
+### Validation and observability
+
+`example/apicoverage/check` covers ownership, native dispatch at GOMAXPROCS 1/2/8,
+precise integer values, aliases, durable local retry, structured errors, session
+recreation/failure, Nexus execution/result separation, cancellation and late
+callbacks after eviction. Saved histories include ordinary SDK interoperability.
+
+```sh
+../golang-go/bin/go build -o /tmp/isolate-api-check ./example/apicoverage/check
+/tmp/isolate-api-check -history-dir ./example/apicoverage/testdata
+# With a development server; creates/deletes a temporary Nexus endpoint.
+/tmp/isolate-api-check -address 127.0.0.1:7233 -history-dir /tmp/isolate-api-histories
+```
+
+Replay-aware printing/logging already goes to worker-configured host handlers.
+Metrics, SDK logger interfaces and tracing are planned as copied host messages;
+the [API and observability plan](API_COVERAGE_PLAN.md) describes the proposed
+one-way sinks abstraction and its replay/delivery rules.

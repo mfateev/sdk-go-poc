@@ -229,3 +229,5 @@ func checkObserverPanic() {
 
 func (*resourceEnvironment) RegisterUpdateHandler(func(string, string, *commonpb.Payloads, *commonpb.Header, bindings.UpdateCallbacks)) {
 }
+func (*resourceEnvironment) RegisterQueryHandler(func(string, *commonpb.Payloads, *commonpb.Header) (*commonpb.Payloads, error)) {
+}

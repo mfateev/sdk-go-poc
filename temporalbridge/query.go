@@ -44,7 +44,6 @@ func (d *definition) handleQuery(command *isolate.Command) error {
 	}
 	if d.queryHandlers == nil {
 		d.queryHandlers = make(map[string]workflow.QueryHandlerOptions)
-		d.env.RegisterQueryHandler(d.query)
 	}
 	d.queryHandlers[r.Name] = r.Options
 	d.replyWhenSuspended(command, nil, nil)

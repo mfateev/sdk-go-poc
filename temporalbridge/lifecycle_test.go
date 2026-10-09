@@ -53,6 +53,27 @@ type lifecycleEnvironment struct {
 	activityEnvironment
 	cancelHandler func()
 	signalHandler func(string, *commonpb.Payloads, *commonpb.Header) error
+	queryHandler  func(string, *commonpb.Payloads, *commonpb.Header) (*commonpb.Payloads, error)
+}
+
+func (e *lifecycleEnvironment) RegisterQueryHandler(fn func(string, *commonpb.Payloads, *commonpb.Header) (*commonpb.Payloads, error)) {
+	e.queryHandler = fn
+}
+
+func TestEarlyQueryReturnsErrorWithoutWorkflowTaskFailure(t *testing.T) {
+	e := new(lifecycleEnvironment)
+	d := new(definition)
+	d.Execute(e, nil, nil)
+	if e.queryHandler == nil {
+		t.Fatal("early query router missing")
+	}
+	if _, err := e.queryHandler("not-yet-registered", nil, nil); err == nil {
+		t.Fatal("early query accepted")
+	}
+	if d.closed || d.completed {
+		t.Fatal("early query terminated workflow")
+	}
+	d.Close()
 }
 
 func (e *lifecycleEnvironment) RegisterCancelHandler(fn func()) { e.cancelHandler = fn }

@@ -47,6 +47,8 @@ func (d *definition) operationOutcome(result *commonpb.Payloads, cause error, co
 			o.ErrorKind = "child-already-started"
 		case *temporal.NamespaceNotFoundError:
 			o.ErrorKind = "namespace-not-found"
+		case *temporal.UnknownExternalWorkflowExecutionError:
+			o.ErrorKind = "external-not-found"
 		}
 		var err error
 		o.Failure, err = encodeInboundFailure(cause, dc)

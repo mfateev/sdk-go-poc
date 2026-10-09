@@ -38,9 +38,13 @@ func RegisterEntry(w worker.Worker, name string, program isolate.Program, entryN
 
 // Factory creates one definition, and therefore one isolate, per execution.
 type Factory struct {
-	Program   isolate.Program
-	EntryName string
-	Function  isolate.Handle
+	// ReplayOnly allows missing local activity implementations during offline replay.
+	ReplayOnly bool
+	// ResolveLocalActivity is an optional host function lookup for custom hosts.
+	ResolveLocalActivity func(string) any
+	Program              isolate.Program
+	EntryName            string
+	Function             isolate.Handle
 	// ResolveActivity maps function references to host registration aliases.
 	// It runs only on the host and is never passed into an isolate.
 	ResolveActivity func(string) string
@@ -79,7 +83,7 @@ func (f Factory) NewWorkflowDefinition() bindings.WorkflowDefinition {
 	if err := resources.Validate(); err != nil {
 		panic(err)
 	}
-	return &definition{converters: converters, resources: resources, program: f.Program, entryName: f.EntryName, resolveWorkflow: f.ResolveWorkflow, resolveActivity: f.ResolveActivity, resolveLogHandler: f.ResolveLogHandler}
+	return &definition{replayOnly: f.ReplayOnly, resolveLocalActivity: f.ResolveLocalActivity, converters: converters, resources: resources, program: f.Program, entryName: f.EntryName, resolveWorkflow: f.ResolveWorkflow, resolveActivity: f.ResolveActivity, resolveLogHandler: f.ResolveLogHandler}
 }
 
 type reply struct {
@@ -101,44 +105,49 @@ type callState struct {
 }
 
 type definition struct {
-	converters          DataConverterOptions
-	children            map[uint64]*childState
-	childSignals        map[uint64]*activityState
-	updateHandlers      map[string]workflow.UpdateRegistration
-	updates             map[string]*updateState
-	queuedUpdates       []*updateState
-	updateWaiter        *isolate.Command
-	updateRegistrations []*isolate.Command
-	queryHandlers       map[string]workflow.QueryHandlerOptions
-	queryWaiter         *isolate.Command
-	querySequence       uint64
-	retainedCompletion  *workflowCompletion
-	activities          map[uint64]*activityState
-	resources           ResourceOptions
-	lastResources       isolate.ResourceStats
-	resourceIdentity    ResourceEvent
-	canceled            bool
-	cancelWaiter        *isolate.Command
-	calls               map[uint64]*callState
-	callsByCommand      map[*isolate.Command]*callState
-	earlyCancel         map[uint64]bool
-	resolveWorkflow     func(string) string
-	resolveActivity     func(string) string
-	resolveLogHandler   func() LogHandler
-	failureStack        string
-	closed              bool
-	closeErr            error
-	program             isolate.Program
-	entryName           string
-	env                 bindings.WorkflowEnvironment
-	input               *commonpb.Payloads
-	instance            *isolate.Isolate
-	started             bool
-	completed           bool
-	pending             []reply
-	immediate           []reply
-	signals             []workflow.Signal
-	wantSignals         []signalWaiter
+	replayOnly           bool
+	resolveLocalActivity func(string) any
+	external             map[uint64]*activityState
+	locals               map[uint64]*activityState
+	nexus                map[uint64]*nexusState
+	converters           DataConverterOptions
+	children             map[uint64]*childState
+	childSignals         map[uint64]*activityState
+	updateHandlers       map[string]workflow.UpdateRegistration
+	updates              map[string]*updateState
+	queuedUpdates        []*updateState
+	updateWaiter         *isolate.Command
+	updateRegistrations  []*isolate.Command
+	queryHandlers        map[string]workflow.QueryHandlerOptions
+	queryWaiter          *isolate.Command
+	querySequence        uint64
+	retainedCompletion   *workflowCompletion
+	activities           map[uint64]*activityState
+	resources            ResourceOptions
+	lastResources        isolate.ResourceStats
+	resourceIdentity     ResourceEvent
+	canceled             bool
+	cancelWaiter         *isolate.Command
+	calls                map[uint64]*callState
+	callsByCommand       map[*isolate.Command]*callState
+	earlyCancel          map[uint64]bool
+	resolveWorkflow      func(string) string
+	resolveActivity      func(string) string
+	resolveLogHandler    func() LogHandler
+	failureStack         string
+	closed               bool
+	closeErr             error
+	program              isolate.Program
+	entryName            string
+	env                  bindings.WorkflowEnvironment
+	input                *commonpb.Payloads
+	instance             *isolate.Isolate
+	started              bool
+	completed            bool
+	pending              []reply
+	immediate            []reply
+	signals              []workflow.Signal
+	wantSignals          []signalWaiter
 }
 
 // Execute must be asynchronous. History callbacks only queue data here.
@@ -147,6 +156,9 @@ func (d *definition) Execute(env bindings.WorkflowEnvironment, _ *commonpb.Heade
 		return
 	}
 	d.env, d.input = env, input
+	// The SDK can deliver a query before workflow code registers handlers.
+	// Install the router immediately so that such queries return an error.
+	env.RegisterQueryHandler(d.query)
 	env.RegisterUpdateHandler(d.queueUpdate)
 	env.RegisterCancelHandler(func() {
 		if d.completed || d.closed {
@@ -445,6 +457,14 @@ func (d *definition) handle(command *isolate.Command) error {
 		return nil
 	}
 	switch command.Op {
+	case workflow.OpScheduleExternal, workflow.OpAwaitExternal:
+		return d.handleExternal(command)
+	case workflow.OpScheduleLocal, workflow.OpAwaitLocal, workflow.OpCancelLocal:
+		return d.handleLocal(command)
+	case workflow.OpScheduleNexus, workflow.OpAwaitNexus, workflow.OpAwaitNexusExecution, workflow.OpCancelNexus:
+		return d.handleNexus(command)
+	case workflow.OpSessionID, workflow.OpAddSession, workflow.OpRemoveSession:
+		return d.handleSession(command)
 	case workflow.OpScheduleChild, workflow.OpAwaitChild, workflow.OpAwaitChildExecution, workflow.OpCancelChild, workflow.OpSignalChild, workflow.OpAwaitChildSignal:
 		return d.handleChild(command)
 	case workflow.OpRegisterUpdate, workflow.OpNextUpdate, workflow.OpCompleteUpdate:
@@ -902,6 +922,15 @@ func (d *definition) Close() {
 }
 
 func (d *definition) retireOperations() {
+	retireStates(d.external)
+	retireStates(d.locals)
+	d.external, d.locals = nil, nil
+	for _, s := range d.nexus {
+		s.resultWaiter, s.startWaiter = nil, nil
+		s.result, s.start, s.cancel = nil, nil, nil
+		s.retired = true
+	}
+	d.nexus = nil
 	for _, state := range d.children {
 		state.resultWaiter, state.startWaiter = nil, nil
 		state.result, state.start, state.cancel = nil, nil, nil
@@ -932,6 +961,7 @@ func (d *definition) retireOperations() {
 	d.cancelWaiter, d.input = nil, nil
 	d.program = isolate.Program{}
 	d.resolveActivity, d.resolveWorkflow = nil, nil
+	d.resolveLocalActivity = nil
 }
 
 // CloseError exposes pending termination to hosts using the low-level factory.

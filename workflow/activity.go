@@ -200,6 +200,9 @@ func ExecuteActivity(ctx context.Context, activity any, args ...any) Future {
 	if ctx == nil {
 		return fail(errors.New("workflow: nil context"))
 	}
+	if s := GetSessionInfo(ctx); s != nil && s.SessionState == SessionStateFailed && activity != sessionCreationActivity {
+		return fail(ErrSessionFailed)
+	}
 	if err := ctx.Err(); err != nil {
 		return fail(err)
 	}
@@ -233,6 +236,9 @@ func ExecuteActivity(ctx context.Context, activity any, args ...any) Future {
 		}
 	}
 	options := GetActivityOptions(ctx)
+	if s := GetSessionInfo(ctx); s != nil && s.SessionState == SessionStateOpen && name != sessionCreationActivity {
+		options.TaskQueue = s.taskqueue
+	}
 	if options.ScheduleToCloseTimeout < 0 || options.ScheduleToStartTimeout < 0 || options.StartToCloseTimeout < 0 || options.HeartbeatTimeout < 0 {
 		return fail(errors.New("workflow: negative activity timeout"))
 	}

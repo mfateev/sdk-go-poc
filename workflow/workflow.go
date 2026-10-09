@@ -1,7 +1,8 @@
-// Package workflow exposes host-mediated Temporal operations to a statically
-// linked isolate program. Host operations use a copied-byte boundary; typed
-// workflow arguments and results use Temporal's default data converter here.
-// The POC currently accepts nil, byte, and ordinary JSON payload encodings.
+// Package workflow exposes Temporal operations to statically compiled isolates
+// using native contexts, goroutines and channels. Host operations use copied
+// bytes; an isolate-owned data converter handles typed arguments and results.
+// The default serializer supports nil, bytes and JSON; workers may configure a
+// marked serializer factory. Transport codecs remain on the host.
 package workflow
 
 import (
@@ -52,6 +53,18 @@ const (
 	OpCancelChild         uint32 = 27
 	OpSignalChild         uint32 = 28
 	OpAwaitChildSignal    uint32 = 29
+	OpScheduleExternal    uint32 = 30
+	OpAwaitExternal       uint32 = 31
+	OpScheduleLocal       uint32 = 32
+	OpAwaitLocal          uint32 = 33
+	OpCancelLocal         uint32 = 34
+	OpScheduleNexus       uint32 = 35
+	OpAwaitNexus          uint32 = 36
+	OpAwaitNexusExecution uint32 = 37
+	OpCancelNexus         uint32 = 38
+	OpSessionID           uint32 = 39
+	OpAddSession          uint32 = 40
+	OpRemoveSession       uint32 = 41
 )
 
 // Handler is a named workflow function. Each execution receives its own
