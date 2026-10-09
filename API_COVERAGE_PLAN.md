@@ -24,7 +24,8 @@ activity implementations require host registration; session IDs use original
 run identity so synthetic offline replay IDs cannot change signal matching.
 
 The compiled checker is `example/apicoverage/check`; saved server histories live
-in `example/apicoverage/testdata`. The observability work below remains planned.
+in `example/apicoverage/testdata`. The logger/metrics adapters below remain planned;
+the byte-sink transport is implemented.
 
 ## Observability follow-up
 
@@ -40,11 +41,16 @@ GetMetricsHandler interfaces. They use dedicated byte encodings to send records 
 backends, independently of Temporal DataConverter, payload codecs and encryption.
 No backend object, network client or lock is shared with an isolate.
 
-For tracing and application telemetry, consider the TypeScript SDK's sinks model:
-worker-registered host handlers, serialized one-way messages, no application
-return value, and replay suppression by default. Delivery is best effort and
-must not change workflow decisions. Bound buffering and define overflow/error
-handling before exposing a general sink API. Activities remain the mechanism
-for durable external effects.
+Tracing and application telemetry can now use `workflow.NewSink(op).Emit(bytes)`
+with a matching `worker.RegisterSink` host handler. Operation codes are stable
+application contracts in `0x00010000..0xfffeffff`; names are optional diagnostic
+labels. Interceptors own serialization, independently of DataConverter and
+codecs. The host supplies execution metadata and suppresses replay delivery
+unless `SinkOptions.EnableReplay` is set. The shared runtime queue bounds
+observations to 64 messages of at most 64 KiB each. Overflow drops messages;
+missing handlers and backend panics remain host diagnostics without replies or
+workflow failures. Query, validator, completion and shutdown fences drain writes.
+Activities remain the mechanism for durable external effects. SDK-style logger,
+metrics and tracing adapters can be layered over these byte sinks.
 
 Reference: https://typescript.temporal.io/api/namespaces/workflow#proxysinks

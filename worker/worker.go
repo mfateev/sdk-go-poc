@@ -60,6 +60,7 @@ type isolateWorker struct {
 	workflows           activityAliases
 	activities          activityAliases
 	logs                logConfiguration
+	sinks               sinkConfiguration
 	resources           resourceConfiguration
 	converters          converterConfiguration
 	failWorkflowOnPanic bool
@@ -136,6 +137,7 @@ func (w *isolateWorker) RegisterWorkflowWithOptions(fn any, options goWorkflow.R
 	fn, options = registration(fn, options, w.activities.resolve, w.logs.resolve)
 	if factory, ok := fn.(temporalbridge.Factory); ok {
 		factory.ResolveWorkflow = w.workflows.resolve
+		factory.ResolveSink = w.sinks.resolve
 		fn = factory
 	}
 	w.Worker.RegisterWorkflowWithOptions(converterFactory(resourceFactory(fn, &w.resources), &w.converters), options)
@@ -163,6 +165,7 @@ type isolateReplayer struct {
 	workflows  activityAliases
 	activities activityAliases
 	logs       logConfiguration
+	sinks      sinkConfiguration
 	resources  resourceConfiguration
 	converters converterConfiguration
 }
@@ -187,6 +190,7 @@ func (r *isolateReplayer) RegisterWorkflowWithOptions(fn any, options goWorkflow
 	fn, options = registration(fn, options, r.activities.resolve, r.logs.resolve)
 	if factory, ok := fn.(temporalbridge.Factory); ok {
 		factory.ResolveWorkflow = r.workflows.resolve
+		factory.ResolveSink = r.sinks.resolve
 		factory.ReplayOnly = true
 		fn = factory
 	}

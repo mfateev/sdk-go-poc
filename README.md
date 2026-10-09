@@ -543,9 +543,55 @@ A nil handler restores SDK logging. Workflow-local buffers and explicitly
 constructed local loggers remain available. Host workflows and activities keep
 ordinary Go printing, logging and I/O behavior.
 
+### Interceptor sinks
+
+An interceptor can serialize observations itself and emit bytes through a sink.
+Give each sink a stable numeric operation code shared by workflow code and host
+registration. Application codes range from `0x00010000` through `0xfffeffff`;
+SDK calls and runtime operations, including printing, are reserved outside that
+range. Registration order does not determine operation codes.
+
+```go
+const telemetryOp uint32 = 0x10000
+
+// Host worker (the same API also accepts a workflow replayer):
+err := worker.RegisterSink(w, telemetryOp, func(event worker.SinkEvent) {
+    // Decode with the interceptor's own format. For remote IO, enqueue to a
+    // bounded host exporter; this callback runs on the SDK host thread.
+    exporter.Enqueue(event.WorkflowID, event.RunID, event.Payload)
+}, worker.SinkOptions{Name: "telemetry"})
+if err != nil {
+    panic(err)
+}
+
+// Inside the interceptor, hide the sink behind its own Event method:
+sink := workflow.NewSink(telemetryOp)
+sink.Emit(encodedEvent)
+```
+
+`Sink.Emit` copies the bytes using one-way `isolate.Write`, with no acknowledgment
+or result. Temporal's DataConverter, payload codecs and encryption pipeline are
+not involved. The interceptor and host handler own their serialization format.
+Names are optional diagnostic labels; routing uses the operation code alone.
+Register handlers before starting a worker or replay. Workflow registration may
+precede sink registration. Duplicate codes, reserved codes and nil handlers are
+rejected; constructing a sink does not check whether the host has registered it.
+
+Replay delivery is disabled by default. Set `SinkOptions.EnableReplay` to receive
+replay observations, marked with `SinkEvent.Replay`. Events also contain the
+operation, optional name, workflow ID, run ID and workflow type. Queued messages
+are drained during tasks, queries, validators and shutdown, including final
+observations after workflow completion. Sinks can emit from read-only handlers
+but cannot emit during package initialization. Missing handlers and handler
+panics produce host diagnostics without failing the workflow or returning data
+to it. Delivery shares printing's 64-message queue and 64 KiB payload limit; full
+queues and oversized messages are dropped. Sinks are for observations; external
+decisions that affect workflow behavior belong in recorded activities.
+
 ### Effect conformance checks
 
-The checker validates initializer and workflow logging, worker configuration,
+The checker validates initializer and workflow logging, byte-sink routing and
+replay policies, read-only and final sink delivery, worker configuration,
 replay metadata, ordinary workflow registration, file and metadata-operation
 violations, and recorded-history replay. Run it from this repository with the
 fork's compiler:

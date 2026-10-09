@@ -14,8 +14,18 @@ import (
 
 func init() { log.SetFlags(0); log.Print("effects initializer") }
 
+// Application wire IDs remain stable and are shared with host registration.
+const (
+	TelemetryOp uint32 = 0x10000
+	AuditOp     uint32 = 0x10001
+)
+
 //go:isolate
 func EffectsWorkflow(_ context.Context, mode string) (string, error) {
+	payload := []byte{0, 255, 'a'}
+	workflow.NewSink(TelemetryOp).Emit(payload)
+	payload[2] = 'b' // The host must receive the snapshot, not this mutation.
+	workflow.NewSink(AuditOp).Emit(nil)
 	fmt.Print("formatted")
 	log.Print("standard")
 	slog.Info("structured", "count", 7)
@@ -48,10 +58,12 @@ func ReadOnlyLoggingWorkflow(ctx context.Context) (int, error) {
 	}
 	<-workflow.GetSignalChannel(ctx, "finish")
 	fmt.Print("final")
+	workflow.NewSink(TelemetryOp).Emit([]byte("final"))
 	return count, nil
 }
 
 func observe(message string) {
+	workflow.NewSink(TelemetryOp).Emit([]byte(message))
 	fmt.Print(message)
 	log.Print(message)
 	slog.Info(message)

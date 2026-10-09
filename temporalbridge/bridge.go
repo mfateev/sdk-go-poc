@@ -52,6 +52,8 @@ type Factory struct {
 	ResolveWorkflow func(string) string
 	// ResolveLogHandler reads worker configuration on the host for each record.
 	ResolveLogHandler func() LogHandler
+	// ResolveSink looks up worker-configured observation handlers on the host.
+	ResolveSink func(uint32) (SinkHandler, SinkOptions)
 	// ResolveResourceOptions snapshots host policy for each new execution.
 	ResolveResourceOptions func() ResourceOptions
 	// ResolveDataConverter snapshots the isolate serializer factory and copied configuration.
@@ -83,7 +85,7 @@ func (f Factory) NewWorkflowDefinition() bindings.WorkflowDefinition {
 	if err := resources.Validate(); err != nil {
 		panic(err)
 	}
-	return &definition{replayOnly: f.ReplayOnly, resolveLocalActivity: f.ResolveLocalActivity, converters: converters, resources: resources, program: f.Program, entryName: f.EntryName, resolveWorkflow: f.ResolveWorkflow, resolveActivity: f.ResolveActivity, resolveLogHandler: f.ResolveLogHandler}
+	return &definition{replayOnly: f.ReplayOnly, resolveLocalActivity: f.ResolveLocalActivity, converters: converters, resources: resources, program: f.Program, entryName: f.EntryName, resolveWorkflow: f.ResolveWorkflow, resolveActivity: f.ResolveActivity, resolveLogHandler: f.ResolveLogHandler, resolveSink: f.ResolveSink}
 }
 
 type reply struct {
@@ -134,6 +136,7 @@ type definition struct {
 	resolveWorkflow      func(string) string
 	resolveActivity      func(string) string
 	resolveLogHandler    func() LogHandler
+	resolveSink          func(uint32) (SinkHandler, SinkOptions)
 	failureStack         string
 	closed               bool
 	closeErr             error
@@ -900,6 +903,7 @@ func (d *definition) Close() {
 	}
 	if d.instance == nil {
 		d.resolveLogHandler = nil
+		d.resolveSink = nil
 		d.env = nil
 		return
 	}
@@ -908,6 +912,7 @@ func (d *definition) Close() {
 	d.closeErr = d.instance.Kill(ctx)
 	d.drainWrites(d.instance)
 	d.resolveLogHandler = nil
+	d.resolveSink = nil
 	if d.closeErr == nil {
 		d.observeResources("closed", nil)
 	} else {

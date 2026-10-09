@@ -2,6 +2,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/mfateev/sdk-go-poc/example/effects"
 	"github.com/mfateev/sdk-go-poc/temporalbridge"
@@ -79,6 +80,12 @@ func main() {
 			if err := worker.SetIsolateLogHandler(w, func(e worker.LogEvent) { logs = append(logs, e) }); err != nil {
 				panic(err)
 			}
+			var sinks []worker.SinkEvent
+			for _, op := range []uint32{effects.TelemetryOp, effects.AuditOp} {
+				if err := worker.RegisterSink(w, op, func(e worker.SinkEvent) { sinks = append(sinks, e) }, worker.SinkOptions{Name: "observations", EnableReplay: op == effects.AuditOp}); err != nil {
+					panic(err)
+				}
+			}
 			env := &environment{replay: replay}
 			input, err := env.GetDataConverter().ToPayloads(mode)
 			if err != nil {
@@ -89,6 +96,24 @@ func main() {
 			var fault any
 			func() { defer func() { fault = recover() }(); d.OnWorkflowTaskStarted(5 * time.Second) }()
 			d.Close()
+			wantSinks := 2
+			if replay {
+				wantSinks = 1
+			}
+			if len(sinks) != wantSinks {
+				panic(fmt.Sprintf("sinks=%d replay=%t mode=%s", len(sinks), replay, mode))
+			}
+			if !replay && (sinks[0].Operation != effects.TelemetryOp || !bytes.Equal(sinks[0].Payload, []byte{0, 255, 'a'})) {
+				panic("sink did not copy arbitrary bytes before workflow mutation")
+			}
+			if last := sinks[len(sinks)-1]; last.Operation != effects.AuditOp || last.Payload != nil {
+				panic("sink operation or nil payload changed")
+			}
+			for _, event := range sinks {
+				if event.Replay != replay || event.Name != "observations" || event.WorkflowID != "id" || event.RunID != "run" || event.WorkflowType != "EffectsWorkflow" {
+					panic("sink host metadata changed")
+				}
+			}
 			if len(logs) != 5 {
 				panic(fmt.Sprintf("logs=%d mode=%s", len(logs), mode))
 			}
@@ -131,6 +156,12 @@ func main() {
 	for _, mode := range []string{"log", "deny", "metadata"} {
 		r := worker.NewWorkflowReplayer()
 		r.RegisterWorkflow(effects.EffectsWorkflow)
+		var sinks []worker.SinkEvent
+		for _, op := range []uint32{effects.TelemetryOp, effects.AuditOp} {
+			if err := worker.RegisterSink(r, op, func(e worker.SinkEvent) { sinks = append(sinks, e) }, worker.SinkOptions{EnableReplay: op == effects.AuditOp}); err != nil {
+				panic(err)
+			}
+		}
 		count := 0
 		_ = worker.SetIsolateLogHandler(r, func(e worker.LogEvent) {
 			if !e.Replay {
@@ -139,6 +170,9 @@ func main() {
 			count++
 		})
 		err := r.ReplayWorkflowHistory(nil, history(mode))
+		if len(sinks) != 1 || sinks[0].Operation != effects.AuditOp || !sinks[0].Replay {
+			panic(fmt.Sprintf("SDK sink replay: events=%+v", sinks))
+		}
 		if mode == "log" {
 			if err != nil || count != 5 {
 				panic(fmt.Sprintf("SDK logging replay: logs=%d error=%v", count, err))
@@ -157,7 +191,7 @@ func main() {
 			panic(err)
 		}
 	}
-	fmt.Println("worker effects, logging and SDK replay passed")
+	fmt.Println("worker effects, logging, sinks and SDK replay passed")
 }
 func history(mode string) *historypb.History {
 	input, _ := converter.GetDefaultDataConverter().ToPayloads(mode)
@@ -196,6 +230,10 @@ func checkReadOnlyLogging() {
 	if err := worker.SetIsolateLogHandler(w, func(event worker.LogEvent) { logs = append(logs, event) }); err != nil {
 		panic(err)
 	}
+	var sinks []worker.SinkEvent
+	if err := worker.RegisterSink(w, effects.TelemetryOp, func(event worker.SinkEvent) { sinks = append(sinks, event) }); err != nil {
+		panic(err)
+	}
 	env := &environment{}
 	d := registration.factory.NewWorkflowDefinition()
 	defer d.Close()
@@ -206,6 +244,7 @@ func checkReadOnlyLogging() {
 	}
 	checkQuery := func(expected int) {
 		before := len(logs)
+		beforeSinks := len(sinks)
 		result, err := env.query("logs", nil, nil)
 		if err != nil {
 			panic(err)
@@ -215,9 +254,11 @@ func checkReadOnlyLogging() {
 			panic("logging changed query result")
 		}
 		checkObservationSources(logs[before:], "query")
+		checkSinkObservation(sinks[beforeSinks:], "query")
 	}
 	checkQuery(0)
 	before := len(logs)
+	beforeSinks := len(sinks)
 	outcome := new(logUpdateOutcome)
 	env.update("bump", "update-id", nil, nil, outcome)
 	d.OnWorkflowTaskStarted(5 * time.Second)
@@ -225,8 +266,10 @@ func checkReadOnlyLogging() {
 		panic(fmt.Sprintf("logging changed update outcome: %+v", outcome))
 	}
 	checkObservationSources(logs[before:], "validator")
+	checkSinkObservation(sinks[beforeSinks:], "validator")
 	checkQuery(1)
 	before = len(logs)
+	beforeSinks = len(sinks)
 	if err := env.signal("finish", nil, nil); err != nil {
 		panic(err)
 	}
@@ -234,7 +277,14 @@ func checkReadOnlyLogging() {
 	if env.completes != 1 || env.err != nil || len(logs) != before+1 || logs[before].Message != "final" {
 		panic("final log lost before completion")
 	}
+	checkSinkObservation(sinks[beforeSinks:], "final")
 	checkQuery(1) // Completed query state can still emit observations.
+}
+
+func checkSinkObservation(events []worker.SinkEvent, payload string) {
+	if len(events) != 1 || events[0].Operation != effects.TelemetryOp || string(events[0].Payload) != payload {
+		panic(fmt.Sprintf("read-only/final sink events=%+v, want %q", events, payload))
+	}
 }
 
 func checkObservationSources(records []worker.LogEvent, message string) {

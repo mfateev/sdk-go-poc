@@ -1,6 +1,10 @@
 package temporalbridge
 
-import "isolate"
+import (
+	"isolate"
+
+	"github.com/mfateev/sdk-go-poc/internal/sinkop"
+)
 
 // LogEvent contains a copied workflow log record and host execution metadata.
 // Replay is true when the worker is rebuilding state from history.
@@ -42,6 +46,10 @@ func (d *definition) writeLog(record isolate.LogRecord) {
 // just as it is for the ordinary SDK's replay-aware workflow logger.
 func (d *definition) handleWrite(message *isolate.Message) {
 	if message == nil || d.env == nil {
+		return
+	}
+	if sinkop.Valid(message.Op) {
+		d.writeSink(message)
 		return
 	}
 	if message.Op != isolate.LogOp {
