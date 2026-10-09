@@ -226,3 +226,6 @@ func checkObserverPanic() {
 		panic("observer panic failed to clean up")
 	}
 }
+
+func (*resourceEnvironment) RegisterUpdateHandler(func(string, string, *commonpb.Payloads, *commonpb.Header, bindings.UpdateCallbacks)) {
+}

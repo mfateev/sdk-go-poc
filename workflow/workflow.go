@@ -43,6 +43,9 @@ const (
 	OpResolveWorkflowName uint32 = 18
 	OpRegisterQuery       uint32 = 19
 	OpQuery               uint32 = 20
+	OpRegisterUpdate      uint32 = 21
+	OpNextUpdate          uint32 = 22
+	OpCompleteUpdate      uint32 = 23
 )
 
 // Handler is a named workflow function. Each execution receives its own

@@ -8,6 +8,7 @@ import (
 	"isolate"
 	"reflect"
 	"slices"
+	"sync/atomic"
 	"time"
 
 	"github.com/mfateev/sdk-go-poc/internal/activityref"
@@ -113,6 +114,7 @@ func (v *futureValue) Get(valuePtr any) error {
 }
 
 type activityFuture struct {
+	ready   atomic.Bool
 	done    chan struct{}
 	payload []byte
 	err     error
@@ -141,6 +143,9 @@ func (f *activityFuture) ToChannel() <-chan FutureResult {
 }
 
 func (f *activityFuture) IsReady() bool {
+	if isolate.IsReadOnly() {
+		return f.ready.Load()
+	}
 	select {
 	case <-f.done:
 		return true
@@ -185,7 +190,7 @@ func (f *activityFuture) Get(ctx context.Context, valuePtr any) error {
 func ExecuteActivity(ctx context.Context, activity any, args ...any) Future {
 	assertWritable()
 	f := &activityFuture{done: make(chan struct{})}
-	fail := func(err error) Future { f.err = err; close(f.done); return f }
+	fail := func(err error) Future { f.err = err; f.ready.Store(true); close(f.done); return f }
 	if ctx == nil {
 		return fail(errors.New("workflow: nil context"))
 	}
@@ -269,6 +274,7 @@ func ExecuteActivity(ctx context.Context, activity any, args ...any) Future {
 				}
 			}
 		}
+		f.ready.Store(true)
 		close(f.done)
 	}()
 	return f

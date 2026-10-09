@@ -189,3 +189,6 @@ func history(mode string) *historypb.History {
 		{EventId: 5, EventTime: stamp, EventType: enumspb.EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED, Attributes: &historypb.HistoryEvent_WorkflowExecutionCompletedEventAttributes{WorkflowExecutionCompletedEventAttributes: &historypb.WorkflowExecutionCompletedEventAttributes{Result: result, WorkflowTaskCompletedEventId: 4}}},
 	}}
 }
+
+func (*environment) RegisterUpdateHandler(func(string, string, *commonpb.Payloads, *commonpb.Header, bindings.UpdateCallbacks)) {
+}

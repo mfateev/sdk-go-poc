@@ -90,36 +90,41 @@ type callState struct {
 }
 
 type definition struct {
-	queryHandlers      map[string]workflow.QueryHandlerOptions
-	queryWaiter        *isolate.Command
-	querySequence      uint64
-	retainedCompletion *workflowCompletion
-	activities         map[uint64]*activityState
-	resources          ResourceOptions
-	lastResources      isolate.ResourceStats
-	resourceIdentity   ResourceEvent
-	canceled           bool
-	cancelWaiter       *isolate.Command
-	calls              map[uint64]*callState
-	callsByCommand     map[*isolate.Command]*callState
-	earlyCancel        map[uint64]bool
-	resolveWorkflow    func(string) string
-	resolveActivity    func(string) string
-	resolveLogHandler  func() LogHandler
-	failureStack       string
-	closed             bool
-	closeErr           error
-	program            isolate.Program
-	entryName          string
-	env                bindings.WorkflowEnvironment
-	input              *commonpb.Payloads
-	instance           *isolate.Isolate
-	started            bool
-	completed          bool
-	pending            []reply
-	immediate          []reply
-	signals            []workflow.Signal
-	wantSignals        []signalWaiter
+	updateHandlers      map[string]workflow.UpdateRegistration
+	updates             map[string]*updateState
+	queuedUpdates       []*updateState
+	updateWaiter        *isolate.Command
+	updateRegistrations []*isolate.Command
+	queryHandlers       map[string]workflow.QueryHandlerOptions
+	queryWaiter         *isolate.Command
+	querySequence       uint64
+	retainedCompletion  *workflowCompletion
+	activities          map[uint64]*activityState
+	resources           ResourceOptions
+	lastResources       isolate.ResourceStats
+	resourceIdentity    ResourceEvent
+	canceled            bool
+	cancelWaiter        *isolate.Command
+	calls               map[uint64]*callState
+	callsByCommand      map[*isolate.Command]*callState
+	earlyCancel         map[uint64]bool
+	resolveWorkflow     func(string) string
+	resolveActivity     func(string) string
+	resolveLogHandler   func() LogHandler
+	failureStack        string
+	closed              bool
+	closeErr            error
+	program             isolate.Program
+	entryName           string
+	env                 bindings.WorkflowEnvironment
+	input               *commonpb.Payloads
+	instance            *isolate.Isolate
+	started             bool
+	completed           bool
+	pending             []reply
+	immediate           []reply
+	signals             []workflow.Signal
+	wantSignals         []signalWaiter
 }
 
 // Execute must be asynchronous. History callbacks only queue data here.
@@ -128,6 +133,7 @@ func (d *definition) Execute(env bindings.WorkflowEnvironment, _ *commonpb.Heade
 		return
 	}
 	d.env, d.input = env, input
+	env.RegisterUpdateHandler(d.queueUpdate)
 	env.RegisterCancelHandler(func() {
 		if d.completed || d.closed {
 			return
@@ -184,7 +190,7 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 		return
 	}
 	now := clock.Now()
-	resuming := len(d.pending) != 0 || d.hasDeliverableSignal()
+	resuming := len(d.pending) != 0 || d.hasDeliverableSignal() || len(d.queuedUpdates) != 0
 	newInstance := !d.started
 	if !d.started {
 		d.started = true
@@ -324,7 +330,18 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 			d.publishRetainedCompletion()
 			return
 		}
+		if d.admitUpdate() {
+			continue
+		}
+		if !handled && len(d.updateRegistrations) != 0 {
+			for _, command := range d.updateRegistrations {
+				command.Reply(nil, nil)
+			}
+			d.updateRegistrations = nil
+			continue
+		}
 		if !handled {
+			d.rejectUnhandledUpdates()
 			if instance.PendingCalls() == 0 {
 				d.failTask(errors.New("isolate deadlocked without a pending host operation"))
 			}
@@ -381,6 +398,8 @@ func (d *definition) finishWorkflow(result *commonpb.Payloads, err error) {
 	env := d.env
 	instance := d.instance
 	d.completed = true
+	d.warnUnfinishedUpdates(err)
+	d.rejectUnhandledUpdates()
 	if len(d.queryHandlers) != 0 && instance != nil {
 		d.retainedCompletion = &workflowCompletion{result: result, err: err}
 		d.retireOperations()
@@ -417,6 +436,8 @@ func (d *definition) handle(command *isolate.Command) error {
 		return nil
 	}
 	switch command.Op {
+	case workflow.OpRegisterUpdate, workflow.OpNextUpdate, workflow.OpCompleteUpdate:
+		return d.handleUpdate(command)
 	case workflow.OpRegisterQuery, workflow.OpQuery:
 		return d.handleQuery(command)
 	case workflow.OpGetVersion, workflow.OpIsReplaying, workflow.OpResolveWorkflowName:
@@ -856,6 +877,11 @@ func (d *definition) Close() {
 }
 
 func (d *definition) retireOperations() {
+	for _, state := range d.updates {
+		state.callbacks, state.payload = nil, nil
+	}
+	d.updates, d.queuedUpdates, d.updateHandlers = nil, nil, nil
+	d.updateWaiter, d.updateRegistrations = nil, nil
 	for _, state := range d.activities {
 		state.waiter, state.cancel, state.payload = nil, nil, nil
 		state.retired = true

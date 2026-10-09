@@ -17,6 +17,7 @@ type CallRequest struct {
 }
 
 var nextCallID atomic.Uint64
+var rootContext context.Context
 
 func executionContext(canceled bool, taskQueue string, options ...RunOptions) (context.Context, context.CancelFunc) {
 	base := WithTaskQueue(context.Background(), taskQueue)
@@ -26,6 +27,7 @@ func executionContext(canceled bool, taskQueue string, options ...RunOptions) (c
 		base = context.WithValue(base, runOptionsKey{}, RunOptions{TaskQueue: taskQueue})
 	}
 	ctx, cancel := context.WithCancel(base)
+	rootContext = ctx
 	if canceled {
 		cancel()
 		return ctx, cancel

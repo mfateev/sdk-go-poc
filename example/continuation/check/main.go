@@ -141,3 +141,6 @@ func checkVersionCalls() {
 		panic(fmt.Sprintf("version cache: result=%d error=%v", result, e.err))
 	}
 }
+
+func (*environment) RegisterUpdateHandler(func(string, string, *commonpb.Payloads, *commonpb.Header, bindings.UpdateCallbacks)) {
+}

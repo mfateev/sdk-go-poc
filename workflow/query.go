@@ -20,11 +20,16 @@ type QueryRegistration struct {
 	Options QueryHandlerOptions `json:"options"`
 }
 type QueryRequest struct {
-	ID       uint64 `json:"id"`
-	Name     string `json:"name"`
-	Payloads []byte `json:"payloads"`
+	Kind          string `json:"kind,omitempty"`
+	UpdateID      string `json:"update_id,omitempty"`
+	Canceled      bool   `json:"canceled,omitempty"`
+	SkipValidator bool   `json:"skip_validator,omitempty"`
+	ID            uint64 `json:"id"`
+	Name          string `json:"name"`
+	Payloads      []byte `json:"payloads"`
 }
 type QueryResponse struct {
+	Failure  []byte `json:"failure,omitempty"`
 	ID       uint64 `json:"id"`
 	Payloads []byte `json:"payloads,omitempty"`
 	Error    string `json:"error,omitempty"`
@@ -53,10 +58,7 @@ func SetQueryHandlerWithOptions(ctx context.Context, queryType string, handler a
 		return err
 	}
 	queryHandlers[queryType] = handler // The SDK permits replacing a handler.
-	if !queryServiceStarted {
-		queryServiceStarted = true
-		go serveQueries()
-	}
+	startReadOnlyService()
 	raw, err := json.Marshal(QueryRegistration{Name: queryType, Options: options})
 	if err != nil {
 		return err
@@ -92,6 +94,16 @@ func assertWritable() {
 	}
 }
 
+// IsReadOnly has the SDK meaning for queries and update validators.
+func IsReadOnly(ctx context.Context) bool { return isolate.IsReadOnly() }
+
+func startReadOnlyService() {
+	if !queryServiceStarted {
+		queryServiceStarted = true
+		go serveQueries()
+	}
+}
+
 // This dedicated goroutine remains parked when the workflow completes. The
 // host admits it separately; workflow goroutines never dispatch during queries.
 func serveQueries() {
@@ -106,7 +118,11 @@ func serveQueries() {
 			panic(err)
 		}
 		outcome := QueryResponse{ID: request.ID}
-		outcome.Payloads, err = invokeQuery(queryHandlers[request.Name], request.Payloads)
+		if request.Kind == "validate" {
+			outcome.Failure, err = validateUpdate(request)
+		} else {
+			outcome.Payloads, err = invokeQuery(queryHandlers[request.Name], request.Payloads)
+		}
 		if err != nil {
 			outcome.Failed, outcome.Error = true, readOnlyErrorMessage(err)
 		}

@@ -298,8 +298,7 @@ message callbacks. Ordinary host protobuf operations retain their implementation
 The internal Failure wire codec supports the pinned schema and ordinary payloads;
 unknown fields, extensions, and external payload references remain unsupported.
 This does not enable general protobuf workflow arguments/results. Custom data
-and failure converters remain feature 8 work. Child workflows and updates
-remain pending feature 7 work.
+and failure converters remain feature 8 work. Child workflows remain pending feature 7 work.
 
 ### Queries
 
@@ -325,6 +324,34 @@ productization limitation.
 `example/query/check` verifies rejected writes, continued workflow execution,
 queries after completion and eviction. Its optional `-address localhost:7233`
 mode records and replays a live Temporal execution.
+
+### Updates
+
+`SetUpdateHandler`, `SetUpdateHandlerWithOptions`, `UpdateHandlerOptions`,
+`GetCurrentUpdateInfo`, `AllHandlersFinished` and unfinished-handler policies
+follow the pinned SDK, using native contexts. Handlers require context first
+and return `error` or `(result, error)`. Validators may omit context; their other
+argument types must match the handler. They use the same read-only owner and
+execution fence as queries. A state mutation or forbidden operation panics and
+rejects that update as an SDK `PanicError`, without killing the workflow.
+Accepted handlers run as ordinary native goroutines and may block on durable
+operations. Their contexts follow workflow cancellation.
+
+The host SDK owns update acceptance and completion protocol messages. Results
+stay encoded across the boundary; large JSON integer values do not pass through
+an untyped host JSON decode. Rejected validators and handler failures preserve
+SDK error types/details. Replay skips validators for historically accepted
+updates, as in the SDK. Registration yields to queued updates for that handler.
+Returning from the root abandons unfinished handlers according to the SDK policy;
+it does not implicitly wait for them. `AllHandlersFinished` remains false until
+their completion has reached the host SDK.
+
+Validation decodes arguments under the scratch owner; accepted handlers decode
+again under the workflow owner. Custom decoder callbacks must be pure during
+validation. Variadic handlers, custom converters/context propagation and rich
+validator panic stack diagnostics remain outside this POC. See
+`example/update/check` for compiled mutation/cancellation/concurrency checks and
+its checked-in live update history; `-address localhost:7233` records a fresh run.
 
 ### Continue-as-new and workflow versioning
 

@@ -111,6 +111,13 @@ func run() {
 	}
 	for i, e := range envs {
 		e.queryState(10 + i)
+		ready, err := e.query("ready", nil, nil)
+		check(err)
+		var isReady bool
+		check(e.GetDataConverter().FromPayloads(ready, &isReady))
+		if !isReady {
+			panic("query could not inspect future readiness")
+		}
 		for range 4 {
 			_, err := e.query("random", nil, nil)
 			check(err)
@@ -154,4 +161,7 @@ func run() {
 			panic("evicted state remained queryable")
 		}
 	}
+}
+
+func (*environment) RegisterUpdateHandler(func(string, string, *commonpb.Payloads, *commonpb.Header, bindings.UpdateCallbacks)) {
 }

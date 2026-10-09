@@ -66,15 +66,32 @@ func (d *definition) query(name string, input *commonpb.Payloads, _ *commonpb.He
 		slices.Sort(keys)
 		return nil, fmt.Errorf("unknown queryType %v. KnownQueryTypes=%v", name, keys)
 	}
-	if d.queryWaiter == nil {
-		return nil, errors.New("workflow query service is not suspended")
-	}
 	raw, err := proto.MarshalOptions{Deterministic: true}.Marshal(input)
 	if err != nil {
 		return nil, err
 	}
+	response, err := d.runReadOnly(workflow.QueryRequest{Name: name, Payloads: raw})
+	if err != nil {
+		return nil, err
+	}
+	if response.Failed {
+		return nil, errors.New(response.Error)
+	}
+	result := new(commonpb.Payloads)
+	if err := proto.Unmarshal(response.Payloads, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// runReadOnly admits the shared query/validation service at an exact fence.
+func (d *definition) runReadOnly(input workflow.QueryRequest) (*workflow.QueryResponse, error) {
+	if d.queryWaiter == nil {
+		return nil, errors.New("workflow read-only service is not suspended")
+	}
 	d.querySequence++
-	request, err := json.Marshal(workflow.QueryRequest{ID: d.querySequence, Name: name, Payloads: raw})
+	input.ID = d.querySequence
+	request, err := json.Marshal(input)
 	if err != nil {
 		return nil, err
 	}
@@ -149,14 +166,7 @@ func (d *definition) query(name string, input *commonpb.Payloads, _ *commonpb.He
 			if response == nil {
 				d.failTask(errors.New("read-only handler blocked without a result"))
 			}
-			if response.Failed {
-				return nil, errors.New(response.Error)
-			}
-			result := new(commonpb.Payloads)
-			if err := proto.Unmarshal(response.Payloads, result); err != nil {
-				return nil, err
-			}
-			return result, nil
+			return response, nil
 		}
 	}
 }

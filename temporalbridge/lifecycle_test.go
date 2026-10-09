@@ -14,6 +14,7 @@ import (
 	"github.com/mfateev/sdk-go-poc/workflow"
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/converter"
+	bindings "go.temporal.io/sdk/internalbindings"
 )
 
 func TestLifecycleFailuresDoNotCompleteExecution(t *testing.T) {
@@ -131,4 +132,7 @@ func TestLifecycleTaskFailurePreservesStartupCause(t *testing.T) {
 	if env.completes != 0 || d.StackTrace() != cause.Pending.Stack {
 		t.Fatal("pending initialization became an execution failure or lost diagnostics")
 	}
+}
+
+func (*lifecycleEnvironment) RegisterUpdateHandler(func(string, string, *commonpb.Payloads, *commonpb.Header, bindings.UpdateCallbacks)) {
 }

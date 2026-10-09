@@ -799,3 +799,6 @@ func runStructuredFailures() {
 		}
 	}
 }
+
+func (*environment) RegisterUpdateHandler(func(string, string, *commonpb.Payloads, *commonpb.Header, bindings.UpdateCallbacks)) {
+}
