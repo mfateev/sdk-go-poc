@@ -298,8 +298,33 @@ message callbacks. Ordinary host protobuf operations retain their implementation
 The internal Failure wire codec supports the pinned schema and ordinary payloads;
 unknown fields, extensions, and external payload references remain unsupported.
 This does not enable general protobuf workflow arguments/results. Custom data
-and failure converters remain feature 8 work. Child workflows, queries, and
-updates remain pending feature 7 work.
+and failure converters remain feature 8 work. Child workflows and updates
+remain pending feature 7 work.
+
+### Queries
+
+`SetQueryHandler(ctx, name, handler)` and `SetQueryHandlerWithOptions` follow
+the SDK API with a native context. Handlers return `(result, error)` and may
+read captured workflow state. Queries use a separate allocation owner while
+workflow goroutines remain suspended. Writes to workflow fields, maps, slices,
+globals and atomics panic before mutation. The query dispatcher recovers that
+panic and returns a query error; subsequent queries and workflow tasks continue.
+Handlers can allocate and change their own temporary values, but cannot spawn
+goroutines, block on channels or locks, schedule workflow operations, or exit
+the isolate. The same execution mode is intended for update validators.
+
+Completed workflows with registered query handlers retain their state until
+cache eviction. Eviction revokes the retained goroutines and releases both
+allocator caches. This intentionally uses more cache memory than immediately
+destroying completed workflows. Queries use the default converter's existing
+JSON/bytes/null subset. Custom query headers, context propagation, variadic
+handlers and arbitrary protobuf values are deferred. A non-yielding handler
+can still exceed the task deadline; hard containment of CPU loops remains a
+productization limitation.
+
+`example/query/check` verifies rejected writes, continued workflow execution,
+queries after completion and eviction. Its optional `-address localhost:7233`
+mode records and replays a live Temporal execution.
 
 ### Continue-as-new and workflow versioning
 

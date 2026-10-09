@@ -90,32 +90,36 @@ type callState struct {
 }
 
 type definition struct {
-	activities        map[uint64]*activityState
-	resources         ResourceOptions
-	lastResources     isolate.ResourceStats
-	resourceIdentity  ResourceEvent
-	canceled          bool
-	cancelWaiter      *isolate.Command
-	calls             map[uint64]*callState
-	callsByCommand    map[*isolate.Command]*callState
-	earlyCancel       map[uint64]bool
-	resolveWorkflow   func(string) string
-	resolveActivity   func(string) string
-	resolveLogHandler func() LogHandler
-	failureStack      string
-	closed            bool
-	closeErr          error
-	program           isolate.Program
-	entryName         string
-	env               bindings.WorkflowEnvironment
-	input             *commonpb.Payloads
-	instance          *isolate.Isolate
-	started           bool
-	completed         bool
-	pending           []reply
-	immediate         []reply
-	signals           []workflow.Signal
-	wantSignals       []signalWaiter
+	queryHandlers      map[string]workflow.QueryHandlerOptions
+	queryWaiter        *isolate.Command
+	querySequence      uint64
+	retainedCompletion *workflowCompletion
+	activities         map[uint64]*activityState
+	resources          ResourceOptions
+	lastResources      isolate.ResourceStats
+	resourceIdentity   ResourceEvent
+	canceled           bool
+	cancelWaiter       *isolate.Command
+	calls              map[uint64]*callState
+	callsByCommand     map[*isolate.Command]*callState
+	earlyCancel        map[uint64]bool
+	resolveWorkflow    func(string) string
+	resolveActivity    func(string) string
+	resolveLogHandler  func() LogHandler
+	failureStack       string
+	closed             bool
+	closeErr           error
+	program            isolate.Program
+	entryName          string
+	env                bindings.WorkflowEnvironment
+	input              *commonpb.Payloads
+	instance           *isolate.Isolate
+	started            bool
+	completed          bool
+	pending            []reply
+	immediate          []reply
+	signals            []workflow.Signal
+	wantSignals        []signalWaiter
 }
 
 // Execute must be asynchronous. History callbacks only queue data here.
@@ -245,11 +249,15 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 			d.fail(err)
 			return false
 		}
-		return !d.completed && !d.closed
+		return (!d.completed || d.retainedCompletion != nil) && !d.closed
 	}
 	for {
 		checkBudget()
-		if err := instance.Resume(); err != nil {
+		resume := instance.Resume
+		if d.completed {
+			resume = instance.ResumeReadOnly
+		}
+		if err := resume(); err != nil {
 			d.fail(err)
 			return
 		}
@@ -313,6 +321,7 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 		}
 		d.immediate = nil
 		if d.completed {
+			d.publishRetainedCompletion()
 			return
 		}
 		if !handled {
@@ -372,6 +381,12 @@ func (d *definition) finishWorkflow(result *commonpb.Payloads, err error) {
 	env := d.env
 	instance := d.instance
 	d.completed = true
+	if len(d.queryHandlers) != 0 && instance != nil {
+		d.retainedCompletion = &workflowCompletion{result: result, err: err}
+		d.retireOperations()
+		instance.FreezeWorkflow()
+		return
+	}
 	d.Close()
 	if d.closeErr != nil {
 		panic(&WorkflowTaskError{Cause: d.closeErr})
@@ -398,7 +413,12 @@ func completionError(message string, canceled, failed bool) error {
 
 // handle emits or answers one host command. Replies are held until suspension.
 func (d *definition) handle(command *isolate.Command) error {
+	if d.completed && d.instance != nil && command.Op != workflow.OpQuery {
+		return nil
+	}
 	switch command.Op {
+	case workflow.OpRegisterQuery, workflow.OpQuery:
+		return d.handleQuery(command)
 	case workflow.OpGetVersion, workflow.OpIsReplaying, workflow.OpResolveWorkflowName:
 		return d.handleVersion(command)
 	case workflow.OpScheduleActivity, workflow.OpAwaitActivity, workflow.OpCancelActivity:
@@ -810,20 +830,9 @@ func (d *definition) StackTrace() string {
 func (d *definition) Close() {
 	if !d.closed {
 		d.closed = true
-		for _, state := range d.activities {
-			state.waiter, state.cancel, state.payload = nil, nil, nil
-			state.retired = true
-		}
-		d.activities = nil
-		for _, state := range d.callsByCommand {
-			state.done = true
-			state.command, state.cancel = nil, nil
-		}
-		d.calls, d.callsByCommand, d.earlyCancel = nil, nil, nil
-		d.pending, d.immediate, d.signals, d.wantSignals = nil, nil, nil, nil
-		d.cancelWaiter, d.input = nil, nil
-		d.program = isolate.Program{}
-		d.resolveActivity, d.resolveLogHandler, d.resolveWorkflow = nil, nil, nil
+		d.retireOperations()
+		d.queryWaiter, d.queryHandlers, d.retainedCompletion = nil, nil, nil
+		d.resolveLogHandler = nil
 	}
 	if d.instance == nil {
 		d.env = nil
@@ -844,6 +853,23 @@ func (d *definition) Close() {
 			logger.Warn("isolate termination pending", "error", d.closeErr)
 		}
 	}
+}
+
+func (d *definition) retireOperations() {
+	for _, state := range d.activities {
+		state.waiter, state.cancel, state.payload = nil, nil, nil
+		state.retired = true
+	}
+	d.activities = nil
+	for _, state := range d.callsByCommand {
+		state.done = true
+		state.command, state.cancel = nil, nil
+	}
+	d.calls, d.callsByCommand, d.earlyCancel = nil, nil, nil
+	d.pending, d.immediate, d.signals, d.wantSignals = nil, nil, nil, nil
+	d.cancelWaiter, d.input = nil, nil
+	d.program = isolate.Program{}
+	d.resolveActivity, d.resolveWorkflow = nil, nil
 }
 
 // CloseError exposes pending termination to hosts using the low-level factory.

@@ -183,6 +183,7 @@ func (f *activityFuture) Get(ctx context.Context, valuePtr any) error {
 // run on the host. Options come from WithActivityOptions, not a positional timeout.
 // Scheduling is acknowledged before returning, even if the Future is ignored.
 func ExecuteActivity(ctx context.Context, activity any, args ...any) Future {
+	assertWritable()
 	f := &activityFuture{done: make(chan struct{})}
 	fail := func(err error) Future { f.err = err; close(f.done); return f }
 	if ctx == nil {

@@ -40,6 +40,7 @@ func executionContext(canceled bool, taskQueue string, options ...RunOptions) (c
 }
 
 func call(ctx context.Context, op uint32, payload []byte) ([]byte, error) {
+	assertWritable()
 	if ctx == nil {
 		return nil, errors.New("workflow: nil context")
 	}
