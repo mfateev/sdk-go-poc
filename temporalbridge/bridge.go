@@ -184,7 +184,7 @@ func (d *definition) Execute(env bindings.WorkflowEnvironment, _ *commonpb.Heade
 }
 
 func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
-	// A host log handler may panic. Always release the instance before handing
+	// A host callback may panic. Always release the instance before handing
 	// the panic to the SDK's Workflow Task failure path.
 	defer func() {
 		if p := recover(); p != nil {
@@ -230,6 +230,7 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 		return
 	}
 	instance := d.instance
+	defer d.drainWrites(instance)
 	budget.progress, budget.lastProgress, budget.monitoring = instance.Resources().Progress, time.Now(), true
 	var ticks <-chan time.Time
 	if limit := d.resources.MaxNoProgressDuration; limit > 0 {
@@ -294,6 +295,9 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 		waiting := true
 		for waiting {
 			select {
+			case message := <-instance.Writes():
+				checkBudget()
+				d.handleWrite(message)
 			case command := <-instance.Commands():
 				if !handleCommand(command) {
 					return
@@ -331,6 +335,9 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 	drain:
 		for {
 			select {
+			case message := <-instance.Writes():
+				checkBudget()
+				d.handleWrite(message)
 			case command := <-instance.Commands():
 				if !handleCommand(command) {
 					return
@@ -475,14 +482,6 @@ func (d *definition) handle(command *isolate.Command) error {
 		return d.handleVersion(command)
 	case workflow.OpScheduleActivity, workflow.OpAwaitActivity, workflow.OpCancelActivity:
 		return d.handleActivity(command)
-	case isolate.LogOp:
-		record, err := isolate.DecodeLog(command.Payload)
-		if err != nil {
-			return err
-		}
-		d.writeLog(record)
-		d.replyWhenSuspended(command, nil, nil)
-		return nil
 	case workflow.OpWorkflowCancel:
 		if d.cancelWaiter != nil {
 			return errors.New("duplicate workflow cancellation listener")
@@ -898,15 +897,17 @@ func (d *definition) Close() {
 		d.closed = true
 		d.retireOperations()
 		d.queryWaiter, d.queryHandlers, d.retainedCompletion = nil, nil, nil
-		d.resolveLogHandler = nil
 	}
 	if d.instance == nil {
+		d.resolveLogHandler = nil
 		d.env = nil
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 	d.closeErr = d.instance.Kill(ctx)
+	d.drainWrites(d.instance)
+	d.resolveLogHandler = nil
 	if d.closeErr == nil {
 		d.observeResources("closed", nil)
 	} else {

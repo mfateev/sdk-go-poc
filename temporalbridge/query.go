@@ -103,6 +103,7 @@ func (d *definition) runReadOnly(input workflow.QueryRequest) (*workflow.QueryRe
 	ctx, cancel := context.WithTimeout(context.Background(), deadline)
 	defer cancel()
 	instance := d.instance
+	defer d.drainWrites(instance)
 	var response *workflow.QueryResponse
 	for {
 		if err := instance.ResumeReadOnly(); err != nil {
@@ -139,6 +140,8 @@ func (d *definition) runReadOnly(input workflow.QueryRequest) (*workflow.QueryRe
 		waiting := true
 		for waiting {
 			select {
+			case message := <-instance.Writes():
+				d.handleWrite(message)
 			case command := <-instance.Commands():
 				handle(command)
 			case err := <-suspended:
@@ -155,6 +158,8 @@ func (d *definition) runReadOnly(input workflow.QueryRequest) (*workflow.QueryRe
 	drain:
 		for {
 			select {
+			case message := <-instance.Writes():
+				d.handleWrite(message)
 			case command := <-instance.Commands():
 				handle(command)
 			default:

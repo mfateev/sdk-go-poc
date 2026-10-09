@@ -54,13 +54,13 @@ func (e *logEnvironment) WorkflowInfo() *goWorkflow.Info {
 }
 func (e *logEnvironment) GetLogger() log.Logger { return e.logger }
 
-type recordingLogger struct{ records []string }
+type recordingLogger struct{ records, warnings []string }
 
 func (l *recordingLogger) Debug(string, ...any)      {}
 func (l *recordingLogger) Info(msg string, _ ...any) { l.records = append(l.records, msg) }
-func (l *recordingLogger) Warn(string, ...any)       {}
+func (l *recordingLogger) Warn(msg string, _ ...any) { l.warnings = append(l.warnings, msg) }
 func (l *recordingLogger) Error(string, ...any)      {}
-func TestLoggingUsesHostMetadataAndNilReply(t *testing.T) {
+func TestLoggingUsesHostMetadataWithoutReply(t *testing.T) {
 	env := &logEnvironment{}
 	var got []LogEvent
 	var handler LogHandler
@@ -69,13 +69,9 @@ func TestLoggingUsesHostMetadataAndNilReply(t *testing.T) {
 	handler = func(e LogEvent) { got = append(got, e) }
 	for _, replay := range []bool{false, true} {
 		env.replay = replay
-		c := &isolate.Command{Op: isolate.LogOp, Payload: append([]byte{0}, []byte("message")...)}
-		if err := d.handle(c); err != nil {
-			t.Fatal(err)
-		}
-		r := d.immediate[len(d.immediate)-1]
-		if r.command != c || r.payload != nil || r.err != nil {
-			t.Fatalf("logging reply: %+v", r)
+		d.handleWrite(&isolate.Message{Op: isolate.LogOp, Payload: append([]byte{0}, []byte("message")...)})
+		if len(d.immediate) != 0 || len(d.pending) != 0 {
+			t.Fatal("logging produced a reply")
 		}
 	}
 	if len(got) != 2 || got[0].Replay || !got[1].Replay || got[0].WorkflowID != "workflow-id" || got[0].RunID != "run-id" || got[0].WorkflowType != "Work" || got[0].Message != "message" {
@@ -87,5 +83,19 @@ func TestLoggingUsesHostMetadataAndNilReply(t *testing.T) {
 	d.writeLog(isolate.LogRecord{Source: "fmt", Message: "default"})
 	if len(logger.records) != 1 || logger.records[0] != "default" {
 		t.Fatalf("default logger: %+v", logger.records)
+	}
+}
+
+func TestLoggingFailuresRemainHostDiagnostics(t *testing.T) {
+	logger := &recordingLogger{}
+	env := &logEnvironment{logger: logger}
+	d := &definition{env: env, resolveLogHandler: func() LogHandler {
+		return func(LogEvent) { panic("backend unavailable") }
+	}}
+	d.handleWrite(&isolate.Message{Op: isolate.LogOp, Payload: []byte{0, 'x'}})
+	d.handleWrite(&isolate.Message{Op: isolate.LogOp, Payload: nil})
+	d.handleWrite(&isolate.Message{Op: 999})
+	if len(logger.warnings) != 3 || d.completed || d.closed || len(d.immediate) != 0 || len(d.pending) != 0 {
+		t.Fatalf("observations changed workflow state: warnings=%v completed=%v closed=%v", logger.warnings, d.completed, d.closed)
 	}
 }

@@ -28,14 +28,17 @@ in `example/apicoverage/testdata`. The observability work below remains planned.
 
 ## Observability follow-up
 
-Printing and standard logging already use copied host log messages. Worker log
+Printing and standard logging already use copied, one-way `isolate.Write` log messages. Worker log
 handlers receive execution identity and replay metadata; the default SDK logger
-suppresses replay output according to SDK configuration. Operational visibility
+suppresses replay output according to SDK configuration. Task/query fences and
+shutdown drain pending messages; no logging acknowledgment resumes workflow code.
+Operational visibility
 is feature 10 in the runtime productization plan.
 
 Add isolate-owned implementations of the regular SDK GetLogger and
-GetMetricsHandler interfaces. They serialize records to host-owned logger/metric
-backends. No backend object, network client or lock is shared with an isolate.
+GetMetricsHandler interfaces. They use dedicated byte encodings to send records to host-owned logger/metric
+backends, independently of Temporal DataConverter, payload codecs and encryption.
+No backend object, network client or lock is shared with an isolate.
 
 For tracing and application telemetry, consider the TypeScript SDK's sinks model:
 worker-registered host handlers, serialized one-way messages, no application

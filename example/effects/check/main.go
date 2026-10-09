@@ -28,13 +28,17 @@ type environment struct {
 	completes int
 	result    *commonpb.Payloads
 	err       error
+	query     func(string, *commonpb.Payloads, *commonpb.Header) (*commonpb.Payloads, error)
+	update    func(string, string, *commonpb.Payloads, *commonpb.Header, bindings.UpdateCallbacks)
+	signal    func(string, *commonpb.Payloads, *commonpb.Header) error
 }
 
 func (e *environment) GetDataConverter() converter.DataConverter {
 	return converter.GetDefaultDataConverter()
 }
 func (e *environment) RegisterCancelHandler(func()) {}
-func (e *environment) RegisterSignalHandler(func(string, *commonpb.Payloads, *commonpb.Header) error) {
+func (e *environment) RegisterSignalHandler(handler func(string, *commonpb.Payloads, *commonpb.Header) error) {
+	e.signal = handler
 }
 func (e *environment) Now() time.Time { return time.Date(2025, 1, 2, 0, 0, 0, 0, time.UTC) }
 func (e *environment) WorkflowInfo() *sdkwf.Info {
@@ -147,6 +151,7 @@ func main() {
 	if err != nil || string(data) != "host" {
 		panic("forbidden external effect occurred")
 	}
+	checkReadOnlyLogging()
 	if len(os.Args) == 3 && os.Args[1] == "live" {
 		if err := checkLiveServer(os.Args[2]); err != nil {
 			panic(err)
@@ -167,7 +172,78 @@ func history(mode string) *historypb.History {
 	}}
 }
 
-func (*environment) RegisterUpdateHandler(func(string, string, *commonpb.Payloads, *commonpb.Header, bindings.UpdateCallbacks)) {
+func (e *environment) RegisterUpdateHandler(handler func(string, string, *commonpb.Payloads, *commonpb.Header, bindings.UpdateCallbacks)) {
+	e.update = handler
 }
-func (*environment) RegisterQueryHandler(func(string, *commonpb.Payloads, *commonpb.Header) (*commonpb.Payloads, error)) {
+func (e *environment) RegisterQueryHandler(handler func(string, *commonpb.Payloads, *commonpb.Header) (*commonpb.Payloads, error)) {
+	e.query = handler
+}
+
+type logUpdateOutcome struct {
+	accepted, completed bool
+	err                 error
+}
+
+func (o *logUpdateOutcome) Accept()                   { o.accepted = true }
+func (o *logUpdateOutcome) Reject(err error)          { o.err = err }
+func (o *logUpdateOutcome) Complete(_ any, err error) { o.completed, o.err = true, err }
+
+func checkReadOnlyLogging() {
+	registration := &registrations{}
+	w := worker.Wrap(registration)
+	w.RegisterWorkflow(effects.ReadOnlyLoggingWorkflow)
+	var logs []worker.LogEvent
+	if err := worker.SetIsolateLogHandler(w, func(event worker.LogEvent) { logs = append(logs, event) }); err != nil {
+		panic(err)
+	}
+	env := &environment{}
+	d := registration.factory.NewWorkflowDefinition()
+	defer d.Close()
+	d.Execute(env, nil, nil)
+	d.OnWorkflowTaskStarted(5 * time.Second)
+	if len(logs) != 1 {
+		panic("initializer log not drained")
+	}
+	checkQuery := func(expected int) {
+		before := len(logs)
+		result, err := env.query("logs", nil, nil)
+		if err != nil {
+			panic(err)
+		}
+		var got int
+		if err := env.GetDataConverter().FromPayloads(result, &got); err != nil || got != expected {
+			panic("logging changed query result")
+		}
+		checkObservationSources(logs[before:], "query")
+	}
+	checkQuery(0)
+	before := len(logs)
+	outcome := new(logUpdateOutcome)
+	env.update("bump", "update-id", nil, nil, outcome)
+	d.OnWorkflowTaskStarted(5 * time.Second)
+	if !outcome.accepted || !outcome.completed || outcome.err != nil {
+		panic(fmt.Sprintf("logging changed update outcome: %+v", outcome))
+	}
+	checkObservationSources(logs[before:], "validator")
+	checkQuery(1)
+	before = len(logs)
+	if err := env.signal("finish", nil, nil); err != nil {
+		panic(err)
+	}
+	d.OnWorkflowTaskStarted(5 * time.Second)
+	if env.completes != 1 || env.err != nil || len(logs) != before+1 || logs[before].Message != "final" {
+		panic("final log lost before completion")
+	}
+	checkQuery(1) // Completed query state can still emit observations.
+}
+
+func checkObservationSources(records []worker.LogEvent, message string) {
+	if len(records) != 4 {
+		panic(fmt.Sprintf("read-only logs=%d, want four sources", len(records)))
+	}
+	for index, source := range []string{"fmt", "log", "slog", "builtin"} {
+		if records[index].Source != source || !strings.Contains(records[index].Message, message) {
+			panic("read-only logging source or message lost")
+		}
+	}
 }

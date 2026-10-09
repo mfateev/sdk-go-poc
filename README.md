@@ -512,7 +512,7 @@ existing worker, pass its original options to `worker.Wrap(existing, options)`.
 Direct `temporalbridge.Factory` users must configure `BlockWorkflow` themselves.
 
 `fmt.Print*`, standard `log`, `slog` and Go's `print`/`println` format inside the
-isolate and send copied records through the reserved logging Call. Initializer
+isolate and send copied records through the reserved logging Write. Initializer
 logs use the same transport. The default host handler uses the SDK logger and
 honors `EnableLoggingInReplay`. Configure a worker or replayer with:
 
@@ -532,7 +532,13 @@ w.RegisterWorkflow(MyWorkflow)
 ```
 
 The handler stays on the host. Its errors/configuration are never returned to
-workflow code; printing returns the formatted byte count and nil after delivery.
+workflow code; printing returns the formatted byte count and nil without waiting
+for receipt or acknowledgment. Delivery is best effort: the runtime queues at
+most 64 records, and drops records whose encoded payload exceeds 64 KiB or whose
+queue is full. Startup, task/query fences and shutdown drain queued records.
+The handler executes on the SDK host thread so replay filtering uses the correct
+task metadata; remote handlers should enqueue to their own bounded exporter.
+Handler panics produce host diagnostics and do not fail the workflow task.
 A nil handler restores SDK logging. Workflow-local buffers and explicitly
 constructed local loggers remain available. Host workflows and activities keep
 ordinary Go printing, logging and I/O behavior.

@@ -14,6 +14,9 @@ type LogHandler = temporalbridge.LogHandler
 // worker or replayer. It may be called before or after registration. A nil handler
 // restores the SDK logger, including its EnableLoggingInReplay setting.
 // A custom handler receives replay records too; inspect LogEvent.Replay to filter.
+// Delivery uses best-effort one-way Write without acknowledgment. Handlers run
+// on the SDK host thread; remote backends should enqueue to an exporter.
+// Handler panics are diagnosed on the host and do not fail workflow tasks.
 func SetIsolateLogHandler(w any, handler LogHandler) error {
 	var config *logConfiguration
 	switch w := w.(type) {

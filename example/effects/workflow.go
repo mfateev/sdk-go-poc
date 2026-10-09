@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/mfateev/sdk-go-poc/workflow"
 	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
@@ -25,6 +26,36 @@ func EffectsWorkflow(_ context.Context, mode string) (string, error) {
 		mutateMetadata()
 	}
 	return "logged", nil
+}
+
+//go:isolate
+func ReadOnlyLoggingWorkflow(ctx context.Context) (int, error) {
+	count := 0
+	if err := workflow.SetQueryHandler(ctx, "logs", func() (int, error) {
+		observe("query")
+		return count, nil
+	}); err != nil {
+		return 0, err
+	}
+	if err := workflow.SetUpdateHandlerWithOptions(ctx, "bump", func(context.Context) error {
+		count++
+		return nil
+	}, workflow.UpdateHandlerOptions{Validator: func(context.Context) error {
+		observe("validator")
+		return nil
+	}}); err != nil {
+		return 0, err
+	}
+	<-workflow.GetSignalChannel(ctx, "finish")
+	fmt.Print("final")
+	return count, nil
+}
+
+func observe(message string) {
+	fmt.Print(message)
+	log.Print(message)
+	slog.Info(message)
+	println(message)
 }
 func writeFile() {
 	defer func() {
