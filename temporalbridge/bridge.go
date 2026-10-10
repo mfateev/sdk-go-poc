@@ -219,7 +219,7 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 	if !d.started {
 		d.started = true
 		var err error
-		d.instance, err = isolate.NewContext(taskContext, isolate.Config{Program: d.program, Deterministic: true, InitialTime: &now, TimerOp: workflow.OpSleep, LogHandler: d.writeLog, ResourceLimits: d.resources.Limits})
+		d.instance, err = isolate.NewContext(taskContext, isolate.Config{Program: d.program, Deterministic: true, RandomSeed: workflowRandomSeed(d.env.WorkflowInfo()), InitialTime: &now, TimerOp: workflow.OpSleep, LogHandler: d.writeLog, ResourceLimits: d.resources.Limits})
 		if err == nil {
 			err = d.instance.Start()
 		}

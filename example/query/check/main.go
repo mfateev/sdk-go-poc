@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"isolate"
 	"runtime"
+	"slices"
 	"strings"
 	"time"
 
@@ -95,8 +96,8 @@ func run() {
 	if !ok {
 		panic("missing marked workflow")
 	}
-	definitions := make([]bindings.WorkflowDefinition, 2)
-	envs := make([]*environment, 2)
+	definitions := make([]bindings.WorkflowDefinition, 3)
+	envs := make([]*environment, 3)
 	for i := range envs {
 		e := &environment{now: time.Date(2025, 1, 2, 0, 0, 0, 0, time.UTC)}
 		d := (temporalbridge.Factory{Function: h}).NewWorkflowDefinition()
@@ -109,34 +110,39 @@ func run() {
 			panic("query workflow did not suspend")
 		}
 	}
+	var baselineRandom []uint64
 	for i, e := range envs {
-		e.queryState(10 + i)
-		ready, err := e.query("ready", nil, nil)
-		check(err)
-		var isReady bool
-		check(e.GetDataConverter().FromPayloads(ready, &isReady))
-		if !isReady {
-			panic("query could not inspect future readiness")
-		}
-		for range 4 {
-			_, err := e.query("random", nil, nil)
+		// The first instance receives no queries while running. Compare its
+		// workflow draws with instances subjected to valid and invalid queries.
+		if i != 0 {
+			e.queryState(10 + i)
+			ready, err := e.query("ready", nil, nil)
 			check(err)
-		}
-		for _, mode := range []string{"exit", "goexit", "environment", "mutex", "waitgroup", "cond", "field", "map", "delete", "clear", "slice", "copy", "package", "atomic", "reflect", "callback", "error-callback", "goroutine", "channel", "select", "activity", "child", "timer", "raw", "panic", "error"} {
-			input, err := e.GetDataConverter().ToPayloads(mode)
-			check(err)
-			if _, err := e.query("bad", input, nil); err == nil {
-				panic("query mutation accepted: " + mode)
+			var isReady bool
+			check(e.GetDataConverter().FromPayloads(ready, &isReady))
+			if !isReady {
+				panic("query could not inspect future readiness")
+			}
+			for range 4 {
+				_, err := e.query("random", nil, nil)
+				check(err)
+			}
+			for _, mode := range []string{"exit", "goexit", "environment", "mutex", "waitgroup", "cond", "field", "map", "delete", "clear", "slice", "copy", "package", "atomic", "reflect", "callback", "error-callback", "goroutine", "channel", "select", "activity", "child", "timer", "raw", "panic", "error"} {
+				input, err := e.GetDataConverter().ToPayloads(mode)
+				check(err)
+				if _, err := e.query("bad", input, nil); err == nil {
+					panic("query mutation accepted: " + mode)
+				}
+				e.queryState(10 + i)
+			}
+			if _, err := e.query("unknown", nil, nil); err == nil || !strings.Contains(err.Error(), "KnownQueryTypes") {
+				panic("unknown query accepted")
+			}
+			if _, err := e.query("state", nil, nil); err == nil {
+				panic("missing arguments accepted")
 			}
 			e.queryState(10 + i)
 		}
-		if _, err := e.query("unknown", nil, nil); err == nil || !strings.Contains(err.Error(), "KnownQueryTypes") {
-			panic("unknown query accepted")
-		}
-		if _, err := e.query("state", nil, nil); err == nil {
-			panic("missing arguments accepted")
-		}
-		e.queryState(10 + i)
 		e.now = e.now.Add(time.Minute)
 		e.timer(nil, nil)
 		definitions[i].OnWorkflowTaskStarted(5 * time.Second)
@@ -148,6 +154,18 @@ func run() {
 		check(e.GetDataConverter().FromPayloads(e.result, &result))
 		if result != 11+i {
 			panic("wrong completion")
+		}
+		snapshot, err := e.query("random-state", nil, nil)
+		check(err)
+		var draws []uint64
+		check(e.GetDataConverter().FromPayloads(snapshot, &draws))
+		if len(draws) != 2 || draws[0] == draws[1] {
+			panic("workflow random stream did not advance")
+		}
+		if baselineRandom == nil {
+			baselineRandom = draws
+		} else if !slices.Equal(draws, baselineRandom) {
+			panic("queries changed workflow random stream")
 		}
 		for range 8 {
 			e.queryState(11 + i)

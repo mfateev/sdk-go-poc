@@ -9,6 +9,50 @@ Its activity input and result retain the full trace. The runtime's deterministic
 default time zone is UTC. Named time-zone database lookups are rejected;
 explicit fixed zones or supplied zone data remain valid.
 
+### Deterministic randomness and security
+
+Inside deterministic isolates, `crypto/rand.Read`, the default `crypto/rand.Reader`,
+`crypto/rand.Int` and `crypto/rand.Text` use a replay-seeded ChaCha8 stream.
+Top-level `math/rand`, `math/rand/v2` and native `select` shuffle decisions share
+that stream. Calls consume it in deterministic dispatch order; a select can
+therefore change the bytes returned by a later random call. Explicitly created
+random generators keep their own supplied seeds. Map hashing keeps Go's internal
+entropy, while supported map iteration uses canonical key order.
+
+The Temporal host derives the seed from the original run ID recorded in history,
+before package initialization. The same run reproduces its bytes after eviction
+or replay; distinct run identities get different seeds.
+UUID v4 generation, including `github.com/google/uuid`, can use the default reader
+inside workflows. Queries and update validators use scratch random state and
+cannot advance the workflow stream. Their generated IDs are not guaranteed unique
+across requests. Outside isolates, `crypto/rand` retains normal OS randomness.
+
+**Security:** isolate random bytes are predictable because the seed is derived
+from public execution identifiers. They are suitable for replay-stable IDs, but
+must not be used for encryption keys, authentication tokens, passwords, secret
+material, or encryption nonces requiring freshness across replays. They provide
+no cryptographic entropy or FIPS security guarantee, despite the `crypto/rand`
+API names. Generate secrets and perform encryption in host activities or host
+codecs, where normal cryptographic randomness remains available. Cryptographic
+key generation and `crypto/rand.Prime` remain unsupported inside isolates.
+
+Hosts using isolates directly can supply `isolate.Config.RandomSeed` (32 bytes).
+Its default is all zeros: two instances with the same seed and call sequence
+produce identical bytes, so hosts generating IDs must supply a distinct,
+replay-stable execution seed. This POC's shared stream replaces its earlier
+independent random/select sequences; earlier recorded sequences are incompatible.
+
+`example/random.RandomWorkflow` exercises UUID v4, pooled UUID generation,
+`crypto/rand`, both math/rand APIs and select before and after an activity wait.
+Its checker validates the recorded completion as well as query isolation,
+eviction and GOMAXPROCS 1/2/8 in fresh processes:
+
+```sh
+../golang-go/bin/go test ./example/random/check
+../golang-go/bin/go build -o /tmp/isolate-random-check ./example/random/check
+/tmp/isolate-random-check -history example/random/testdata/history.json
+```
+
 Build the checker with the custom toolchain and replay the saved history in
 fresh processes from this repository:
 
@@ -33,6 +77,9 @@ result; the checker also compares every completion observation against history.
 This is necessary because Temporal's SDK replay checks do not compare activity
 input payloads. A negative test corrupts both recorded results and verifies that
 replay still rejects the changed trace.
+The current shared-stream baseline is `history-shared-random.json`. The earlier
+`history.json` is retained, and a negative test confirms its independent-stream
+observations are incompatible with this deliberate POC change.
 The compiler repository's `isolate-determinism.yml` runs the
 same fixture on native Linux and macOS arm64/amd64, alongside runtime/compiler,
 SDK/sample, and repeated race tests. A fixture must be kept when runtime behavior
@@ -128,8 +175,8 @@ host and depends on the pinned Temporal Go SDK. The adapter enables
 `isolate.Config.Deterministic`: native goroutines share a FIFO execution token,
 select polling is reproducible, and string/integer map range is canonical.
 An exact suspend fence batches history replies and services all concurrent
-commands before ending each workflow task. Unsupported map key kinds,
-`sync.Map.Range`, and `iter.Pull` fail closed in this mode. General I/O
+commands before ending each workflow task. Unsupported map key kinds fail
+closed; supported `sync.Map.Range` keys and `iter.Pull` are deterministic. General I/O
 containment and native cross-architecture replay remain release work.
 
 The driver includes two concurrent activity result channels, a native timer,

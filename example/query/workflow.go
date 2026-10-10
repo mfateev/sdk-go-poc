@@ -37,6 +37,7 @@ func (v callbackError) Error() string { v.state.Count = 999; return "invalid" }
 //go:isolate
 func QueryWorkflow(ctx context.Context, initial int) (int, error) {
 	before := randv2.Uint64()
+	randomState := []uint64{before}
 	state := &State{Count: initial, Bytes: []byte{7}, Values: map[string]int{"count": initial}}
 	state.Atomic.Store(int64(initial))
 	packageCount = initial
@@ -62,6 +63,11 @@ func QueryWorkflow(ctx context.Context, initial int) (int, error) {
 	if err := workflow.SetQueryHandler(ctx, "random", func() ([]uint64, error) { return []uint64{randv2.Uint64(), uint64(rand.Int63())}, nil }); err != nil {
 		return 0, err
 	}
+	if err := workflow.SetQueryHandler(ctx, "random-state", func() ([]uint64, error) {
+		return append([]uint64(nil), randomState...), nil
+	}); err != nil {
+		return 0, err
+	}
 	timer := time.NewTimer(time.Minute)
 	defer timer.Stop()
 	signals := workflow.GetSignalChannel(ctx, "finish")
@@ -70,9 +76,7 @@ func QueryWorkflow(ctx context.Context, initial int) (int, error) {
 	case <-signals:
 	}
 	after := randv2.Uint64()
-	if before != 0xe220a8397b1dcdaf || after != 0x6e789e6aa1b965f4 {
-		return 0, errors.New("random stream stalled")
-	}
+	randomState = append(randomState, after)
 	// Reading a query must not change ordinary workflow dispatch or memory.
 	if state.Count != initial || state.Values["count"] != initial || state.Bytes[0] != 7 || packageCount != initial || state.Atomic.Load() != int64(initial) {
 		return 0, errors.New("query mutated state")

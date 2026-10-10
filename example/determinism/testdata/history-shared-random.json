@@ -1,0 +1,296 @@
+{
+  "events": [
+    {
+      "eventId": "1",
+      "eventTime": "2026-10-10T00:49:47.239375631Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED",
+      "taskId": "1048664",
+      "workflowExecutionStartedEventAttributes": {
+        "workflowType": {
+          "name": "DeterminismWorkflow"
+        },
+        "taskQueue": {
+          "name": "isolate-poc",
+          "kind": "TASK_QUEUE_KIND_NORMAL"
+        },
+        "input": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "OA=="
+            }
+          ]
+        },
+        "workflowExecutionTimeout": "30s",
+        "workflowRunTimeout": "30s",
+        "workflowTaskTimeout": "10s",
+        "originalExecutionRunId": "01a12349-94e7-75b8-b2cf-245ed4bc841e",
+        "identity": "temporal-cli:dev@modify-go-runtime-for-isolates",
+        "firstExecutionRunId": "01a12349-94e7-75b8-b2cf-245ed4bc841e",
+        "attempt": 1,
+        "workflowExecutionExpirationTime": "2026-10-10T00:50:17.239Z",
+        "firstWorkflowTaskBackoff": "0s",
+        "header": {},
+        "workflowId": "isolate-shared-random-determinism-final-20261010"
+      }
+    },
+    {
+      "eventId": "2",
+      "eventTime": "2026-10-10T00:49:47.239462214Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId": "1048665",
+      "workflowTaskScheduledEventAttributes": {
+        "taskQueue": {
+          "name": "isolate-poc",
+          "kind": "TASK_QUEUE_KIND_NORMAL"
+        },
+        "startToCloseTimeout": "10s",
+        "attempt": 1
+      }
+    },
+    {
+      "eventId": "3",
+      "eventTime": "2026-10-10T00:49:47.253485214Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId": "1048678",
+      "workflowTaskStartedEventAttributes": {
+        "scheduledEventId": "2",
+        "identity": "27757@modify-go-runtime-for-isolates@",
+        "requestId": "37b82007-8e7a-419c-b615-383db970364d",
+        "historySizeBytes": "358",
+        "workerVersion": {
+          "buildId": "5dd1755746aec63106241b489b24db52"
+        }
+      }
+    },
+    {
+      "eventId": "4",
+      "eventTime": "2026-10-10T00:49:47.282313798Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId": "1048686",
+      "workflowTaskCompletedEventAttributes": {
+        "scheduledEventId": "2",
+        "startedEventId": "3",
+        "identity": "27757@modify-go-runtime-for-isolates@",
+        "workerVersion": {
+          "buildId": "5dd1755746aec63106241b489b24db52"
+        },
+        "sdkMetadata": {
+          "langUsedFlags": [
+            3
+          ],
+          "sdkName": "temporal-go",
+          "sdkVersion": "1.49.0"
+        },
+        "meteringMetadata": {}
+      }
+    },
+    {
+      "eventId": "5",
+      "eventTime": "2026-10-10T00:49:47.282342173Z",
+      "eventType": "EVENT_TYPE_TIMER_STARTED",
+      "taskId": "1048687",
+      "timerStartedEventAttributes": {
+        "timerId": "5",
+        "startToFireTimeout": "1s",
+        "workflowTaskCompletedEventId": "4"
+      }
+    },
+    {
+      "eventId": "6",
+      "eventTime": "2026-10-10T00:49:48.289163006Z",
+      "eventType": "EVENT_TYPE_TIMER_FIRED",
+      "taskId": "1048712",
+      "timerFiredEventAttributes": {
+        "timerId": "5",
+        "startedEventId": "5"
+      }
+    },
+    {
+      "eventId": "7",
+      "eventTime": "2026-10-10T00:49:48.289202881Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId": "1048713",
+      "workflowTaskScheduledEventAttributes": {
+        "taskQueue": {
+          "name": "modify-go-runtime-for-isolates:e2b59155-b283-4666-92fe-310117ec1b29",
+          "kind": "TASK_QUEUE_KIND_STICKY",
+          "normalName": "isolate-poc"
+        },
+        "startToCloseTimeout": "10s",
+        "attempt": 1
+      }
+    },
+    {
+      "eventId": "8",
+      "eventTime": "2026-10-10T00:49:48.319262340Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId": "1048717",
+      "workflowTaskStartedEventAttributes": {
+        "scheduledEventId": "7",
+        "identity": "27757@modify-go-runtime-for-isolates@",
+        "requestId": "33761bf5-9cd7-4edd-bfb0-656bc607b49e",
+        "historySizeBytes": "822",
+        "workerVersion": {
+          "buildId": "5dd1755746aec63106241b489b24db52"
+        }
+      }
+    },
+    {
+      "eventId": "9",
+      "eventTime": "2026-10-10T00:49:48.335586131Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId": "1048722",
+      "workflowTaskCompletedEventAttributes": {
+        "scheduledEventId": "7",
+        "startedEventId": "8",
+        "identity": "27757@modify-go-runtime-for-isolates@",
+        "workerVersion": {
+          "buildId": "5dd1755746aec63106241b489b24db52"
+        },
+        "sdkMetadata": {},
+        "meteringMetadata": {}
+      }
+    },
+    {
+      "eventId": "10",
+      "eventTime": "2026-10-10T00:49:48.335632173Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED",
+      "taskId": "1048723",
+      "activityTaskScheduledEventAttributes": {
+        "activityId": "10",
+        "activityType": {
+          "name": "RecordTrace"
+        },
+        "taskQueue": {
+          "name": "isolate-poc",
+          "kind": "TASK_QUEUE_KIND_NORMAL"
+        },
+        "input": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "WyJzdGFydDoyMDI2LTEwLTEwVDAwOjQ5OjQ3LjI1MzQ4NTIxNFoiLCJtYXA6MDotMTptaW51cyIsIm1hcDowOjA6emVybyIsIm1hcDowOjI6dHdvIiwic3luYy1tYXA6MDphOmEiLCJzeW5jLW1hcDowOm06bSIsInN5bmMtbWFwOjA6ejp6IiwibWFwOjE6LTE6bWludXMiLCJtYXA6MTowOnplcm8iLCJtYXA6MToyOnR3byIsInN5bmMtbWFwOjE6YTphIiwic3luYy1tYXA6MTptOm0iLCJzeW5jLW1hcDoxOno6eiIsIm1hcDoyOi0xOm1pbnVzIiwibWFwOjI6MDp6ZXJvIiwibWFwOjI6Mjp0d28iLCJzeW5jLW1hcDoyOmE6YSIsInN5bmMtbWFwOjI6bTptIiwic3luYy1tYXA6Mjp6OnoiLCJtYXA6MzotMTptaW51cyIsIm1hcDozOjA6emVybyIsIm1hcDozOjI6dHdvIiwic3luYy1tYXA6MzphOmEiLCJzeW5jLW1hcDozOm06bSIsInN5bmMtbWFwOjM6ejp6IiwibWFwOjQ6LTE6bWludXMiLCJtYXA6NDowOnplcm8iLCJtYXA6NDoyOnR3byIsInN5bmMtbWFwOjQ6YTphIiwic3luYy1tYXA6NDptOm0iLCJzeW5jLW1hcDo0Ono6eiIsIm1hcDo1Oi0xOm1pbnVzIiwibWFwOjU6MDp6ZXJvIiwibWFwOjU6Mjp0d28iLCJzeW5jLW1hcDo1OmE6YSIsInN5bmMtbWFwOjU6bTptIiwic3luYy1tYXA6NTp6OnoiLCJtYXA6NjotMTptaW51cyIsIm1hcDo2OjA6emVybyIsIm1hcDo2OjI6dHdvIiwic3luYy1tYXA6NjphOmEiLCJzeW5jLW1hcDo2Om06bSIsInN5bmMtbWFwOjY6ejp6IiwibWFwOjc6LTE6bWludXMiLCJtYXA6NzowOnplcm8iLCJtYXA6NzoyOnR3byIsInN5bmMtbWFwOjc6YTphIiwic3luYy1tYXA6NzptOm0iLCJzeW5jLW1hcDo3Ono6eiIsInByb2R1Y2U6MDowIiwicHJvZHVjZToxOjAiLCJwcm9kdWNlOjI6MCIsInByb2R1Y2U6MzowIiwicHJvZHVjZTo0OjAiLCJwcm9kdWNlOjU6MCIsInByb2R1Y2U6NjowIiwicHJvZHVjZTo3OjAiLCJjb25zdW1lOjA6MDpkOGFhMTk4MTdiODA4NjcwOmNmNjEzNmU4N2IyNTA0MGMiLCJjb25zdW1lOjE6MDpjNTM0ZWE4ZmJjNjAxOWYyOmMxNmY5Y2NlY2IwMzEwNzAiLCJjb25zdW1lOjI6MDo3NmEzMTZkNTY4ODg3MTk1OmNhZWIzOWQzYmM1ZDUyYjgiLCJjb25zdW1lOjM6MDo4NmVjYjQyMThhNjhmNDIxOmY0MWY0M2M1NGFmZWMxMDQiLCJjb25zdW1lOjQ6MDo3NTc3MDVjMGVlYTdiYTFlOmEwM2IzMzhhNjk0NDIwYmEiLCJjb25zdW1lOjU6MDo0Y2UyY2QyY2IwYTI1MzU6YmUyZmYwYjhhNTczNGE4OSIsImNvbnN1bWU6NjowOjczOWZiNjU5ZThhZDk0NzM6MTg5ZjUxYjhlNWMwOTAyYiIsImNvbnN1bWU6NzowOjMxNDM5OGU4YWJiNTkyOWQ6YjY3MjJlNjcyOTM1NmQ1ZiIsInByb2R1Y2U6MDoxIiwicHJvZHVjZToxOjEiLCJwcm9kdWNlOjI6MSIsInByb2R1Y2U6MzoxIiwicHJvZHVjZTo0OjEiLCJwcm9kdWNlOjU6MSIsInByb2R1Y2U6NjoxIiwicHJvZHVjZTo3OjEiLCJjb25zdW1lOjA6MTo5MWFlOTA3MjZhZGJhZDc6ZTg1ODY4Y2FhYjBlOWVkMyIsImNvbnN1bWU6MToxOjZhMmUzZmE1NWQxYzdjNjc6MjYyZTU4MWY0YjQ5ZWNkYSIsImNvbnN1bWU6MjoxOjk3ZjA3ODkwZjY5YWU2Y2Y6NDE1NTQxZDkyMmEwNDg1OCIsImNvbnN1bWU6MzoxOjE0YTQ5ZjQxMzlhMjE4YWQ6OGQyZTZkMmM3YWRkMDgxOCIsImNvbnN1bWU6NDoxOjMwYWQ0M2RjYjYzYzRkODM6YjIyOGQ1OTQyMTkxYzRiOCIsImNvbnN1bWU6NToxOjkyZTg0YzQyZjU4NWM5OTE6MjU3OGM0MDQ1ZGMyMWNhNCIsImNvbnN1bWU6NjoxOjc5ZmZjNzllNTNhZDk5ZTk6NjBlMTJkNDk2OWFkNzE4OCIsImNvbnN1bWU6NzoxOjlkODdkOGU0MWY0Mjc4Ojg5YWM1ZTcxM2EzYWFiNDgiLCJwcm9kdWNlOjA6MiIsInByb2R1Y2U6MToyIiwicHJvZHVjZToyOjIiLCJwcm9kdWNlOjM6MiIsInByb2R1Y2U6NDoyIiwicHJvZHVjZTo1OjIiLCJwcm9kdWNlOjY6MiIsInByb2R1Y2U6NzoyIiwiY29uc3VtZTowOjI6YTRkZmM4NDgxZmFlMDdiNjo2YWUzYTdmODRmODA0MDk3IiwiY29uc3VtZToxOjI6NmM4Y2Q3NGE3MWZmM2NhYTpkZWIyOTcyZDg0YzA3MjA5IiwiY29uc3VtZToyOjI6NjBhMWM3ZDE2MTY5NWE5OmE1NjNlYWU4MzExY2JlMzAiLCJjb25zdW1lOjM6MjoyZDI3NDk1YmI4ODYzNzA1OmYxZDg3Njc1YmQ1N2M3MGIiLCJjb25zdW1lOjQ6MjoxYmIwNTZjM2E1MDBkNGE6YmQ3NTFkZTRiMGQwMzk0OCIsImNvbnN1bWU6NToyOmI0OWU2MjNmNTU2OWRlZTM6YjRiNWU5NjE3Mjc2MTk0OCIsImNvbnN1bWU6NjoyOmUyNmQzNzQ2ZDZhYjM5YWE6OWQ2YjkwMmE5ODQwZTRjNSIsImNvbnN1bWU6NzoyOjc2YjdjNGZlZGRmYjEzM2I6NGJhZmI2NmNkMTdiZjRhZSIsInByb2R1Y2U6MDozIiwicHJvZHVjZToxOjMiLCJwcm9kdWNlOjI6MyIsInByb2R1Y2U6MzozIiwicHJvZHVjZTo0OjMiLCJwcm9kdWNlOjU6MyIsInByb2R1Y2U6NjozIiwicHJvZHVjZTo3OjMiLCJjb25zdW1lOjA6MzoxMWY0ODNiNjMzM2IyNGFhOjlhMTlhNDU5YjQwOTFmYzUiLCJjb25zdW1lOjE6Mzo0OWZhYjFjZmY3NjJlZTY1Ojg3MTY2MjZlMmU1NDRhYzEiLCJjb25zdW1lOjI6MzpkNmRmOTVjMTYxMDllNmFhOmI2ODNjNTFlOTNhMjUwOTAiLCJjb25zdW1lOjM6MzoxMWQyZWVkZDVlOWIzNWVjOmNhZDNhMTlmZGU1NzUzZjciLCJjb25zdW1lOjQ6Mzo4NzI2NmZiZWQ0YWEyNDRkOmJiMWE5OTZhOTg0ZGUxYWMiLCJjb25zdW1lOjU6Mzo5ZjI5MTVkNWM4ODQ4YTc2OmJmOTRmNGQyMTFlODUwODYiLCJjb25zdW1lOjY6Mzo5NzQ3YmI2MmJkODdmNjM3OjU2MTgwMzM5YWE3YzhlMTkiLCJjb25zdW1lOjc6MzpjMWU5MWIyZDZlNGZmMjZkOmMyNDljMWY4OTUyNWUxYTIiLCJzZWxlY3Q6MDoxOjEiLCJzZWxlY3Q6MDowOjEiLCJzZWxlY3Q6MDoxOjEiLCJzZWxlY3Q6MDoxOjEiLCJzZWxlY3Q6MDowOjAiLCJzZWxlY3Q6MDoxOjAiLCJzZWxlY3Q6MDoyOjEiLCJzZWxlY3Q6MDoxOjAiLCJzZWxlY3Q6MToxOjAiLCJzZWxlY3Q6MToyOjEiLCJzZWxlY3Q6MTowOjEiLCJzZWxlY3Q6MToxOjEiLCJzZWxlY3Q6MToyOjAiLCJzZWxlY3Q6MToyOjAiLCJzZWxlY3Q6MToyOjEiLCJzZWxlY3Q6MTowOjAiLCJzZWxlY3Q6MjowOjAiLCJzZWxlY3Q6MjoyOjAiLCJzZWxlY3Q6MjoxOjEiLCJzZWxlY3Q6MjoxOjEiLCJzZWxlY3Q6MjoyOjEiLCJzZWxlY3Q6MjoxOjAiLCJzZWxlY3Q6MjoyOjAiLCJzZWxlY3Q6MjoxOjAiLCJzZWxlY3Q6MzoxOjAiLCJzZWxlY3Q6MzoxOjEiLCJzZWxlY3Q6MzowOjAiLCJzZWxlY3Q6MzowOjEiLCJzZWxlY3Q6MzowOjEiLCJzZWxlY3Q6MzowOjAiLCJzZWxlY3Q6MzoyOjAiLCJzZWxlY3Q6MzowOjEiLCJzZWxlY3Q6NDowOjEiLCJzZWxlY3Q6NDoyOjEiLCJzZWxlY3Q6NDowOjEiLCJzZWxlY3Q6NDoxOjAiLCJzZWxlY3Q6NDoyOjAiLCJzZWxlY3Q6NDoyOjEiLCJzZWxlY3Q6NDowOjEiLCJzZWxlY3Q6NDoxOjEiLCJzZWxlY3Q6NToxOjEiLCJzZWxlY3Q6NToyOjEiLCJzZWxlY3Q6NToxOjAiLCJzZWxlY3Q6NToyOjEiLCJzZWxlY3Q6NToyOjEiLCJzZWxlY3Q6NToxOjAiLCJzZWxlY3Q6NToxOjEiLCJzZWxlY3Q6NTowOjEiLCJzZWxlY3Q6NjowOjEiLCJzZWxlY3Q6NjoyOjEiLCJzZWxlY3Q6NjowOjEiLCJzZWxlY3Q6NjoyOjAiLCJzZWxlY3Q6NjoyOjEiLCJzZWxlY3Q6NjowOjAiLCJzZWxlY3Q6NjowOjEiLCJzZWxlY3Q6NjoyOjEiLCJzZWxlY3Q6NzowOjAiLCJzZWxlY3Q6NzoyOjAiLCJzZWxlY3Q6NzoxOjEiLCJzZWxlY3Q6NzoxOjAiLCJzZWxlY3Q6NzoyOjAiLCJzZWxlY3Q6NzowOjAiLCJzZWxlY3Q6NzowOjEiLCJzZWxlY3Q6NzowOjAiLCJkaXN0cmlidXRpb25zOjlmZmQwNmYxNWMyM2EwYzE1ZDczNjE3YzBmMjBkNmQ2YmUwYjhlMjE4OTEzZTIyM2UwOWI5MmZmYzM0ODYyY2UiLCJjYW5jZWw6MCIsImNhbmNlbDoxIiwiY2FuY2VsOjIiLCJjYW5jZWw6MyIsImNhbmNlbDo0IiwiY2FuY2VsOjUiLCJjYW5jZWw6NiIsImNhbmNlbDo3IiwiY2FuY2VsOjgiLCJjYW5jZWw6OSIsImNhbmNlbDoxMCIsImNhbmNlbDoxMSIsImNhbmNlbDoxMiIsImNhbmNlbDoxMyIsImNhbmNlbDoxNCIsImNhbmNlbDoxNSIsImZpbmlzaDoyMDI2LTEwLTEwVDAwOjQ5OjQ4LjMxOTI2MjM0WiJd"
+            }
+          ]
+        },
+        "scheduleToCloseTimeout": "30s",
+        "scheduleToStartTimeout": "30s",
+        "startToCloseTimeout": "30s",
+        "heartbeatTimeout": "0s",
+        "workflowTaskCompletedEventId": "9",
+        "retryPolicy": {
+          "initialInterval": "1s",
+          "backoffCoefficient": 2,
+          "maximumInterval": "100s"
+        },
+        "useWorkflowBuildId": true
+      }
+    },
+    {
+      "eventId": "11",
+      "eventTime": "2026-10-10T00:49:48.335655798Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_STARTED",
+      "taskId": "1048725",
+      "activityTaskStartedEventAttributes": {
+        "scheduledEventId": "10",
+        "identity": "27757@modify-go-runtime-for-isolates@",
+        "requestId": "daa53197-370a-41a7-9393-c0ca3c901b95",
+        "attempt": 1,
+        "workerVersion": {
+          "buildId": "5dd1755746aec63106241b489b24db52"
+        }
+      }
+    },
+    {
+      "eventId": "12",
+      "eventTime": "2026-10-10T00:49:48.346220340Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_COMPLETED",
+      "taskId": "1048726",
+      "activityTaskCompletedEventAttributes": {
+        "result": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "WyJzdGFydDoyMDI2LTEwLTEwVDAwOjQ5OjQ3LjI1MzQ4NTIxNFoiLCJtYXA6MDotMTptaW51cyIsIm1hcDowOjA6emVybyIsIm1hcDowOjI6dHdvIiwic3luYy1tYXA6MDphOmEiLCJzeW5jLW1hcDowOm06bSIsInN5bmMtbWFwOjA6ejp6IiwibWFwOjE6LTE6bWludXMiLCJtYXA6MTowOnplcm8iLCJtYXA6MToyOnR3byIsInN5bmMtbWFwOjE6YTphIiwic3luYy1tYXA6MTptOm0iLCJzeW5jLW1hcDoxOno6eiIsIm1hcDoyOi0xOm1pbnVzIiwibWFwOjI6MDp6ZXJvIiwibWFwOjI6Mjp0d28iLCJzeW5jLW1hcDoyOmE6YSIsInN5bmMtbWFwOjI6bTptIiwic3luYy1tYXA6Mjp6OnoiLCJtYXA6MzotMTptaW51cyIsIm1hcDozOjA6emVybyIsIm1hcDozOjI6dHdvIiwic3luYy1tYXA6MzphOmEiLCJzeW5jLW1hcDozOm06bSIsInN5bmMtbWFwOjM6ejp6IiwibWFwOjQ6LTE6bWludXMiLCJtYXA6NDowOnplcm8iLCJtYXA6NDoyOnR3byIsInN5bmMtbWFwOjQ6YTphIiwic3luYy1tYXA6NDptOm0iLCJzeW5jLW1hcDo0Ono6eiIsIm1hcDo1Oi0xOm1pbnVzIiwibWFwOjU6MDp6ZXJvIiwibWFwOjU6Mjp0d28iLCJzeW5jLW1hcDo1OmE6YSIsInN5bmMtbWFwOjU6bTptIiwic3luYy1tYXA6NTp6OnoiLCJtYXA6NjotMTptaW51cyIsIm1hcDo2OjA6emVybyIsIm1hcDo2OjI6dHdvIiwic3luYy1tYXA6NjphOmEiLCJzeW5jLW1hcDo2Om06bSIsInN5bmMtbWFwOjY6ejp6IiwibWFwOjc6LTE6bWludXMiLCJtYXA6NzowOnplcm8iLCJtYXA6NzoyOnR3byIsInN5bmMtbWFwOjc6YTphIiwic3luYy1tYXA6NzptOm0iLCJzeW5jLW1hcDo3Ono6eiIsInByb2R1Y2U6MDowIiwicHJvZHVjZToxOjAiLCJwcm9kdWNlOjI6MCIsInByb2R1Y2U6MzowIiwicHJvZHVjZTo0OjAiLCJwcm9kdWNlOjU6MCIsInByb2R1Y2U6NjowIiwicHJvZHVjZTo3OjAiLCJjb25zdW1lOjA6MDpkOGFhMTk4MTdiODA4NjcwOmNmNjEzNmU4N2IyNTA0MGMiLCJjb25zdW1lOjE6MDpjNTM0ZWE4ZmJjNjAxOWYyOmMxNmY5Y2NlY2IwMzEwNzAiLCJjb25zdW1lOjI6MDo3NmEzMTZkNTY4ODg3MTk1OmNhZWIzOWQzYmM1ZDUyYjgiLCJjb25zdW1lOjM6MDo4NmVjYjQyMThhNjhmNDIxOmY0MWY0M2M1NGFmZWMxMDQiLCJjb25zdW1lOjQ6MDo3NTc3MDVjMGVlYTdiYTFlOmEwM2IzMzhhNjk0NDIwYmEiLCJjb25zdW1lOjU6MDo0Y2UyY2QyY2IwYTI1MzU6YmUyZmYwYjhhNTczNGE4OSIsImNvbnN1bWU6NjowOjczOWZiNjU5ZThhZDk0NzM6MTg5ZjUxYjhlNWMwOTAyYiIsImNvbnN1bWU6NzowOjMxNDM5OGU4YWJiNTkyOWQ6YjY3MjJlNjcyOTM1NmQ1ZiIsInByb2R1Y2U6MDoxIiwicHJvZHVjZToxOjEiLCJwcm9kdWNlOjI6MSIsInByb2R1Y2U6MzoxIiwicHJvZHVjZTo0OjEiLCJwcm9kdWNlOjU6MSIsInByb2R1Y2U6NjoxIiwicHJvZHVjZTo3OjEiLCJjb25zdW1lOjA6MTo5MWFlOTA3MjZhZGJhZDc6ZTg1ODY4Y2FhYjBlOWVkMyIsImNvbnN1bWU6MToxOjZhMmUzZmE1NWQxYzdjNjc6MjYyZTU4MWY0YjQ5ZWNkYSIsImNvbnN1bWU6MjoxOjk3ZjA3ODkwZjY5YWU2Y2Y6NDE1NTQxZDkyMmEwNDg1OCIsImNvbnN1bWU6MzoxOjE0YTQ5ZjQxMzlhMjE4YWQ6OGQyZTZkMmM3YWRkMDgxOCIsImNvbnN1bWU6NDoxOjMwYWQ0M2RjYjYzYzRkODM6YjIyOGQ1OTQyMTkxYzRiOCIsImNvbnN1bWU6NToxOjkyZTg0YzQyZjU4NWM5OTE6MjU3OGM0MDQ1ZGMyMWNhNCIsImNvbnN1bWU6NjoxOjc5ZmZjNzllNTNhZDk5ZTk6NjBlMTJkNDk2OWFkNzE4OCIsImNvbnN1bWU6NzoxOjlkODdkOGU0MWY0Mjc4Ojg5YWM1ZTcxM2EzYWFiNDgiLCJwcm9kdWNlOjA6MiIsInByb2R1Y2U6MToyIiwicHJvZHVjZToyOjIiLCJwcm9kdWNlOjM6MiIsInByb2R1Y2U6NDoyIiwicHJvZHVjZTo1OjIiLCJwcm9kdWNlOjY6MiIsInByb2R1Y2U6NzoyIiwiY29uc3VtZTowOjI6YTRkZmM4NDgxZmFlMDdiNjo2YWUzYTdmODRmODA0MDk3IiwiY29uc3VtZToxOjI6NmM4Y2Q3NGE3MWZmM2NhYTpkZWIyOTcyZDg0YzA3MjA5IiwiY29uc3VtZToyOjI6NjBhMWM3ZDE2MTY5NWE5OmE1NjNlYWU4MzExY2JlMzAiLCJjb25zdW1lOjM6MjoyZDI3NDk1YmI4ODYzNzA1OmYxZDg3Njc1YmQ1N2M3MGIiLCJjb25zdW1lOjQ6MjoxYmIwNTZjM2E1MDBkNGE6YmQ3NTFkZTRiMGQwMzk0OCIsImNvbnN1bWU6NToyOmI0OWU2MjNmNTU2OWRlZTM6YjRiNWU5NjE3Mjc2MTk0OCIsImNvbnN1bWU6NjoyOmUyNmQzNzQ2ZDZhYjM5YWE6OWQ2YjkwMmE5ODQwZTRjNSIsImNvbnN1bWU6NzoyOjc2YjdjNGZlZGRmYjEzM2I6NGJhZmI2NmNkMTdiZjRhZSIsInByb2R1Y2U6MDozIiwicHJvZHVjZToxOjMiLCJwcm9kdWNlOjI6MyIsInByb2R1Y2U6MzozIiwicHJvZHVjZTo0OjMiLCJwcm9kdWNlOjU6MyIsInByb2R1Y2U6NjozIiwicHJvZHVjZTo3OjMiLCJjb25zdW1lOjA6MzoxMWY0ODNiNjMzM2IyNGFhOjlhMTlhNDU5YjQwOTFmYzUiLCJjb25zdW1lOjE6Mzo0OWZhYjFjZmY3NjJlZTY1Ojg3MTY2MjZlMmU1NDRhYzEiLCJjb25zdW1lOjI6MzpkNmRmOTVjMTYxMDllNmFhOmI2ODNjNTFlOTNhMjUwOTAiLCJjb25zdW1lOjM6MzoxMWQyZWVkZDVlOWIzNWVjOmNhZDNhMTlmZGU1NzUzZjciLCJjb25zdW1lOjQ6Mzo4NzI2NmZiZWQ0YWEyNDRkOmJiMWE5OTZhOTg0ZGUxYWMiLCJjb25zdW1lOjU6Mzo5ZjI5MTVkNWM4ODQ4YTc2OmJmOTRmNGQyMTFlODUwODYiLCJjb25zdW1lOjY6Mzo5NzQ3YmI2MmJkODdmNjM3OjU2MTgwMzM5YWE3YzhlMTkiLCJjb25zdW1lOjc6MzpjMWU5MWIyZDZlNGZmMjZkOmMyNDljMWY4OTUyNWUxYTIiLCJzZWxlY3Q6MDoxOjEiLCJzZWxlY3Q6MDowOjEiLCJzZWxlY3Q6MDoxOjEiLCJzZWxlY3Q6MDoxOjEiLCJzZWxlY3Q6MDowOjAiLCJzZWxlY3Q6MDoxOjAiLCJzZWxlY3Q6MDoyOjEiLCJzZWxlY3Q6MDoxOjAiLCJzZWxlY3Q6MToxOjAiLCJzZWxlY3Q6MToyOjEiLCJzZWxlY3Q6MTowOjEiLCJzZWxlY3Q6MToxOjEiLCJzZWxlY3Q6MToyOjAiLCJzZWxlY3Q6MToyOjAiLCJzZWxlY3Q6MToyOjEiLCJzZWxlY3Q6MTowOjAiLCJzZWxlY3Q6MjowOjAiLCJzZWxlY3Q6MjoyOjAiLCJzZWxlY3Q6MjoxOjEiLCJzZWxlY3Q6MjoxOjEiLCJzZWxlY3Q6MjoyOjEiLCJzZWxlY3Q6MjoxOjAiLCJzZWxlY3Q6MjoyOjAiLCJzZWxlY3Q6MjoxOjAiLCJzZWxlY3Q6MzoxOjAiLCJzZWxlY3Q6MzoxOjEiLCJzZWxlY3Q6MzowOjAiLCJzZWxlY3Q6MzowOjEiLCJzZWxlY3Q6MzowOjEiLCJzZWxlY3Q6MzowOjAiLCJzZWxlY3Q6MzoyOjAiLCJzZWxlY3Q6MzowOjEiLCJzZWxlY3Q6NDowOjEiLCJzZWxlY3Q6NDoyOjEiLCJzZWxlY3Q6NDowOjEiLCJzZWxlY3Q6NDoxOjAiLCJzZWxlY3Q6NDoyOjAiLCJzZWxlY3Q6NDoyOjEiLCJzZWxlY3Q6NDowOjEiLCJzZWxlY3Q6NDoxOjEiLCJzZWxlY3Q6NToxOjEiLCJzZWxlY3Q6NToyOjEiLCJzZWxlY3Q6NToxOjAiLCJzZWxlY3Q6NToyOjEiLCJzZWxlY3Q6NToyOjEiLCJzZWxlY3Q6NToxOjAiLCJzZWxlY3Q6NToxOjEiLCJzZWxlY3Q6NTowOjEiLCJzZWxlY3Q6NjowOjEiLCJzZWxlY3Q6NjoyOjEiLCJzZWxlY3Q6NjowOjEiLCJzZWxlY3Q6NjoyOjAiLCJzZWxlY3Q6NjoyOjEiLCJzZWxlY3Q6NjowOjAiLCJzZWxlY3Q6NjowOjEiLCJzZWxlY3Q6NjoyOjEiLCJzZWxlY3Q6NzowOjAiLCJzZWxlY3Q6NzoyOjAiLCJzZWxlY3Q6NzoxOjEiLCJzZWxlY3Q6NzoxOjAiLCJzZWxlY3Q6NzoyOjAiLCJzZWxlY3Q6NzowOjAiLCJzZWxlY3Q6NzowOjEiLCJzZWxlY3Q6NzowOjAiLCJkaXN0cmlidXRpb25zOjlmZmQwNmYxNWMyM2EwYzE1ZDczNjE3YzBmMjBkNmQ2YmUwYjhlMjE4OTEzZTIyM2UwOWI5MmZmYzM0ODYyY2UiLCJjYW5jZWw6MCIsImNhbmNlbDoxIiwiY2FuY2VsOjIiLCJjYW5jZWw6MyIsImNhbmNlbDo0IiwiY2FuY2VsOjUiLCJjYW5jZWw6NiIsImNhbmNlbDo3IiwiY2FuY2VsOjgiLCJjYW5jZWw6OSIsImNhbmNlbDoxMCIsImNhbmNlbDoxMSIsImNhbmNlbDoxMiIsImNhbmNlbDoxMyIsImNhbmNlbDoxNCIsImNhbmNlbDoxNSIsImZpbmlzaDoyMDI2LTEwLTEwVDAwOjQ5OjQ4LjMxOTI2MjM0WiJd"
+            }
+          ]
+        },
+        "scheduledEventId": "10",
+        "startedEventId": "11",
+        "identity": "27757@modify-go-runtime-for-isolates@"
+      }
+    },
+    {
+      "eventId": "13",
+      "eventTime": "2026-10-10T00:49:48.346237673Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId": "1048727",
+      "workflowTaskScheduledEventAttributes": {
+        "taskQueue": {
+          "name": "modify-go-runtime-for-isolates:e2b59155-b283-4666-92fe-310117ec1b29",
+          "kind": "TASK_QUEUE_KIND_STICKY",
+          "normalName": "isolate-poc"
+        },
+        "startToCloseTimeout": "10s",
+        "attempt": 1
+      }
+    },
+    {
+      "eventId": "14",
+      "eventTime": "2026-10-10T00:49:48.358152798Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId": "1048731",
+      "workflowTaskStartedEventAttributes": {
+        "scheduledEventId": "13",
+        "identity": "27757@modify-go-runtime-for-isolates@",
+        "requestId": "07abdacb-30ba-4e49-abd3-f6a4f8aa8520",
+        "historySizeBytes": "9690",
+        "workerVersion": {
+          "buildId": "5dd1755746aec63106241b489b24db52"
+        }
+      }
+    },
+    {
+      "eventId": "15",
+      "eventTime": "2026-10-10T00:49:48.375303131Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId": "1048735",
+      "workflowTaskCompletedEventAttributes": {
+        "scheduledEventId": "13",
+        "startedEventId": "14",
+        "identity": "27757@modify-go-runtime-for-isolates@",
+        "workerVersion": {
+          "buildId": "5dd1755746aec63106241b489b24db52"
+        },
+        "sdkMetadata": {},
+        "meteringMetadata": {}
+      }
+    },
+    {
+      "eventId": "16",
+      "eventTime": "2026-10-10T00:49:48.375334631Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED",
+      "taskId": "1048736",
+      "workflowExecutionCompletedEventAttributes": {
+        "result": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "WyJzdGFydDoyMDI2LTEwLTEwVDAwOjQ5OjQ3LjI1MzQ4NTIxNFoiLCJtYXA6MDotMTptaW51cyIsIm1hcDowOjA6emVybyIsIm1hcDowOjI6dHdvIiwic3luYy1tYXA6MDphOmEiLCJzeW5jLW1hcDowOm06bSIsInN5bmMtbWFwOjA6ejp6IiwibWFwOjE6LTE6bWludXMiLCJtYXA6MTowOnplcm8iLCJtYXA6MToyOnR3byIsInN5bmMtbWFwOjE6YTphIiwic3luYy1tYXA6MTptOm0iLCJzeW5jLW1hcDoxOno6eiIsIm1hcDoyOi0xOm1pbnVzIiwibWFwOjI6MDp6ZXJvIiwibWFwOjI6Mjp0d28iLCJzeW5jLW1hcDoyOmE6YSIsInN5bmMtbWFwOjI6bTptIiwic3luYy1tYXA6Mjp6OnoiLCJtYXA6MzotMTptaW51cyIsIm1hcDozOjA6emVybyIsIm1hcDozOjI6dHdvIiwic3luYy1tYXA6MzphOmEiLCJzeW5jLW1hcDozOm06bSIsInN5bmMtbWFwOjM6ejp6IiwibWFwOjQ6LTE6bWludXMiLCJtYXA6NDowOnplcm8iLCJtYXA6NDoyOnR3byIsInN5bmMtbWFwOjQ6YTphIiwic3luYy1tYXA6NDptOm0iLCJzeW5jLW1hcDo0Ono6eiIsIm1hcDo1Oi0xOm1pbnVzIiwibWFwOjU6MDp6ZXJvIiwibWFwOjU6Mjp0d28iLCJzeW5jLW1hcDo1OmE6YSIsInN5bmMtbWFwOjU6bTptIiwic3luYy1tYXA6NTp6OnoiLCJtYXA6NjotMTptaW51cyIsIm1hcDo2OjA6emVybyIsIm1hcDo2OjI6dHdvIiwic3luYy1tYXA6NjphOmEiLCJzeW5jLW1hcDo2Om06bSIsInN5bmMtbWFwOjY6ejp6IiwibWFwOjc6LTE6bWludXMiLCJtYXA6NzowOnplcm8iLCJtYXA6NzoyOnR3byIsInN5bmMtbWFwOjc6YTphIiwic3luYy1tYXA6NzptOm0iLCJzeW5jLW1hcDo3Ono6eiIsInByb2R1Y2U6MDowIiwicHJvZHVjZToxOjAiLCJwcm9kdWNlOjI6MCIsInByb2R1Y2U6MzowIiwicHJvZHVjZTo0OjAiLCJwcm9kdWNlOjU6MCIsInByb2R1Y2U6NjowIiwicHJvZHVjZTo3OjAiLCJjb25zdW1lOjA6MDpkOGFhMTk4MTdiODA4NjcwOmNmNjEzNmU4N2IyNTA0MGMiLCJjb25zdW1lOjE6MDpjNTM0ZWE4ZmJjNjAxOWYyOmMxNmY5Y2NlY2IwMzEwNzAiLCJjb25zdW1lOjI6MDo3NmEzMTZkNTY4ODg3MTk1OmNhZWIzOWQzYmM1ZDUyYjgiLCJjb25zdW1lOjM6MDo4NmVjYjQyMThhNjhmNDIxOmY0MWY0M2M1NGFmZWMxMDQiLCJjb25zdW1lOjQ6MDo3NTc3MDVjMGVlYTdiYTFlOmEwM2IzMzhhNjk0NDIwYmEiLCJjb25zdW1lOjU6MDo0Y2UyY2QyY2IwYTI1MzU6YmUyZmYwYjhhNTczNGE4OSIsImNvbnN1bWU6NjowOjczOWZiNjU5ZThhZDk0NzM6MTg5ZjUxYjhlNWMwOTAyYiIsImNvbnN1bWU6NzowOjMxNDM5OGU4YWJiNTkyOWQ6YjY3MjJlNjcyOTM1NmQ1ZiIsInByb2R1Y2U6MDoxIiwicHJvZHVjZToxOjEiLCJwcm9kdWNlOjI6MSIsInByb2R1Y2U6MzoxIiwicHJvZHVjZTo0OjEiLCJwcm9kdWNlOjU6MSIsInByb2R1Y2U6NjoxIiwicHJvZHVjZTo3OjEiLCJjb25zdW1lOjA6MTo5MWFlOTA3MjZhZGJhZDc6ZTg1ODY4Y2FhYjBlOWVkMyIsImNvbnN1bWU6MToxOjZhMmUzZmE1NWQxYzdjNjc6MjYyZTU4MWY0YjQ5ZWNkYSIsImNvbnN1bWU6MjoxOjk3ZjA3ODkwZjY5YWU2Y2Y6NDE1NTQxZDkyMmEwNDg1OCIsImNvbnN1bWU6MzoxOjE0YTQ5ZjQxMzlhMjE4YWQ6OGQyZTZkMmM3YWRkMDgxOCIsImNvbnN1bWU6NDoxOjMwYWQ0M2RjYjYzYzRkODM6YjIyOGQ1OTQyMTkxYzRiOCIsImNvbnN1bWU6NToxOjkyZTg0YzQyZjU4NWM5OTE6MjU3OGM0MDQ1ZGMyMWNhNCIsImNvbnN1bWU6NjoxOjc5ZmZjNzllNTNhZDk5ZTk6NjBlMTJkNDk2OWFkNzE4OCIsImNvbnN1bWU6NzoxOjlkODdkOGU0MWY0Mjc4Ojg5YWM1ZTcxM2EzYWFiNDgiLCJwcm9kdWNlOjA6MiIsInByb2R1Y2U6MToyIiwicHJvZHVjZToyOjIiLCJwcm9kdWNlOjM6MiIsInByb2R1Y2U6NDoyIiwicHJvZHVjZTo1OjIiLCJwcm9kdWNlOjY6MiIsInByb2R1Y2U6NzoyIiwiY29uc3VtZTowOjI6YTRkZmM4NDgxZmFlMDdiNjo2YWUzYTdmODRmODA0MDk3IiwiY29uc3VtZToxOjI6NmM4Y2Q3NGE3MWZmM2NhYTpkZWIyOTcyZDg0YzA3MjA5IiwiY29uc3VtZToyOjI6NjBhMWM3ZDE2MTY5NWE5OmE1NjNlYWU4MzExY2JlMzAiLCJjb25zdW1lOjM6MjoyZDI3NDk1YmI4ODYzNzA1OmYxZDg3Njc1YmQ1N2M3MGIiLCJjb25zdW1lOjQ6MjoxYmIwNTZjM2E1MDBkNGE6YmQ3NTFkZTRiMGQwMzk0OCIsImNvbnN1bWU6NToyOmI0OWU2MjNmNTU2OWRlZTM6YjRiNWU5NjE3Mjc2MTk0OCIsImNvbnN1bWU6NjoyOmUyNmQzNzQ2ZDZhYjM5YWE6OWQ2YjkwMmE5ODQwZTRjNSIsImNvbnN1bWU6NzoyOjc2YjdjNGZlZGRmYjEzM2I6NGJhZmI2NmNkMTdiZjRhZSIsInByb2R1Y2U6MDozIiwicHJvZHVjZToxOjMiLCJwcm9kdWNlOjI6MyIsInByb2R1Y2U6MzozIiwicHJvZHVjZTo0OjMiLCJwcm9kdWNlOjU6MyIsInByb2R1Y2U6NjozIiwicHJvZHVjZTo3OjMiLCJjb25zdW1lOjA6MzoxMWY0ODNiNjMzM2IyNGFhOjlhMTlhNDU5YjQwOTFmYzUiLCJjb25zdW1lOjE6Mzo0OWZhYjFjZmY3NjJlZTY1Ojg3MTY2MjZlMmU1NDRhYzEiLCJjb25zdW1lOjI6MzpkNmRmOTVjMTYxMDllNmFhOmI2ODNjNTFlOTNhMjUwOTAiLCJjb25zdW1lOjM6MzoxMWQyZWVkZDVlOWIzNWVjOmNhZDNhMTlmZGU1NzUzZjciLCJjb25zdW1lOjQ6Mzo4NzI2NmZiZWQ0YWEyNDRkOmJiMWE5OTZhOTg0ZGUxYWMiLCJjb25zdW1lOjU6Mzo5ZjI5MTVkNWM4ODQ4YTc2OmJmOTRmNGQyMTFlODUwODYiLCJjb25zdW1lOjY6Mzo5NzQ3YmI2MmJkODdmNjM3OjU2MTgwMzM5YWE3YzhlMTkiLCJjb25zdW1lOjc6MzpjMWU5MWIyZDZlNGZmMjZkOmMyNDljMWY4OTUyNWUxYTIiLCJzZWxlY3Q6MDoxOjEiLCJzZWxlY3Q6MDowOjEiLCJzZWxlY3Q6MDoxOjEiLCJzZWxlY3Q6MDoxOjEiLCJzZWxlY3Q6MDowOjAiLCJzZWxlY3Q6MDoxOjAiLCJzZWxlY3Q6MDoyOjEiLCJzZWxlY3Q6MDoxOjAiLCJzZWxlY3Q6MToxOjAiLCJzZWxlY3Q6MToyOjEiLCJzZWxlY3Q6MTowOjEiLCJzZWxlY3Q6MToxOjEiLCJzZWxlY3Q6MToyOjAiLCJzZWxlY3Q6MToyOjAiLCJzZWxlY3Q6MToyOjEiLCJzZWxlY3Q6MTowOjAiLCJzZWxlY3Q6MjowOjAiLCJzZWxlY3Q6MjoyOjAiLCJzZWxlY3Q6MjoxOjEiLCJzZWxlY3Q6MjoxOjEiLCJzZWxlY3Q6MjoyOjEiLCJzZWxlY3Q6MjoxOjAiLCJzZWxlY3Q6MjoyOjAiLCJzZWxlY3Q6MjoxOjAiLCJzZWxlY3Q6MzoxOjAiLCJzZWxlY3Q6MzoxOjEiLCJzZWxlY3Q6MzowOjAiLCJzZWxlY3Q6MzowOjEiLCJzZWxlY3Q6MzowOjEiLCJzZWxlY3Q6MzowOjAiLCJzZWxlY3Q6MzoyOjAiLCJzZWxlY3Q6MzowOjEiLCJzZWxlY3Q6NDowOjEiLCJzZWxlY3Q6NDoyOjEiLCJzZWxlY3Q6NDowOjEiLCJzZWxlY3Q6NDoxOjAiLCJzZWxlY3Q6NDoyOjAiLCJzZWxlY3Q6NDoyOjEiLCJzZWxlY3Q6NDowOjEiLCJzZWxlY3Q6NDoxOjEiLCJzZWxlY3Q6NToxOjEiLCJzZWxlY3Q6NToyOjEiLCJzZWxlY3Q6NToxOjAiLCJzZWxlY3Q6NToyOjEiLCJzZWxlY3Q6NToyOjEiLCJzZWxlY3Q6NToxOjAiLCJzZWxlY3Q6NToxOjEiLCJzZWxlY3Q6NTowOjEiLCJzZWxlY3Q6NjowOjEiLCJzZWxlY3Q6NjoyOjEiLCJzZWxlY3Q6NjowOjEiLCJzZWxlY3Q6NjoyOjAiLCJzZWxlY3Q6NjoyOjEiLCJzZWxlY3Q6NjowOjAiLCJzZWxlY3Q6NjowOjEiLCJzZWxlY3Q6NjoyOjEiLCJzZWxlY3Q6NzowOjAiLCJzZWxlY3Q6NzoyOjAiLCJzZWxlY3Q6NzoxOjEiLCJzZWxlY3Q6NzoxOjAiLCJzZWxlY3Q6NzoyOjAiLCJzZWxlY3Q6NzowOjAiLCJzZWxlY3Q6NzowOjEiLCJzZWxlY3Q6NzowOjAiLCJkaXN0cmlidXRpb25zOjlmZmQwNmYxNWMyM2EwYzE1ZDczNjE3YzBmMjBkNmQ2YmUwYjhlMjE4OTEzZTIyM2UwOWI5MmZmYzM0ODYyY2UiLCJjYW5jZWw6MCIsImNhbmNlbDoxIiwiY2FuY2VsOjIiLCJjYW5jZWw6MyIsImNhbmNlbDo0IiwiY2FuY2VsOjUiLCJjYW5jZWw6NiIsImNhbmNlbDo3IiwiY2FuY2VsOjgiLCJjYW5jZWw6OSIsImNhbmNlbDoxMCIsImNhbmNlbDoxMSIsImNhbmNlbDoxMiIsImNhbmNlbDoxMyIsImNhbmNlbDoxNCIsImNhbmNlbDoxNSIsImZpbmlzaDoyMDI2LTEwLTEwVDAwOjQ5OjQ4LjMxOTI2MjM0WiJd"
+            }
+          ]
+        },
+        "workflowTaskCompletedEventId": "15"
+      }
+    }
+  ]
+}

@@ -16,7 +16,7 @@ import (
 )
 
 func main() {
-	history := flag.String("history", "example/determinism/testdata/history.json", "CLI-exported completed history")
+	history := flag.String("history", "example/determinism/testdata/history-shared-random.json", "CLI-exported completed history")
 	flag.Parse()
 	if err := check(*history); err != nil {
 		fmt.Fprintln(os.Stderr, err)

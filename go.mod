@@ -3,6 +3,7 @@ module github.com/mfateev/sdk-go-poc
 go 1.26.0
 
 require (
+	github.com/google/uuid v1.6.0
 	go.temporal.io/api v1.63.6
 	go.temporal.io/sdk v1.49.0
 )
@@ -12,7 +13,6 @@ require (
 	github.com/facebookgo/clock v0.0.0-20150410010913-600d898af40a // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/mock v1.6.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.2 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.22.0 // indirect
 	github.com/nexus-rpc/nexus-proto-annotations v0.1.0 // indirect

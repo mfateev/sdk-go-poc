@@ -11,6 +11,7 @@ import (
 	"github.com/mfateev/sdk-go-poc/example/concurrent"
 	"github.com/mfateev/sdk-go-poc/example/determinism"
 	"github.com/mfateev/sdk-go-poc/example/order"
+	randomworkflow "github.com/mfateev/sdk-go-poc/example/random"
 	"github.com/mfateev/sdk-go-poc/example/signal"
 	"github.com/mfateev/sdk-go-poc/worker"
 	"go.temporal.io/sdk/activity"
@@ -51,6 +52,8 @@ func main() {
 	w.RegisterWorkflow(cancellation.ContextStressWorkflow)
 	w.RegisterWorkflow(determinism.DeterminismWorkflow)
 	w.RegisterActivity(determinism.RecordTrace)
+	w.RegisterWorkflow(randomworkflow.RandomWorkflow)
+	w.RegisterActivity(randomworkflow.Echo)
 	w.RegisterActivity(cancellation.WaitActivity)
 	w.RegisterWorkflow(PlainEcho)
 	w.RegisterActivityWithOptions(echo, activity.RegisterOptions{Name: "echo"})
