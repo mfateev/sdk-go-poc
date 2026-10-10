@@ -126,6 +126,8 @@ github.com/open-telemetry/opentelemetry-collector-contrib/pkg/sampling v0.145.0 
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/sampling v0.145.0/go.mod h1:jYlQAaJO4ZyJAW2jcKAbjN+nt5BRCyu49mlZv4Rui7U=
 github.com/open-telemetry/opentelemetry-collector-contrib/processor/probabilisticsamplerprocessor v0.145.0 h1:12mxn+8YLeAjMZ1kLGulBcvHrdhRNUmxLVIDnaLkJbQ=
 github.com/open-telemetry/opentelemetry-collector-contrib/processor/probabilisticsamplerprocessor v0.145.0/go.mod h1:V87HYJpfmvCeQ6Cjy3Q4xylxfCn2wVSS80wvv5ECc0s=
+github.com/opentracing/opentracing-go v1.2.0 h1:uEJPy/1a5RIPAJ0Ov+OIO8OxWu77jEv+1B0VhjKrZUs=
+github.com/opentracing/opentracing-go v1.2.0/go.mod h1:GxEUsuufX4nBwe+T+Wl9TAgYrxe9dPLANfrWvHYVTgc=
 github.com/outcaste-io/ristretto v0.2.3 h1:AK4zt/fJ76kjlYObOeNwh4T3asEuaCmp26pOvUOL9w0=
 github.com/outcaste-io/ristretto v0.2.3/go.mod h1:W8HywhmtlopSB1jeMg3JtdIhf+DYkLAr0VN/s4+MHac=
 github.com/petermattis/goid v0.0.0-20250813065127-a731cc31b4fe/go.mod h1:pxMtw7cyUw6B2bRH0ZBANSPg+AoSud1I1iyJHI69jH4=
@@ -253,6 +255,8 @@ go.temporal.io/sdk/contrib/opentelemetry v0.8.1 h1:wmQnxBWUsQQN6QihaEuUmsn8ZK6d+
 go.temporal.io/sdk/contrib/opentelemetry v0.8.1/go.mod h1:NnJgL/EwJIaWZVx4Vmb/qMh18a0fTu00VG/ojQ7tHPY=
 go.temporal.io/sdk/contrib/opentelemetry-v2 v0.1.0 h1:1tUq0xcMW3NBtwQKD/lefI4+Ll5wVjdi/ssMapegNp8=
 go.temporal.io/sdk/contrib/opentelemetry-v2 v0.1.0/go.mod h1:SG+dTlPywNuy/Gidg1Svy27QEIZvelsV2U1QyCxim4w=
+go.temporal.io/sdk/contrib/opentracing v0.3.0 h1:IKJgyvZiaOSFl0YHSxJpwXwQa08W3KaZCJkbx05rX7Q=
+go.temporal.io/sdk/contrib/opentracing v0.3.0/go.mod h1:hMs5MBzEluvFhExS8n8I2gNrk3rTrg07uHYi7W2TDbw=
 go.uber.org/atomic v1.9.0/go.mod h1:fEN4uk6kAWBTFdckzkM89CLk9XfWZrxpCo0nPH17wJc=
 go.uber.org/atomic v1.11.0 h1:ZvwS0R+56ePWxUNi+Atn9dWONBPp/AUETXlHW0DxSjE=
 go.uber.org/atomic v1.11.0/go.mod h1:LUxbIzbOniOlMKjJjyPfpl4v+PKK2cNJn91OQbhoJI0=

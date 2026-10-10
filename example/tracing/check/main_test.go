@@ -28,7 +28,7 @@ func TestNativeTracingInterceptors(t *testing.T) {
 			}
 		})
 	}
-	for _, version := range []string{"v1", "v2", "datadog"} {
+	for _, version := range []string{"v1", "v2", "datadog", "opentracing"} {
 		t.Run("replay-"+version, func(t *testing.T) {
 			history, err := filepath.Abs(filepath.Join("..", "testdata", version+".json"))
 			if err != nil {

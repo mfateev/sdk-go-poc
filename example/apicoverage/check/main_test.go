@@ -20,7 +20,7 @@ func TestCompiledAPICoverageAndReplay(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, adapter := range []string{"", "v1", "v2", "datadog"} {
+	for _, adapter := range []string{"", "v1", "v2", "datadog", "opentracing"} {
 		t.Run("tracing-"+adapter, func(t *testing.T) {
 			if out, err := exec.CommandContext(ctx, binary, "-history-dir", dir, "-tracing", adapter).CombinedOutput(); err != nil {
 				t.Fatalf("API coverage/replay: %v\n%s", err, out)

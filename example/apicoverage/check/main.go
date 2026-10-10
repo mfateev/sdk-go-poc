@@ -221,9 +221,9 @@ var tracingMode string
 func main() {
 	address := flag.String("address", "", "optional Temporal server")
 	histories := flag.String("history-dir", "", "saved histories to replay (also live output directory)")
-	flag.StringVar(&tracingMode, "tracing", "", "optional native tracing adapter: v1, v2, datadog")
+	flag.StringVar(&tracingMode, "tracing", "", "optional native tracing adapter: v1, v2, datadog, opentracing")
 	flag.Parse()
-	if tracingMode != "" && tracingMode != "v1" && tracingMode != "v2" && tracingMode != "datadog" {
+	if tracingMode != "" && tracingMode != "v1" && tracingMode != "v2" && tracingMode != "datadog" && tracingMode != "opentracing" {
 		panic("invalid tracing adapter")
 	}
 	for _, procs := range []int{1, 2, 8} {

@@ -151,13 +151,63 @@ exclusively on the host. Use the upstream Datadog interceptor for client and
 activity tracing. The host preserves deterministic span IDs and parent links;
 normal Datadog sampler/backend lifecycle stays outside isolates.
 
-## OpenTracing: pending backend choice
+## OpenTracing
 
-The generic OpenTracing API cannot request an exact span ID. Exporting a span
-with a backend-generated ID would break the deterministic parent links propagated
-by workflows. An adapter must target a backend with explicit ID/context support,
-or an application-supplied span starter. No generic OpenTracing exporter is
-claimed by this POC; that adapter awaits the backend decision.
+`contrib/opentracing.NewInterceptor(TracerOptions{SinkOp: op})` creates a
+private OpenTracing tracer backed by the same native span provider and copied-byte
+sink as OpenTelemetry. It never uses or installs a process-global tracer.
+
+```go
+//go:isolate
+func NewInterceptors(config []byte) ([]interceptor.WorkerInterceptor, error) {
+    tracing, err := opentracing.NewInterceptor(opentracing.TracerOptions{
+        SinkOp: 0x10200,
+    })
+    if err != nil { return nil, err }
+    return []interceptor.WorkerInterceptor{tracing}, nil
+}
+```
+
+Register `contrib/opentelemetry/exporter.RegisterProcessor` or `Register` on the
+host using that operation. The host exports completed spans with their original
+IDs, parents, timestamps, tags and logs. No arbitrary OpenTracing backend is
+asked to generate replacement IDs. Replay constructs the same spans/headers and
+suppresses export. The same predictable-ID and unencrypted-observation security
+restrictions described above apply.
+
+Workflow instrumentation uses standard OpenTracing APIs with the private tracer:
+
+```go
+parent := opentracing.SpanFromContext(ctx)
+span, ctx := opentracing.StartSpanFromContextWithTracer(ctx, parent.Tracer(), "work")
+defer span.Finish()
+span.SetTag("customer", "example")
+span.LogKV("event", "started")
+```
+
+Here `opentracing` is `github.com/opentracing/opentracing-go`; use a distinct alias
+for our contrib adapter. Context hooks also expose the underlying OTel span for
+mixed API instrumentation. Baggage contexts are immutable snapshots and propagate
+to future children. Queries can read cached contexts; mutating cached spans or
+baggage is rejected without killing the workflow.
+
+TextMap and HTTPHeaders carry **W3C Trace Context and baggage** in the SDK's
+`_tracer-data` header. Binary uses a bounded length-prefixed JSON carrier specific
+to this bridge. For host clients/activities, configure the upstream Temporal
+OpenTracing interceptor with `NewBridgeTracer(hostOTelProvider, nil)` from our
+contrib package, or use a W3C-compatible OTel integration. Existing Jaeger/B3
+headers are not automatically translated. An optional private propagator supplied
+to `NewBridgeTracer` can provide other formats with explicit compatibility.
+
+ChildOf references choose the primary parent; FollowsFrom retains the causal
+trace/parent and is also represented as a typed link. Additional references are
+links. Tags preserve signed integers and floating point bits; unsigned integers
+above MaxInt64 become exact decimal strings. Unsupported tag types are ignored.
+Logs become span events; arbitrary log objects are formatted immediately, and
+lazy log callbacks execute inside the isolate when logged. FinishWithOptions and
+deprecated logging methods are supported. New roots are sampled, with child
+sampling inherited from the parent; configurable sampling remains future work.
+The audited OpenTracing API version is 1.2.0.
 
 ## Verification
 
@@ -169,15 +219,16 @@ From this repository, using the custom compiler/runtime:
 /tmp/isolate-tracing-check -history example/tracing/testdata/v1.json
 /tmp/isolate-tracing-check -history example/tracing/testdata/v2.json
 /tmp/isolate-tracing-check -history example/tracing/testdata/datadog.json
+/tmp/isolate-tracing-check -history example/tracing/testdata/opentracing.json
 ```
 
 The checks run fresh processes at GOMAXPROCS 1/2/8, exercise chain ordering,
 configuration copying, factory/converter coexistence, signal filtering/renaming,
 read-only failures, query span uniqueness and replay-stable activity headers.
 The API coverage checker also replays the existing external/local/session/Nexus
-history corpus with all three adapters, including histories without trace headers.
+history corpus with all four adapters, including histories without trace headers.
 Saved tracing histories cover real-server runs interoperating with upstream client and
-activity integrations for all three adapters. To repeat live checks, start a
+activity integrations for all four adapters. To repeat live checks, start a
 Temporal development server, then run:
 
 ```sh

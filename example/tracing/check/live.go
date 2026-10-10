@@ -7,6 +7,7 @@ import (
 	ddtracer "github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
 	ddexport "github.com/mfateev/sdk-go-poc/contrib/datadog/exporter"
 	nativeexport "github.com/mfateev/sdk-go-poc/contrib/opentelemetry/exporter"
+	nativeot "github.com/mfateev/sdk-go-poc/contrib/opentracing"
 	"github.com/mfateev/sdk-go-poc/example/tracing"
 	"github.com/mfateev/sdk-go-poc/worker"
 	"go.opentelemetry.io/otel"
@@ -18,6 +19,7 @@ import (
 	upstreamdd "go.temporal.io/sdk/contrib/datadog/tracing"
 	upstreamotel "go.temporal.io/sdk/contrib/opentelemetry"
 	upstreamotelv2 "go.temporal.io/sdk/contrib/opentelemetry-v2"
+	upstreamot "go.temporal.io/sdk/contrib/opentracing"
 	sdkinterceptor "go.temporal.io/sdk/interceptor"
 	sdktracing "go.temporal.io/sdk/interceptor/tracing"
 	sdkwf "go.temporal.io/sdk/workflow"
@@ -86,7 +88,7 @@ func liveTracing(address, dir string, only string) error {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
 	}
-	for _, version := range []string{"v1", "v2", "datadog"} {
+	for _, version := range []string{"v1", "v2", "datadog", "opentracing"} {
 		if only != "" && only != version {
 			continue
 		}
@@ -114,6 +116,12 @@ func liveTracingVersion(address, dir, version string) error {
 		defer parent.Finish()
 		ctx = ddtracer.ContextWithSpan(ctx, parent)
 		interceptors = []sdkinterceptor.ClientInterceptor{upstreamdd.NewTracingInterceptor(upstreamdd.TracerOptions{})}
+	} else if version == "opentracing" {
+		adapter, err := upstreamot.NewInterceptor(upstreamot.TracerOptions{Tracer: nativeot.NewBridgeTracer(provider, nil)})
+		if err != nil {
+			return err
+		}
+		interceptors = []sdkinterceptor.ClientInterceptor{adapter}
 	} else if version == "v1" {
 		tracing, err := upstreamotel.NewTracingInterceptor(upstreamotel.TracerOptions{Tracer: provider.Tracer("temporal-sdk-go")})
 		if err != nil {

@@ -8,6 +8,7 @@ import (
 	"github.com/mfateev/sdk-go-poc/example/tracing"
 	"github.com/mfateev/sdk-go-poc/temporalbridge"
 	"github.com/mfateev/sdk-go-poc/worker"
+	"go.opentelemetry.io/otel/trace"
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/converter"
@@ -119,6 +120,14 @@ func check(version string, replay bool, taskTimeout time.Duration) string {
 		span, err := export.Decode(event.Payload, nil)
 		must(err)
 		spans = append(spans, span.Name())
+		if !span.SpanContext().IsValid() || span.SpanContext().TraceID().String() != "11111111111111111111111111111111" {
+			panic("sink lost original trace IDs")
+		}
+		if span.Name() == "user-span" && version == "opentracing" {
+			if len(span.Events()) != 1 || span.Events()[0].Name != "input" || span.SpanKind() != trace.SpanKindClient {
+				panic("OpenTracing logs lost")
+			}
+		}
 		if strings.Contains(span.Name(), "HandleQuery") {
 			id := span.SpanContext().SpanID().String()
 			if queryIDs[id] {
@@ -136,6 +145,18 @@ func check(version string, replay bool, taskTimeout time.Duration) string {
 	d.OnWorkflowTaskStarted(taskTimeout)
 	if env.err != nil {
 		panic(env.err)
+	}
+	if version == "opentracing" {
+		value, err := env.query("ottrace", nil, traceHeader())
+		must(err)
+		var tenant string
+		must(env.GetDataConverter().FromPayloads(value, &tenant))
+		if tenant != "acme" {
+			panic("query lost OpenTracing baggage")
+		}
+		if _, err := env.query("badspan", nil, traceHeader()); err == nil || !strings.Contains(err.Error(), "read-only") {
+			panic(fmt.Sprintf("span mutation: %v", err))
+		}
 	}
 	before, err := env.query("trace", nil, traceHeader())
 	must(err)
@@ -185,7 +206,7 @@ func main() {
 		return
 	}
 
-	for _, version := range []string{"v1", "v2", "datadog"} {
+	for _, version := range []string{"v1", "v2", "datadog", "opentracing"} {
 		a := check(version, false, *taskTimeout)
 		b := check(version, true, *taskTimeout)
 		if a != b {
