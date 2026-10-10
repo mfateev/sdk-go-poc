@@ -59,8 +59,20 @@ func TestInvalidChildResolvesBothFuturesWithoutScheduling(t *testing.T) {
 		t.Fatal("pre-canceled child lost native cancellation")
 	}
 	typed := temporal.NewSearchAttributes(temporal.NewSearchAttributeKeyInt64("key").ValueSet(42))
-	f = ExecuteChildWorkflow(WithChildWorkflowOptions(context.Background(), ChildWorkflowOptions{TypedSearchAttributes: typed}), "name")
+	f = ExecuteChildWorkflow(WithChildWorkflowOptions(context.Background(), ChildWorkflowOptions{TypedSearchAttributes: typed, SearchAttributes: map[string]any{}}), "name")
 	if !f.IsReady() || f.Get(context.Background(), nil) == nil {
-		t.Fatal("unsupported typed search attributes silently dropped")
+		t.Fatal("mixed typed/untyped search attributes accepted")
+	}
+}
+
+func TestTypedChildSearchAttributes(t *testing.T) {
+	key := temporal.NewSearchAttributeKeyInt64("number")
+	unset := temporal.NewSearchAttributeKeyKeyword("unset")
+	fields, err := encodeChildSearchAttributes(ChildWorkflowOptions{TypedSearchAttributes: temporal.NewSearchAttributes(key.ValueSet(9007199254740993), unset.ValueUnset())})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(fields) != 1 || fields["number"] == nil {
+		t.Fatal("typed child search attributes dropped or unset included")
 	}
 }

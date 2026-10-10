@@ -11,6 +11,8 @@ import (
 
 	"github.com/mfateev/sdk-go-poc/internal/failurecodec"
 	"github.com/mfateev/sdk-go-poc/internal/payloadwire"
+	"github.com/mfateev/sdk-go-poc/internal/searchattrwire"
+	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/converter"
 	"go.temporal.io/sdk/temporal"
 	goWorkflow "go.temporal.io/sdk/workflow"
@@ -164,17 +166,6 @@ func executeChildWorkflow(ctx context.Context, fn any, args ...any) ChildWorkflo
 	if o.WorkflowExecutionTimeout < 0 || o.WorkflowRunTimeout < 0 || o.WorkflowTaskTimeout < 0 {
 		return fail(errors.New("workflow: negative child workflow timeout"))
 	}
-	// Interface-key map iteration needs a separate deterministic-key audit.
-	// Fail explicitly rather than silently dropping typed visibility attributes.
-	// Size itself iterates the SDK's interface-key map, including when nil.
-	// Inspect only its length using the pinned SDK layout, without visiting keys.
-	attributes := reflect.ValueOf(o.TypedSearchAttributes)
-	if attributes.NumField() != 1 || attributes.Type().Field(0).Name != "untypedValue" || attributes.Field(0).Kind() != reflect.Map {
-		return fail(errors.New("workflow: unexpected pinned SDK search attribute layout"))
-	}
-	if attributes.Field(0).Len() != 0 {
-		return fail(errors.New("workflow: typed child search attributes are outside the isolate POC subset"))
-	}
 	payloads, err := encodeActivityArgs(args)
 	if err != nil {
 		panic(err)
@@ -183,11 +174,12 @@ func executeChildWorkflow(ctx context.Context, fn any, args ...any) ChildWorkflo
 	if err != nil {
 		return fail(err)
 	}
-	search, err := encodeSearchAttributeValues(o.SearchAttributes)
+	search, err := encodeChildSearchAttributes(o)
 	if err != nil {
 		return fail(err)
 	}
 	o.Memo, o.SearchAttributes = nil, nil
+	o.TypedSearchAttributes = temporal.SearchAttributes{}
 	id := nextCallID.Add(1)
 	header, err := outgoingHeader(ctx)
 	if err != nil {
@@ -263,10 +255,16 @@ func encodeSearchAttributeValues(values map[string]any) (map[string][]byte, erro
 	if values == nil {
 		return nil, nil
 	}
-	dc := converter.NewCompositeDataConverter(converter.NewNilPayloadConverter(), converter.NewJSONPayloadConverter())
+	dc := newDefaultDataConverter()
 	result := make(map[string][]byte, len(values))
 	for key, value := range values {
-		p, err := dc.ToPayloads(value)
+		var p *commonpb.Payloads
+		var err error
+		if raw, ok := value.(*commonpb.Payload); ok {
+			p = &commonpb.Payloads{Payloads: []*commonpb.Payload{raw}}
+		} else {
+			p, err = dc.ToPayloads(value)
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -276,4 +274,19 @@ func encodeSearchAttributeValues(values map[string]any) (map[string][]byte, erro
 		}
 	}
 	return result, nil
+}
+
+func encodeChildSearchAttributes(options ChildWorkflowOptions) (map[string][]byte, error) {
+	// Start commands omit unset entries, unlike an upsert command.
+	typed := temporal.NewSearchAttributes(options.TypedSearchAttributes.Copy())
+	if options.SearchAttributes != nil && typed.Size() != 0 {
+		return nil, errors.New("cannot specify both SearchAttributes and TypedSearchAttributes")
+	}
+	if options.SearchAttributes != nil {
+		return encodeSearchAttributeValues(options.SearchAttributes)
+	}
+	if typed.Size() == 0 {
+		return nil, nil
+	}
+	return searchattrwire.EncodeFields(typed)
 }

@@ -24,51 +24,59 @@ import (
 
 // Operation numbers are a wire contract. Never renumber an existing operation.
 const (
-	OpInput               uint32 = 1
-	OpActivity            uint32 = 2
-	OpSleep               uint32 = 3
-	OpSignal              uint32 = 4
-	OpComplete            uint32 = 5
-	OpStart               uint32 = 6
-	OpStartPayloads       uint32 = 7
-	OpCompletePayloads    uint32 = 8
-	OpActivityPayloads    uint32 = 9
-	OpWorkflowCancel      uint32 = 10
-	OpCancellableCall     uint32 = 11
-	OpCancelCall          uint32 = 12
-	OpScheduleActivity    uint32 = 13
-	OpAwaitActivity       uint32 = 14
-	OpCancelActivity      uint32 = 15
-	OpGetVersion          uint32 = 16
-	OpIsReplaying         uint32 = 17
-	OpResolveWorkflowName uint32 = 18
-	OpRegisterQuery       uint32 = 19
-	OpQuery               uint32 = 20
-	OpRegisterUpdate      uint32 = 21
-	OpNextUpdate          uint32 = 22
-	OpCompleteUpdate      uint32 = 23
-	OpScheduleChild       uint32 = 24
-	OpAwaitChild          uint32 = 25
-	OpAwaitChildExecution uint32 = 26
-	OpCancelChild         uint32 = 27
-	OpSignalChild         uint32 = 28
-	OpAwaitChildSignal    uint32 = 29
-	OpScheduleExternal    uint32 = 30
-	OpAwaitExternal       uint32 = 31
-	OpScheduleLocal       uint32 = 32
-	OpAwaitLocal          uint32 = 33
-	OpCancelLocal         uint32 = 34
-	OpScheduleNexus       uint32 = 35
-	OpAwaitNexus          uint32 = 36
-	OpAwaitNexusExecution uint32 = 37
-	OpCancelNexus         uint32 = 38
-	OpSessionID           uint32 = 39
-	OpAddSession          uint32 = 40
-	OpRemoveSession       uint32 = 41
-	OpInfo                uint32 = 42
-	OpResolveActivityName uint32 = 43
-	OpInterceptSignal     uint32 = 44
-	OpFlushSignals        uint32 = 45
+	OpInput                    uint32 = 1
+	OpActivity                 uint32 = 2
+	OpSleep                    uint32 = 3
+	OpSignal                   uint32 = 4
+	OpComplete                 uint32 = 5
+	OpStart                    uint32 = 6
+	OpStartPayloads            uint32 = 7
+	OpCompletePayloads         uint32 = 8
+	OpActivityPayloads         uint32 = 9
+	OpWorkflowCancel           uint32 = 10
+	OpCancellableCall          uint32 = 11
+	OpCancelCall               uint32 = 12
+	OpScheduleActivity         uint32 = 13
+	OpAwaitActivity            uint32 = 14
+	OpCancelActivity           uint32 = 15
+	OpGetVersion               uint32 = 16
+	OpIsReplaying              uint32 = 17
+	OpResolveWorkflowName      uint32 = 18
+	OpRegisterQuery            uint32 = 19
+	OpQuery                    uint32 = 20
+	OpRegisterUpdate           uint32 = 21
+	OpNextUpdate               uint32 = 22
+	OpCompleteUpdate           uint32 = 23
+	OpScheduleChild            uint32 = 24
+	OpAwaitChild               uint32 = 25
+	OpAwaitChildExecution      uint32 = 26
+	OpCancelChild              uint32 = 27
+	OpSignalChild              uint32 = 28
+	OpAwaitChildSignal         uint32 = 29
+	OpScheduleExternal         uint32 = 30
+	OpAwaitExternal            uint32 = 31
+	OpScheduleLocal            uint32 = 32
+	OpAwaitLocal               uint32 = 33
+	OpCancelLocal              uint32 = 34
+	OpScheduleNexus            uint32 = 35
+	OpAwaitNexus               uint32 = 36
+	OpAwaitNexusExecution      uint32 = 37
+	OpCancelNexus              uint32 = 38
+	OpSessionID                uint32 = 39
+	OpAddSession               uint32 = 40
+	OpRemoveSession            uint32 = 41
+	OpInfo                     uint32 = 42
+	OpResolveActivityName      uint32 = 43
+	OpInterceptSignal          uint32 = 44
+	OpFlushSignals             uint32 = 45
+	OpGetTypedSearchAttributes uint32 = 46
+	OpUpsertSearchAttributes   uint32 = 47
+	OpUpsertMemo               uint32 = 48
+	OpMemoEncodingPolicy       uint32 = 49
+	OpLastCompletionResult     uint32 = 50
+	OpLastError                uint32 = 51
+	OpRegisterSignal           uint32 = 52
+	OpHasLastCompletionResult  uint32 = 53
 )
 
 // Handler is a named workflow function. Each execution receives its own
@@ -566,11 +574,7 @@ func nextSignal(ctx context.Context, name string) (Signal, error) {
 	return signal, err
 }
 
-// GetSignalChannel receives signals with the given name. An empty name receives
-// all signals. Each call starts an isolate-owned goroutine that waits through
-// Call; its channel is buffered so a completed call can finish if the workflow
-// has selected another case. A host error is sent once, then the channel closes.
-func getSignalChannel(ctx context.Context, name string) <-chan SignalResult {
+func newSignalChannel(ctx context.Context, name string) <-chan SignalResult {
 	results := make(chan SignalResult, 1)
 	if ctx == nil {
 		results <- SignalResult{Err: errors.New("workflow: nil context")}

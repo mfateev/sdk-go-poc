@@ -6,6 +6,7 @@ import (
 	"go.temporal.io/sdk/client"
 	sdkinterceptor "go.temporal.io/sdk/interceptor"
 	"go.temporal.io/sdk/log"
+	"go.temporal.io/sdk/temporal"
 	"time"
 )
 
@@ -85,6 +86,14 @@ type WorkflowOutboundInterceptor interface {
 	NewContinueAsNewError(ctx context.Context, fn any, args ...any) error
 	ExecuteNexusOperation(ctx context.Context, input ExecuteNexusOperationInput) NexusOperationFuture
 	RequestCancelNexusOperation(ctx context.Context, input RequestCancelNexusOperationInput)
+	GetTypedSearchAttributes(ctx context.Context) temporal.SearchAttributes
+	UpsertSearchAttributes(ctx context.Context, attributes map[string]any) error
+	UpsertTypedSearchAttributes(ctx context.Context, attributes ...temporal.SearchAttributeUpdate) error
+	UpsertMemo(ctx context.Context, memo map[string]any) error
+	GetSignalChannelWithOptions(ctx context.Context, signalName string, options SignalChannelOptions) <-chan SignalResult
+	HasLastCompletionResult(ctx context.Context) bool
+	GetLastCompletionResult(ctx context.Context, values ...any) error
+	GetLastError(ctx context.Context) error
 	mustEmbedWorkflowOutboundInterceptorBase()
 }
 type WorkflowOutboundInterceptorBase struct{ Next WorkflowOutboundInterceptor }
@@ -163,4 +172,36 @@ type RequestCancelNexusOperationInput struct {
 	Operation any
 	Token     string
 	seq       uint64
+}
+
+func (b *WorkflowOutboundInterceptorBase) GetTypedSearchAttributes(ctx context.Context) temporal.SearchAttributes {
+	return b.Next.GetTypedSearchAttributes(ctx)
+}
+
+func (b *WorkflowOutboundInterceptorBase) UpsertSearchAttributes(ctx context.Context, attributes map[string]any) error {
+	return b.Next.UpsertSearchAttributes(ctx, attributes)
+}
+
+func (b *WorkflowOutboundInterceptorBase) UpsertTypedSearchAttributes(ctx context.Context, attributes ...temporal.SearchAttributeUpdate) error {
+	return b.Next.UpsertTypedSearchAttributes(ctx, attributes...)
+}
+
+func (b *WorkflowOutboundInterceptorBase) UpsertMemo(ctx context.Context, memo map[string]any) error {
+	return b.Next.UpsertMemo(ctx, memo)
+}
+
+func (b *WorkflowOutboundInterceptorBase) GetSignalChannelWithOptions(ctx context.Context, signalName string, options SignalChannelOptions) <-chan SignalResult {
+	return b.Next.GetSignalChannelWithOptions(ctx, signalName, options)
+}
+
+func (b *WorkflowOutboundInterceptorBase) HasLastCompletionResult(ctx context.Context) bool {
+	return b.Next.HasLastCompletionResult(ctx)
+}
+
+func (b *WorkflowOutboundInterceptorBase) GetLastCompletionResult(ctx context.Context, values ...any) error {
+	return b.Next.GetLastCompletionResult(ctx, values...)
+}
+
+func (b *WorkflowOutboundInterceptorBase) GetLastError(ctx context.Context) error {
+	return b.Next.GetLastError(ctx)
 }

@@ -9,8 +9,10 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/mfateev/sdk-go-poc/internal/interceptorscope"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/log"
+	"go.temporal.io/sdk/temporal"
 )
 
 var instanceInterceptorFactory isolate.Handle
@@ -93,22 +95,32 @@ func currentOutbound(ctx context.Context) WorkflowOutboundInterceptor {
 			if chain == nil {
 				return nil
 			}
-			return chain.outbound
+			if !isolate.IsReadOnly() || chain != activeInterceptors {
+				return chain.outbound
+			}
 		}
 	}
-	// A scratch-owned chain must be explicitly attached to read-only contexts.
-	// Never expose the mutable cached workflow chain to queries or validators.
-	if isolate.IsReadOnly() || activeInterceptors == nil {
+	// Captured workflow contexts use the active scratch chain in read-only
+	// handlers. Never expose the cached mutable chain to queries or validators.
+	if isolate.IsReadOnly() {
+		if chain, ok := interceptorscope.Current.(*interceptorChain); ok && chain != nil {
+			return chain.outbound
+		}
+		return nil
+	}
+	if activeInterceptors == nil {
 		return nil
 	}
 	return activeInterceptors.outbound
 }
 
 func scratchInterceptors(ctx context.Context) (context.Context, *interceptorChain, error) {
+	interceptorscope.Current = nil
 	chain, err := buildInterceptors(ctx, nil)
 	if err != nil {
 		return ctx, nil, err
 	}
+	interceptorscope.Current = chain
 	return context.WithValue(ctx, interceptorChainKey{}, chain), chain, nil
 }
 
@@ -284,4 +296,36 @@ func (*interceptorOutboundTerminal) ExecuteNexusOperation(ctx context.Context, i
 }
 func (*interceptorOutboundTerminal) RequestCancelNexusOperation(ctx context.Context, input RequestCancelNexusOperationInput) {
 	requestCancelNexusOperation(ctx, input)
+}
+
+func (*interceptorOutboundTerminal) GetTypedSearchAttributes(ctx context.Context) temporal.SearchAttributes {
+	return getTypedSearchAttributes(ctx)
+}
+
+func (*interceptorOutboundTerminal) UpsertSearchAttributes(ctx context.Context, attributes map[string]any) error {
+	return upsertSearchAttributes(ctx, attributes)
+}
+
+func (*interceptorOutboundTerminal) UpsertTypedSearchAttributes(ctx context.Context, attributes ...temporal.SearchAttributeUpdate) error {
+	return upsertTypedSearchAttributes(ctx, attributes...)
+}
+
+func (*interceptorOutboundTerminal) UpsertMemo(ctx context.Context, memo map[string]any) error {
+	return upsertMemo(ctx, memo)
+}
+
+func (*interceptorOutboundTerminal) GetSignalChannelWithOptions(ctx context.Context, signalName string, options SignalChannelOptions) <-chan SignalResult {
+	return getSignalChannelWithOptions(ctx, signalName, options)
+}
+
+func (*interceptorOutboundTerminal) HasLastCompletionResult(ctx context.Context) bool {
+	return hasLastCompletionResult(ctx)
+}
+
+func (*interceptorOutboundTerminal) GetLastCompletionResult(ctx context.Context, values ...any) error {
+	return getLastCompletionResult(ctx, values...)
+}
+
+func (*interceptorOutboundTerminal) GetLastError(ctx context.Context) error {
+	return getLastError(ctx)
 }

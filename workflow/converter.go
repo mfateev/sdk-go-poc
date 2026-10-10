@@ -14,13 +14,17 @@ import (
 // and mutable converter values belong to that instance. Type metadata still uses the
 // audited process services. The host worker keeps its ordinary default object.
 // Keep this order aligned with sdk v1.49.0/converter/default_data_converter.go.
-var instanceDataConverter = converter.NewCompositeDataConverter(
-	converter.NewNilPayloadConverter(),
-	converter.NewByteSlicePayloadConverter(),
-	converter.NewProtoJSONPayloadConverter(),
-	converter.NewProtoPayloadConverter(),
-	converter.NewJSONPayloadConverter(),
-)
+var instanceDataConverter = newDefaultDataConverter()
+
+func newDefaultDataConverter() converter.DataConverter {
+	return converter.NewCompositeDataConverter(
+		converter.NewNilPayloadConverter(),
+		converter.NewByteSlicePayloadConverter(),
+		converter.NewProtoJSONPayloadConverter(),
+		converter.NewProtoPayloadConverter(),
+		converter.NewJSONPayloadConverter(),
+	)
+}
 
 var instanceConverterFactory isolate.Handle
 var instanceConverterConfig []byte

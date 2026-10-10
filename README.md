@@ -382,9 +382,10 @@ the native signal channel's byte-slice input convention.
 The host SDK owns IDs, retry/cron behavior, timeouts, parent-close policy,
 versioning, priority and summaries. Memo and untyped search-attribute values
 cross as encoded payloads, preserving integers larger than JSON float precision.
-Nonempty **typed search attributes are explicitly unsupported** in this POC:
-the SDK stores their keys in an interface-key map, which needs a deterministic
-iteration audit. Custom headers and context propagators remain
+Typed search attributes use the SDK's seven key/update types. Their audited
+interface-key map iteration sorts by attribute name and value type, ignoring
+process-specific `reflect.Type` addresses; custom key implementations remain
+unsupported. Custom headers and context propagators remain
 deferred. Cache eviction detaches local callbacks without canceling server-side
 children; parent completion follows the configured parent-close policy.
 
@@ -952,7 +953,20 @@ callbacks after eviction. Saved histories include ordinary SDK interoperability.
 /tmp/isolate-api-check -address 127.0.0.1:7233 -history-dir /tmp/isolate-api-histories
 ```
 
-Replay-aware printing/logging already goes to worker-configured host handlers.
-Metrics, SDK logger interfaces and tracing are planned as copied host messages;
-the [API and observability plan](API_COVERAGE_PLAN.md) describes the proposed
+Replay-aware printing, SDK logger/metrics interfaces and tracing use copied host
+messages. The [API and observability plan](API_COVERAGE_PLAN.md) describes the
 one-way sinks abstraction and its replay/delivery rules.
+
+## Workflow interceptor API parity
+
+The isolate chain covers all exported workflow inbound hooks and the non-concurrency,
+non-SideEffect outbound hooks in Go SDK v1.49.0. New metadata APIs include
+`GetTypedSearchAttributes`, `UpsertSearchAttributes`, `UpsertTypedSearchAttributes`,
+`UpsertMemo`, `GetSignalChannelWithOptions`, `HasLastCompletionResult`,
+`GetLastCompletionResult` and `GetLastError`. Queries and validators can use the
+read getters through captured workflow contexts without mutating the cached chain.
+Ordinary SDK workflows and host interceptors retain their upstream path.
+
+See [the hook parity table and metadata contracts](INTERCEPTORS.md#metadata-and-previous-runs)
+for converter behavior, explicit exclusions, the pinned previous-failure ABI adapter,
+and verification instructions.

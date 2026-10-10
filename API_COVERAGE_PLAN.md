@@ -52,8 +52,18 @@ missing handlers and backend panics remain host diagnostics without replies or
 workflow failures. Query, validator, completion and shutdown fences drain writes.
 Activities remain the mechanism for durable external effects. SDK-style logger,
 metrics and OpenTelemetry v1/v2 and Datadog tracing adapters use these byte sinks.
-The OpenTracing exporter needs a backend choice to preserve exact span IDs.
+OpenTracing uses the same private native provider and sink to preserve exact
+span IDs.
 Backend lifecycle, transport behavior and supported hooks are documented in
 [INTERCEPTORS.md](INTERCEPTORS.md).
 
 Reference: https://typescript.temporal.io/api/namespaces/workflow#proxysinks
+
+## Completed interceptor API parity
+
+The remaining SDK v1.49.0 outbound hooks are implemented: typed search-attribute
+reads, typed/untyped upserts, memo upserts, signal-channel options, and previous-run
+result/error getters. Native Go concurrency/time and SideEffect exclusions remain
+explicit. Method-set conformance, compiled isolate checks, race/ownership checks
+and saved server-history replay cover this contract. See the parity table and
+metadata behavior in [INTERCEPTORS.md](INTERCEPTORS.md).

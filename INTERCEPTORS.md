@@ -45,16 +45,33 @@ are drained before application startup and completion.
 
 Supported outbound hooks cover activities, local activities, child workflows,
 external/child signals, external cancellation, Nexus, Continue-As-New, versioning,
-signal/query/update registration, workflow metadata, logger, metrics, replay,
+signal/query/update registration, typed/untyped search attributes, memo updates,
+previous-run completion results/errors, workflow metadata, logger, metrics, replay,
 `workflow.Now` and `workflow.Sleep`. Native `go`, channel operations, `select`,
 `time.Now` and native timers are runtime primitives, not SDK interceptor hooks.
 SideEffect and MutableSideEffect remain intentionally excluded.
+
+All exported inbound hooks and all outbound hooks in SDK v1.49.0 are present,
+except these intentional exclusions:
+
+| SDK hooks | Isolate API |
+| --- | --- |
+| `Go`, `Await`, `AwaitWithTimeout`, `AwaitWithOptions` | Native goroutines, channels and `select` |
+| `NewTimer`, `NewTimerWithOptions` | Deterministic native time APIs |
+| `SideEffect`, `SideEffectWithOptions`, `MutableSideEffect`, `MutableSideEffectWithOptions` | Host activities/local activities for external work |
+
+`workflow/interceptor_parity_test.go` compares the exported method sets and
+signature shapes with the pinned SDK. Ordinary client, activity and Nexus handler
+interceptors still use the unmodified upstream SDK on the host.
 
 Queries and update validators build fresh scratch-owned chains from the same
 factory/configuration. They can mutate their own temporary interceptor state,
 but cannot change the cached workflow or interceptor state. Invalid mutations
 panic within the query/validation request without killing the workflow isolate.
-Completed workflows with query handlers retain their state until eviction.
+Captured workflow contexts select the fresh read-only chain too; they cannot
+expose the cached mutable chain. The compiler gives `internal/interceptorscope`
+separate scratch globals for this routing. Completed workflows with query handlers
+retain their state until eviction.
 
 ## Logging and metrics
 
@@ -239,3 +256,61 @@ Live checks also cover ordinary SDK workflows on the same configured worker,
 completed queries, update hooks, exact cross-worker parent links and replay export
 suppression. Native-context workflows are started through the unmodified SDK
 client by registered workflow **name**, as in the examples.
+
+## Metadata and previous runs
+
+`UpsertSearchAttributes` and `UpsertTypedSearchAttributes` emit the SDK's normal
+search-attribute commands. Typed keys/updates use `go.temporal.io/sdk/temporal`.
+`GetTypedSearchAttributes` returns a private SDK collection; the seven supported
+key types preserve exact values. `ValueUnset` emits the SDK's null deletion
+payload without type metadata. Search attributes always use default serialization
+and bypass worker payload codecs, as in the SDK. Typed child start attributes are
+also supported; start commands omit unset values.
+
+`UpsertMemo` serializes inside the isolate, with default serializer fallback.
+The host preserves the SDK's recorded memo converter flag (7 in v1.49.0),
+transport codecs, command validation and memo merge/deletion behavior. Legacy
+histories without that flag retain default serialization. Converter fallback and
+transport-codec fallback occur at their respective sides of the byte boundary.
+
+`HasLastCompletionResult`, `GetLastCompletionResult` and `GetLastError` read
+previous-run data from SDK history metadata. Presence distinguishes an absent
+result from an empty payload envelope; absence returns `temporal.ErrNoData`.
+Arguments and failure details pass through host codec decoding, then the private
+serializer/default failure decoder. The presence check never invokes codecs.
+All these getters and `GetTypedSearchAttributes` are allowed in queries/validators;
+upserts and signal registration are rejected there.
+
+The SDK exposes the previous result through `internalbindings`, but keeps the
+previous failure private. A checked, host-only v1.49.0 layout adapter copies that
+field into the existing failure byte transport. No SDK pointer crosses into the
+isolate. Remove this ABI dependency when upstream exposes the getter; custom
+failure converter types retain the existing POC limitations.
+
+`GetSignalChannelWithOptions` accepts the SDK's `SignalChannelOptions`.
+Repeated requests for a name return the same native channel and retain the first
+registration's description. `__temporal_workflow_metadata` exposes sorted query,
+signal and update definitions using the SDK metadata protobuf and default
+serialization, followed by worker transport codecs.
+
+`example/workflowmetadata/check` covers all new hooks, read-only getters,
+previous-result presence and precise results/failures, signal descriptions,
+SDK-key ordering and rejection of custom keys. Its saved history exercises real
+search-attribute/memo commands and fresh-process replay:
+
+For the live check, the development namespace needs these search attributes:
+
+```sh
+temporal operator search-attribute create --name CustomBoolField --type Bool
+temporal operator search-attribute create --name CustomIntField --type Int
+temporal operator search-attribute create --name CustomDatetimeField --type Datetime
+temporal operator search-attribute create --name CustomKeywordField --type Keyword
+```
+
+Then run:
+
+```sh
+../golang-go/bin/go test ./example/workflowmetadata/check
+../golang-go/bin/go build -o /tmp/isolate-metadata-check ./example/workflowmetadata/check
+/tmp/isolate-metadata-check -live localhost:7233 -output /tmp/isolate-metadata-history.json
+```

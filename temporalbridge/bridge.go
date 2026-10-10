@@ -142,6 +142,7 @@ type definition struct {
 	updateWaiter         *isolate.Command
 	updateRegistrations  []*isolate.Command
 	queryHandlers        map[string]workflow.QueryHandlerOptions
+	signalChannels       map[string]workflow.SignalChannelOptions
 	queryWaiter          *isolate.Command
 	querySequence        uint64
 	retainedCompletion   *workflowCompletion
@@ -506,6 +507,8 @@ func (d *definition) handle(command *isolate.Command) error {
 		return nil
 	}
 	switch command.Op {
+	case workflow.OpGetTypedSearchAttributes, workflow.OpHasLastCompletionResult, workflow.OpLastCompletionResult, workflow.OpLastError, workflow.OpMemoEncodingPolicy, workflow.OpUpsertSearchAttributes, workflow.OpUpsertMemo, workflow.OpRegisterSignal:
+		return d.handleMetadata(command)
 	case workflow.OpInfo:
 		return d.handleInfo(command)
 	case workflow.OpResolveActivityName:
@@ -964,6 +967,7 @@ func (d *definition) Close() {
 		d.closed = true
 		d.retireOperations()
 		d.queryWaiter, d.queryHandlers, d.retainedCompletion = nil, nil, nil
+		d.signalChannels = nil
 	}
 	if d.instance == nil {
 		d.resolveLogHandler = nil

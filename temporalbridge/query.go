@@ -57,6 +57,9 @@ func (d *definition) handleQuery(command *isolate.Command) error {
 // ordinary activities, signals and timers remain queued while only the query
 // service has a token. No history timestamp or completion is changed here.
 func (d *definition) query(name string, input *commonpb.Payloads, header *commonpb.Header) (*commonpb.Payloads, error) {
+	if !d.closed && name == "__temporal_workflow_metadata" {
+		return d.workflowMetadata()
+	}
 	if d.closed || d.instance == nil {
 		return nil, errors.New("workflow query state was evicted")
 	}
@@ -144,6 +147,9 @@ func (d *definition) runReadOnly(input workflow.QueryRequest) (*workflow.QueryRe
 			// handler, including calls made directly through isolate.Call/time.
 			if command.Op == workflow.OpInfo {
 				raw, err := d.infoBytes()
+				command.Reply(raw, err)
+			} else if command.Op == workflow.OpGetTypedSearchAttributes || command.Op == workflow.OpHasLastCompletionResult || command.Op == workflow.OpLastCompletionResult || command.Op == workflow.OpLastError {
+				raw, err := d.readMetadata(command.Op)
 				command.Reply(raw, err)
 			} else if command.Op == workflow.OpIsReplaying {
 				raw, _ := json.Marshal(d.env.IsReplaying())
