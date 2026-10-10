@@ -16,6 +16,7 @@ import (
 
 	gogoproto "github.com/gogo/protobuf/proto"
 	"github.com/mfateev/sdk-go-poc/internal/failurecodec"
+	"github.com/mfateev/sdk-go-poc/internal/integrationcontract"
 	"github.com/mfateev/sdk-go-poc/internal/payloadwire"
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/converter"
@@ -263,9 +264,13 @@ type PayloadStart struct {
 // Run selects the registered function, calls it, and reports its result to the
 // host. The isolate program's main function can simply call Run.
 func Run() error {
-	payload, err := isolate.Call(OpStartPayloads, nil)
+	payload, err := isolate.Call(OpStartPayloads, integrationcontract.Pack(nil))
 	if err != nil {
 		return err
+	}
+	payload, err = integrationcontract.Unpack(payload)
+	if err != nil {
+		panic(err) // A contract mismatch fails the Workflow Task, not the execution.
 	}
 	var start PayloadStart
 	if err := json.Unmarshal(payload, &start); err != nil {
@@ -350,9 +355,13 @@ func RunFunctionWithSupports(handle isolate.Handle, supports []isolate.Handle) e
 }
 
 func runFunction(handle, factory isolate.Handle, supports []isolate.Handle) error {
-	startBytes, err := isolate.Call(OpStartPayloads, nil)
+	startBytes, err := isolate.Call(OpStartPayloads, integrationcontract.Pack(nil))
 	if err != nil {
 		return err
+	}
+	startBytes, err = integrationcontract.Unpack(startBytes)
+	if err != nil {
+		panic(err)
 	}
 	var start PayloadStart
 	if err := json.Unmarshal(startBytes, &start); err != nil {

@@ -846,9 +846,9 @@ Workflow, activity, child and external-signal codec contexts are supplied on the
 host. Codecs must be self-describing on decode: SDK failure conversion may omit
 context, and standalone SDK replay supplies synthetic namespace/execution IDs.
 Auto-generated child IDs are determined before encryption using the pinned
-SDK's current run ID and sequence, preserving its usual ID convention. The POC
-reads that private string field on the host and rejects an incompatible SDK layout;
-an upstream bindings hook remains a productization task. SDK search attributes
+SDK's current run ID and sequence, preserving its usual ID convention. The audited
+SDK fork exposes a reset-aware ID reservation hook; the bridge does not read
+private SDK fields. SDK search attributes
 use their default serialization and bypass application codecs.
 
 Current restrictions and follow-ups:
@@ -968,5 +968,81 @@ read getters through captured workflow contexts without mutating the cached chai
 Ordinary SDK workflows and host interceptors retain their upstream path.
 
 See [the hook parity table and metadata contracts](INTERCEPTORS.md#metadata-and-previous-runs)
-for converter behavior, explicit exclusions, the pinned previous-failure ABI adapter,
+for converter behavior, explicit exclusions, the supported previous-failure binding,
 and verification instructions.
+
+## Versioned integration contracts
+
+The build and runtime expose independent metadata, isolate API and determinism
+versions through `isolate.CurrentContract()`. All three are currently **1**.
+Generated function/program registrations and package descriptors carry the
+producer's numeric metadata version; an unsupported version fails before the
+runtime reads descriptor fields or publishes an entry. The compiler's isolate
+build report includes these versions.
+
+The POC SDK separately expects those three versions and uses **host protocol 1**.
+Startup requests and replies have a fixed `ISOL` header carrying the four version
+numbers. Both sides validate it before decoding startup data or running converter
+factories and workflow code. An incompatibility fails the Workflow Task; it does
+not complete the Workflow Execution. Version zero is invalid. The header is
+internal transport metadata and does not add history events or alter Payloads.
+Host and workflow code must be rebuilt together; mixing an old unversioned bridge
+with a versioned workflow is rejected.
+
+The SDK dependency is upstream `go.temporal.io/sdk v1.49.0`, replaced by the
+audited [`mfateev/temporal-go-sdk`](https://github.com/mfateev/temporal-go-sdk/tree/task/modify-go-runtime-for-isolates)
+tag **`v1.49.0-isolates.1`**. Go downloads it automatically; a fourth local checkout
+is unnecessary. The compiler accepts only this exact replacement or the original
+upstream baseline. Other versions, local replacements, nested modules and vendor
+sources require a source audit before receiving metadata privileges. The fork's
+binding contract is **1** and exposes previous failures, reset-aware child IDs,
+memo converter policy and copied typed search-attribute updates, including unset
+markers. Ordinary SDK workflows keep their existing execution path.
+
+`worker.GetIntegrationInfo()` reports these contracts, the toolchain, actual SDK
+module/version/checksum and application VCS revision when embedded by Go.
+`isolate.Handle.Name()` identifies the statically linked workflow function.
+These diagnostics are deployment information; they are not replay inputs or
+automatic compatibility proofs.
+
+### Upgrade and rollback validation
+
+Keep supported histories when changing the compiler, runtime or SDK. Replay with
+the candidate binary before deploying, and replay candidate histories with the
+rollback binary before declaring rollback supported. Workflow versioning still
+controls application command changes. Increment determinism versions when
+observable execution behavior changes; never replace a failing fixture to hide
+a compatibility break. Determinism 1 is the current shared random/select stream,
+not the earlier independent-stream POC behavior.
+
+From this repo, with the custom compiler built:
+
+```sh
+export GOCACHE="$(cd .. && pwd)/go-build-cache"
+./example/compatibility/check.sh
+```
+
+The script builds the previous immutable SDK revision and current source, then
+replays histories recorded before and after the protocol change at GOMAXPROCS
+1/8. It compares the complete workflow trace, including recorded activity input
+and completion. Logs and binaries remain in a printed temporary directory; set
+`COMPATIBILITY_LOG_DIR` to choose it. This verifies SDK upgrade/rollback within
+determinism 1 using the current compiler. It does not promise arbitrary old
+toolchain or workflow-code compatibility. Native CI runs the same check on
+Linux/macOS arm64/amd64.
+
+To record an additional candidate history against a local Temporal server:
+
+```sh
+../golang-go/bin/go build -o /tmp/isolate-compatibility-record ./example/compatibility/record
+/tmp/isolate-compatibility-record -history /tmp/isolate-candidate-history.json
+```
+
+The recorder prints and validates the binary's integration identity. Keep the
+committed baseline unchanged when recording additional histories.
+
+The Temporal SDK fork's canonical quality checks use standard Go 1.26.7:
+`cd internal/cmd/build && go run . check`. Isolate builds and replay tests use
+the custom toolchain. External analysis tools currently do not understand its
+experimental export-data format; standard-Go checks validate the portable SDK
+patch without disabling those checks.

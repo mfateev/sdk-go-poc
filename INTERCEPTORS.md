@@ -268,7 +268,7 @@ and bypass worker payload codecs, as in the SDK. Typed child start attributes ar
 also supported; start commands omit unset values.
 
 `UpsertMemo` serializes inside the isolate, with default serializer fallback.
-The host preserves the SDK's recorded memo converter flag (7 in v1.49.0),
+The host uses the SDK fork's `UseMemoDataConverter` binding to preserve its recorded memo converter policy,
 transport codecs, command validation and memo merge/deletion behavior. Legacy
 histories without that flag retain default serialization. Converter fallback and
 transport-codec fallback occur at their respective sides of the byte boundary.
@@ -281,10 +281,10 @@ serializer/default failure decoder. The presence check never invokes codecs.
 All these getters and `GetTypedSearchAttributes` are allowed in queries/validators;
 upserts and signal registration are rejected there.
 
-The SDK exposes the previous result through `internalbindings`, but keeps the
-previous failure private. A checked, host-only v1.49.0 layout adapter copies that
-field into the existing failure byte transport. No SDK pointer crosses into the
-isolate. Remove this ABI dependency when upstream exposes the getter; custom
+The SDK fork exposes the previous failure through `internalbindings.GetLastFailure`.
+The host serializes its borrowed, read-only protobuf into the existing failure
+byte transport. No SDK pointer crosses into the isolate, and the bridge does not
+depend on private field layouts. Custom
 failure converter types retain the existing POC limitations.
 
 `GetSignalChannelWithOptions` accepts the SDK's `SignalChannelOptions`.

@@ -3,13 +3,12 @@ package temporalbridge
 import (
 	"fmt"
 	"isolate"
-	"reflect"
-	"strconv"
 
 	"github.com/mfateev/sdk-go-poc/internal/failurecodec"
 	"github.com/mfateev/sdk-go-poc/internal/failurewire"
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/converter"
+	bindings "go.temporal.io/sdk/internalbindings"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -90,9 +89,8 @@ func (d *definition) activityDataConverter(name, taskQueue string) converter.Dat
 	})
 }
 
-// Match the pinned SDK's child-ID generation before serializing input. This
-// host-only read uses String, not unsafe, and fails explicitly if the SDK layout
-// changes. The current run ID matters for reset; OriginalRunID is not equivalent.
+// Reserve the SDK's reset-aware child ID before context-dependent input
+// serialization, then pass it explicitly when scheduling the child.
 func (d *definition) prepareChildID(id string) string {
 	if id != "" {
 		return id
@@ -100,11 +98,7 @@ func (d *definition) prepareChildID(id string) string {
 	if _, contextAware := d.rootDataConverter().(converter.DataConverterWithSerializationContext); !contextAware {
 		return id
 	}
-	field := reflect.ValueOf(d.env.WorkflowInfo()).Elem().FieldByName("currentRunID")
-	if !field.IsValid() || field.Kind() != reflect.String || field.String() == "" {
-		panic(&WorkflowTaskError{Cause: fmt.Errorf("context-aware child serialization requires the pinned SDK current run ID or an explicit child WorkflowID")})
-	}
-	return field.String() + "_" + strconv.FormatInt(d.env.GenerateSequence(), 10)
+	return bindings.GenerateChildWorkflowID(d.env)
 }
 
 // Convert every payload in the failure tree, including encrypted common

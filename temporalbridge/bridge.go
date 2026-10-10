@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/mfateev/sdk-go-poc/internal/headerwire"
+	"github.com/mfateev/sdk-go-poc/internal/integrationcontract"
 	"github.com/mfateev/sdk-go-poc/workflow"
 	commonpb "go.temporal.io/api/common/v1"
 	bindings "go.temporal.io/sdk/internalbindings"
@@ -64,6 +65,12 @@ type Factory struct {
 }
 
 func (f Factory) NewWorkflowDefinition() bindings.WorkflowDefinition {
+	if err := integrationcontract.ValidateRuntime(isolate.CurrentContract()); err != nil {
+		panic(&WorkflowTaskError{Cause: err})
+	}
+	if err := validateSDKBindings(); err != nil {
+		panic(&WorkflowTaskError{Cause: err})
+	}
 	var interceptors InterceptorOptions
 	if f.ResolveInterceptors != nil {
 		interceptors = f.ResolveInterceptors()
@@ -610,6 +617,7 @@ func (d *definition) handle(command *isolate.Command) error {
 		}
 		d.replyWhenSuspended(command, input, nil)
 	case workflow.OpStart:
+		d.validateStartupContract(command)
 		if d.entryName == "" {
 			return errors.New("workflow entry name is not configured")
 		}
@@ -621,8 +629,9 @@ func (d *definition) handle(command *isolate.Command) error {
 		if err != nil {
 			return err
 		}
-		d.replyWhenSuspended(command, payload, nil)
+		d.replyWhenSuspended(command, integrationcontract.Pack(payload), nil)
 	case workflow.OpStartPayloads:
+		d.validateStartupContract(command)
 		if d.entryName == "" {
 			return errors.New("workflow entry name is not configured")
 		}
@@ -638,7 +647,7 @@ func (d *definition) handle(command *isolate.Command) error {
 		if err != nil {
 			return err
 		}
-		d.replyWhenSuspended(command, payload, nil)
+		d.replyWhenSuspended(command, integrationcontract.Pack(payload), nil)
 	case workflow.OpActivity:
 		var request workflow.ActivityRequest
 		if err := json.Unmarshal(command.Payload, &request); err != nil {

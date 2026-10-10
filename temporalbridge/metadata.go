@@ -4,23 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"isolate"
-	"reflect"
 	"slices"
-	"unsafe"
 
 	"github.com/mfateev/sdk-go-poc/internal/failurewire"
 	"github.com/mfateev/sdk-go-poc/internal/searchattrwire"
 	"github.com/mfateev/sdk-go-poc/workflow"
 	commonpb "go.temporal.io/api/common/v1"
-	failurepb "go.temporal.io/api/failure/v1"
 	sdkpb "go.temporal.io/api/sdk/v1"
 	"go.temporal.io/sdk/converter"
 	bindings "go.temporal.io/sdk/internalbindings"
 )
-
-// memoUserDCFlag is SDKFlagMemoUserDCEncode in the pinned SDK v1.49.0.
-// TryUse records/reads the SDK flag, preserving encoding on old histories.
-const memoUserDCFlag = 7
 
 func (d *definition) readMetadata(op uint32) ([]byte, error) {
 	switch op {
@@ -46,16 +39,10 @@ func (d *definition) readMetadata(op uint32) ([]byte, error) {
 	}
 }
 
-// The pinned internalbindings API exposes lastCompletionResult but not
-// lastFailure. This host-only adapter reads the SDK field with a checked layout
-// and immediately copies its protobuf bytes. No pointer crosses into an isolate.
-// Remove this ABI dependency when upstream exposes a failure getter.
+// The integration binding returns borrowed, read-only history metadata. Copy
+// its bytes before decoding codecs or passing data into an isolate.
 func (d *definition) lastFailureBytes() ([]byte, error) {
-	field := reflect.ValueOf(d.env.WorkflowInfo()).Elem().FieldByName("lastFailure")
-	if !field.IsValid() || field.Type() != reflect.TypeFor[*failurepb.Failure]() || !field.CanAddr() {
-		return nil, fmt.Errorf("workflow last failure: incompatible SDK layout")
-	}
-	failure := reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Interface().(*failurepb.Failure)
+	failure := bindings.GetLastFailure(d.env)
 	if failure == nil {
 		return nil, nil
 	}
@@ -72,7 +59,7 @@ func (d *definition) handleMetadata(command *isolate.Command) error {
 		raw, err := d.readMetadata(command.Op)
 		d.replyWhenSuspended(command, raw, err)
 	case workflow.OpMemoEncodingPolicy:
-		raw, err := json.Marshal(d.env.TryUse(memoUserDCFlag))
+		raw, err := json.Marshal(bindings.UseMemoDataConverter(d.env))
 		d.replyWhenSuspended(command, raw, err)
 	case workflow.OpRegisterSignal:
 		var r workflow.SignalRegistration

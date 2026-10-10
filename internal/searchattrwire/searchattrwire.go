@@ -6,13 +6,13 @@ package searchattrwire
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"time"
 
 	"github.com/mfateev/sdk-go-poc/internal/payloadwire"
 	commonpb "go.temporal.io/api/common/v1"
 	enumspb "go.temporal.io/api/enums/v1"
 	"go.temporal.io/sdk/converter"
+	bindings "go.temporal.io/sdk/internalbindings"
 	"go.temporal.io/sdk/temporal"
 )
 
@@ -23,7 +23,7 @@ func defaultConverter() converter.DataConverter {
 func EncodeFields(attributes temporal.SearchAttributes) (map[string][]byte, error) {
 	fields := make(map[string][]byte)
 	dc := defaultConverter()
-	for key, value := range attributes.GetUntypedValues() {
+	for key, value := range bindings.GetSearchAttributeUpdates(attributes) {
 		p, err := dc.ToPayload(value)
 		if err != nil {
 			return nil, err
@@ -35,29 +35,6 @@ func EncodeFields(attributes temporal.SearchAttributes) (map[string][]byte, erro
 		if err != nil {
 			return nil, err
 		}
-	}
-	// SDK v1.49.0's public GetUntypedValues drops ValueUnset entries. Read only
-	// the primitive name for those nil values; no unsafe access or SDK object is
-	// exposed. Keep this layout check and tests when upgrading the pinned SDK.
-	entries := reflect.ValueOf(attributes).FieldByName("untypedValue")
-	if !entries.IsValid() || entries.Kind() != reflect.Map {
-		return nil, fmt.Errorf("search attributes: incompatible SDK layout")
-	}
-	iter := entries.MapRange()
-	for iter.Next() {
-		if !iter.Value().IsNil() {
-			continue
-		}
-		name := iter.Key().Elem().FieldByName("name")
-		if !name.IsValid() || name.Kind() != reflect.String {
-			return nil, fmt.Errorf("search attributes: incompatible SDK key layout")
-		}
-		p, _ := dc.ToPayload(nil)
-		raw, err := payloadwire.Encode(&commonpb.Payloads{Payloads: []*commonpb.Payload{p}})
-		if err != nil {
-			return nil, err
-		}
-		fields[name.String()] = raw
 	}
 	return fields, nil
 }
