@@ -67,6 +67,7 @@ func (f *childFuture) GetChildWorkflowExecution() Future { return f.execution }
 // ChildRequest carries copied options and individually encoded memo/search
 // values. Decoding JSON into interface{} on the host would round large integers.
 type ChildRequest struct {
+	Header                 map[string][]byte
 	ID                     uint64
 	Name                   string
 	Function               bool
@@ -76,6 +77,7 @@ type ChildRequest struct {
 }
 
 type ChildSignalRequest struct {
+	Header                      map[string][]byte
 	ID                          uint64
 	Namespace, WorkflowID, Name string
 	Payloads                    []byte
@@ -134,7 +136,7 @@ func encodeOptionValues(values map[string]any) (map[string][]byte, error) {
 
 // ExecuteChildWorkflow schedules before returning. The pinned host SDK owns
 // child IDs, retries, parent-close policy and cancellation completion semantics.
-func ExecuteChildWorkflow(ctx context.Context, fn any, args ...any) ChildWorkflowFuture {
+func executeChildWorkflow(ctx context.Context, fn any, args ...any) ChildWorkflowFuture {
 	assertWritable()
 	f := &childFuture{activityFuture: &activityFuture{done: make(chan struct{})}, execution: &activityFuture{done: make(chan struct{}), dataConverter: converter.NewCompositeDataConverter(converter.NewJSONPayloadConverter())}}
 	fail := func(err error) ChildWorkflowFuture {
@@ -187,7 +189,11 @@ func ExecuteChildWorkflow(ctx context.Context, fn any, args ...any) ChildWorkflo
 	}
 	o.Memo, o.SearchAttributes = nil, nil
 	id := nextCallID.Add(1)
-	raw, err := json.Marshal(ChildRequest{ID: id, Name: name, Function: function, Payloads: payloads, Options: o, Memo: memo, SearchAttributes: search})
+	header, err := outgoingHeader(ctx)
+	if err != nil {
+		panic(err)
+	}
+	raw, err := json.Marshal(ChildRequest{ID: id, Name: name, Function: function, Payloads: payloads, Options: o, Memo: memo, SearchAttributes: search, Header: header})
 	if err != nil {
 		return fail(err)
 	}
@@ -215,6 +221,15 @@ func (f *childFuture) SignalChildWorkflow(ctx context.Context, name string, data
 	if err := f.execution.Get(ctx, &execution); err != nil {
 		return f.execution
 	}
+	if out := currentOutbound(ctx); out != nil {
+		ctx = operationContext(ctx)
+		return out.SignalChildWorkflow(ctx, execution.ID, name, data)
+	}
+	return signalChildWorkflow(ctx, execution.ID, name, data)
+}
+
+func signalChildWorkflow(ctx context.Context, workflowID, name string, data any) Future {
+	assertWritable()
 	result := &activityFuture{done: make(chan struct{})}
 	fail := func(err error) Future { completeOperation(result, nil, err, context.Background()); return result }
 	if ctx == nil {
@@ -225,7 +240,11 @@ func (f *childFuture) SignalChildWorkflow(ctx context.Context, name string, data
 		return fail(err)
 	}
 	id := nextCallID.Add(1)
-	raw, err := json.Marshal(ChildSignalRequest{ID: id, Namespace: runOptions(ctx).Namespace, WorkflowID: execution.ID, Name: name, Payloads: payloads})
+	header, err := outgoingHeader(ctx)
+	if err != nil {
+		panic(err)
+	}
+	raw, err := json.Marshal(ChildSignalRequest{ID: id, Namespace: runOptions(ctx).Namespace, WorkflowID: workflowID, Name: name, Payloads: payloads, Header: header})
 	if err != nil {
 		return fail(err)
 	}

@@ -24,10 +24,10 @@ activity implementations require host registration; session IDs use original
 run identity so synthetic offline replay IDs cannot change signal matching.
 
 The compiled checker is `example/apicoverage/check`; saved server histories live
-in `example/apicoverage/testdata`. The logger/metrics adapters below remain planned;
-the byte-sink transport is implemented.
+in `example/apicoverage/testdata`. The logger/metrics adapters and workflow interceptor chain are implemented;
+see [configuration and tracing adapters](INTERCEPTORS.md).
 
-## Observability follow-up
+## Observability
 
 Printing and standard logging already use copied, one-way `isolate.Write` log messages. Worker log
 handlers receive execution identity and replay metadata; the default SDK logger
@@ -36,8 +36,8 @@ shutdown drain pending messages; no logging acknowledgment resumes workflow code
 Operational visibility
 is feature 10 in the runtime productization plan.
 
-Add isolate-owned implementations of the regular SDK GetLogger and
-GetMetricsHandler interfaces. They use dedicated byte encodings to send records to host-owned logger/metric
+Isolate-owned implementations of the regular SDK GetLogger and
+GetMetricsHandler interfaces use dedicated byte encodings to send records to host-owned logger/metric
 backends, independently of Temporal DataConverter, payload codecs and encryption.
 No backend object, network client or lock is shared with an isolate.
 
@@ -51,6 +51,9 @@ observations to 64 messages of at most 64 KiB each. Overflow drops messages;
 missing handlers and backend panics remain host diagnostics without replies or
 workflow failures. Query, validator, completion and shutdown fences drain writes.
 Activities remain the mechanism for durable external effects. SDK-style logger,
-metrics and tracing adapters can be layered over these byte sinks.
+metrics and OpenTelemetry v1/v2 and Datadog tracing adapters use these byte sinks.
+The OpenTracing exporter needs a backend choice to preserve exact span IDs.
+Backend lifecycle, transport behavior and supported hooks are documented in
+[INTERCEPTORS.md](INTERCEPTORS.md).
 
 Reference: https://typescript.temporal.io/api/namespaces/workflow#proxysinks

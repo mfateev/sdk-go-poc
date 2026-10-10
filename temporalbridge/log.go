@@ -4,12 +4,17 @@ import (
 	"isolate"
 
 	"github.com/mfateev/sdk-go-poc/internal/sinkop"
+	"github.com/mfateev/sdk-go-poc/workflow"
 )
 
 // LogEvent contains a copied workflow log record and host execution metadata.
 // Replay is true when the worker is rebuilding state from history.
 type LogEvent struct {
 	isolate.LogRecord
+	// Level/Fields are set for workflow.GetLogger. Arbitrary field values
+	// format inside the isolate; standard printing leaves these fields empty.
+	Level                           string
+	Fields                          []string
 	WorkflowID, RunID, WorkflowType string
 	Replay                          bool
 }
@@ -50,6 +55,10 @@ func (d *definition) handleWrite(message *isolate.Message) {
 	}
 	if sinkop.Valid(message.Op) {
 		d.writeSink(message)
+		return
+	}
+	if message.Op == workflow.OpLogWrite || message.Op == workflow.OpMetricWrite {
+		d.handleObservation(message)
 		return
 	}
 	if message.Op != isolate.LogOp {

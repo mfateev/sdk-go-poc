@@ -5,6 +5,7 @@ import (
 	"errors"
 	"isolate"
 
+	"github.com/mfateev/sdk-go-poc/internal/headerwire"
 	"github.com/mfateev/sdk-go-poc/workflow"
 	commonpb "go.temporal.io/api/common/v1"
 	"google.golang.org/protobuf/proto"
@@ -52,7 +53,11 @@ func (d *definition) handleExternal(c *isolate.Command) error {
 		if err != nil {
 			return err
 		}
-		d.env.SignalExternalWorkflow(namespace, r.WorkflowID, r.RunID, r.SignalName, p, nil, nil, false, callback)
+		header, err := headerwire.Decode(r.Header)
+		if err != nil {
+			return err
+		}
+		d.env.SignalExternalWorkflow(namespace, r.WorkflowID, r.RunID, r.SignalName, p, nil, header, false, callback)
 	}
 	s.synchronous = false
 	d.replyWhenSuspended(c, nil, nil)

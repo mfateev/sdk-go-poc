@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/nexus-rpc/sdk-go/nexus"
 	"go.temporal.io/sdk/converter"
 	goWorkflow "go.temporal.io/sdk/workflow"
 )
@@ -57,9 +58,35 @@ type NexusRequest struct {
 	Endpoint, Service, Operation string
 	Payloads                     []byte
 	Options                      NexusOperationOptions
+	Header                       nexus.Header
 }
 
 func (c nexusClient) ExecuteOperation(ctx context.Context, operation, input any, options NexusOperationOptions) NexusOperationFuture {
+	assertWritable()
+	if ctx != nil {
+		if out := currentOutbound(ctx); out != nil {
+			return out.ExecuteNexusOperation(ctx, ExecuteNexusOperationInput{Client: c, Operation: operation, Input: input, Options: options, NexusHeader: make(nexus.Header)})
+		}
+	}
+	return c.executeOperation(ctx, operation, input, options, nil)
+}
+
+func executeNexusOperation(ctx context.Context, input ExecuteNexusOperationInput) NexusOperationFuture {
+	c, ok := input.Client.(nexusClient)
+	if !ok {
+		err := errors.New("workflow: interceptor Nexus client must be created with NewNexusClient")
+		return &nexusFuture{activityFuture: failOperation(newOperationFuture(), err), execution: failOperation(newOperationFuture(), err)}
+	}
+	return c.executeOperation(ctx, input.Operation, input.Input, input.Options, input.NexusHeader)
+}
+
+func requestCancelNexusOperation(ctx context.Context, input RequestCancelNexusOperationInput) {
+	assertWritable()
+	p, _ := json.Marshal(input.seq)
+	_, _ = isolate.Call(OpCancelNexus, p)
+}
+
+func (c nexusClient) executeOperation(ctx context.Context, operation, input any, options NexusOperationOptions, header nexus.Header) NexusOperationFuture {
 	assertWritable()
 	f := &nexusFuture{activityFuture: newOperationFuture(), execution: newOperationFuture()}
 	f.execution.dataConverter = converter.GetDefaultDataConverter()
@@ -102,14 +129,21 @@ func (c nexusClient) ExecuteOperation(ctx context.Context, operation, input any,
 		return fail(err)
 	}
 	id := nextCallID.Add(1)
-	p, err := json.Marshal(NexusRequest{ID: id, Endpoint: c.endpoint, Service: c.service, Operation: name, Payloads: payloads, Options: options})
+	p, err := json.Marshal(NexusRequest{ID: id, Endpoint: c.endpoint, Service: c.service, Operation: name, Payloads: payloads, Options: options, Header: header})
 	if err != nil {
 		return fail(err)
 	}
 	if _, err = isolate.Call(OpScheduleNexus, p); err != nil {
 		return fail(err)
 	}
-	stop := context.AfterFunc(ctx, func() { p, _ := json.Marshal(id); _, _ = isolate.Call(OpCancelNexus, p) })
+	stop := context.AfterFunc(ctx, func() {
+		in := RequestCancelNexusOperationInput{Client: c, Operation: operation, seq: id}
+		if out := currentOutbound(ctx); out != nil {
+			out.RequestCancelNexusOperation(ctx, in)
+		} else {
+			requestCancelNexusOperation(ctx, in)
+		}
+	})
 	go func() { defer stop(); awaitOperation(f.activityFuture, OpAwaitNexus, id, ctx) }()
 	go awaitOperation(f.execution, OpAwaitNexusExecution, id, ctx)
 	return f

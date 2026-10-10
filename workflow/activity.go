@@ -193,7 +193,7 @@ func (f *activityFuture) Get(ctx context.Context, valuePtr any) error {
 // with the same argument/result convention as the Temporal Go SDK. Activities
 // run on the host. Options come from WithActivityOptions, not a positional timeout.
 // Scheduling is acknowledged before returning, even if the Future is ignored.
-func ExecuteActivity(ctx context.Context, activity any, args ...any) Future {
+func executeActivity(ctx context.Context, activity any, args ...any) Future {
 	assertWritable()
 	f := &activityFuture{done: make(chan struct{})}
 	fail := func(err error) Future { f.err = err; f.ready.Store(true); close(f.done); return f }
@@ -250,7 +250,11 @@ func ExecuteActivity(ctx context.Context, activity any, args ...any) Future {
 		panic(err)
 	} // SDK serialization errors fail the task.
 	id := nextCallID.Add(1)
-	request, err := json.Marshal(ActivityPayloadRequest{ID: id, Name: name, Function: !byName, Payloads: payloads, Options: &options})
+	header, err := outgoingHeader(ctx)
+	if err != nil {
+		panic(err)
+	}
+	request, err := json.Marshal(ActivityPayloadRequest{ID: id, Name: name, Function: !byName, Payloads: payloads, Options: &options, Header: header})
 	if err != nil {
 		panic(err)
 	}

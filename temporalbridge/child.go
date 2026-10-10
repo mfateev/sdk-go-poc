@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"isolate"
 
+	"github.com/mfateev/sdk-go-poc/internal/headerwire"
 	"github.com/mfateev/sdk-go-poc/workflow"
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/converter"
@@ -123,6 +124,10 @@ func (d *definition) childParams(request workflow.ChildRequest) (bindings.Execut
 		StaticSummary: o.StaticSummary, StaticDetails: o.StaticDetails,
 		DataConverter: dc, RootDataConverter: d.rootDataConverter(),
 	}, WorkflowType: &bindings.WorkflowType{Name: request.Name}, Input: input}
+	p.Header, err = headerwire.Decode(request.Header)
+	if err != nil {
+		return bindings.ExecuteWorkflowParams{}, err
+	}
 	return p, nil
 }
 
@@ -287,7 +292,11 @@ func (d *definition) handleChildSignal(command *isolate.Command) error {
 		s := &activityState{synchronous: true}
 		d.childSignals[r.ID] = s
 		id := r.ID
-		d.env.SignalExternalWorkflow(r.Namespace, r.WorkflowID, "", r.Name, input, nil, nil, true, func(result *commonpb.Payloads, cause error) {
+		header, err := headerwire.Decode(r.Header)
+		if err != nil {
+			return err
+		}
+		d.env.SignalExternalWorkflow(r.Namespace, r.WorkflowID, "", r.Name, input, nil, header, true, func(result *commonpb.Payloads, cause error) {
 			if d.closed || s.retired || s.done {
 				return
 			}

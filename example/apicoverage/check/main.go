@@ -215,10 +215,17 @@ func runFake(mode string) {
 		e.creation(nil, errors.New("late"))
 	}
 }
+
+var tracingMode string
+
 func main() {
 	address := flag.String("address", "", "optional Temporal server")
 	histories := flag.String("history-dir", "", "saved histories to replay (also live output directory)")
+	flag.StringVar(&tracingMode, "tracing", "", "optional native tracing adapter: v1, v2, datadog")
 	flag.Parse()
+	if tracingMode != "" && tracingMode != "v1" && tracingMode != "v2" && tracingMode != "datadog" {
+		panic("invalid tracing adapter")
+	}
 	for _, procs := range []int{1, 2, 8} {
 		runtime.GOMAXPROCS(procs)
 		for _, mode := range []string{"external", "external-failure", "local", "local-retry", "local-failure", "local-cancel", "session", "session-recreate", "session-failure", "nexus", "nexus-async", "nexus-failure", "nexus-cancel", "nexus-abandon", "nexus-try-cancel", "nexus-wait-requested"} {

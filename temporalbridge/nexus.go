@@ -87,7 +87,7 @@ func (d *definition) handleNexus(c *isolate.Command) error {
 		s := &nexusState{childState: childState{synchronous: true, dc: dc}, policy: r.Options.CancellationType}
 		d.nexus[r.ID] = s
 		id := r.ID
-		params := bindings.NewExecuteNexusOperationParams(bindings.NewNexusClient(r.Endpoint, r.Service), r.Operation, p.Payloads[0], r.Options, nil)
+		params := bindings.NewExecuteNexusOperationParams(bindings.NewNexusClient(r.Endpoint, r.Service), r.Operation, p.Payloads[0], r.Options, r.Header)
 		s.seq = d.env.ExecuteNexusOperation(params, func(result *commonpb.Payload, err error) {
 			var payloads *commonpb.Payloads
 			if result != nil {

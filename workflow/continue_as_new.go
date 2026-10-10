@@ -53,7 +53,7 @@ func validateWorkflowReference(fn any, args []any) (string, bool, error) {
 
 // NewContinueAsNewError prepares a fresh run using the current SDK's error type.
 // Return this error from the workflow; construction emits no history command.
-func NewContinueAsNewError(ctx context.Context, fn any, args ...any) error {
+func newContinueAsNewError(ctx context.Context, fn any, args ...any) error {
 	name, function, err := validateWorkflowReference(fn, args)
 	if err != nil {
 		panic(err)
@@ -70,6 +70,9 @@ func NewContinueAsNewError(ctx context.Context, fn any, args ...any) error {
 	e := &ContinueAsNewError{WorkflowType: &goWorkflow.Type{Name: name}, Input: input,
 		TaskQueueName: o.TaskQueue, WorkflowExecutionTimeout: o.WorkflowExecutionTimeout,
 		WorkflowRunTimeout: o.WorkflowRunTimeout, WorkflowTaskTimeout: o.WorkflowTaskTimeout, VersioningIntent: o.VersioningIntent}
+	if fields := InterceptorHeader(ctx); len(fields) != 0 {
+		e.Header = &commonpb.Header{Fields: fields}
+	}
 	if function {
 		resolved, err := isolate.Call(OpResolveWorkflowName, []byte(name))
 		if err != nil {

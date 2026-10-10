@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/mfateev/sdk-go-poc/internal/payloadwire"
+	"github.com/mfateev/sdk-go-poc/internal/tracecontext"
 	goWorkflow "go.temporal.io/sdk/workflow"
 )
 
@@ -20,13 +21,15 @@ type QueryRegistration struct {
 	Options QueryHandlerOptions `json:"options"`
 }
 type QueryRequest struct {
-	Kind          string `json:"kind,omitempty"`
-	UpdateID      string `json:"update_id,omitempty"`
-	Canceled      bool   `json:"canceled,omitempty"`
-	SkipValidator bool   `json:"skip_validator,omitempty"`
-	ID            uint64 `json:"id"`
-	Name          string `json:"name"`
-	Payloads      []byte `json:"payloads"`
+	ObservationID string            `json:"observation_id,omitempty"`
+	Header        map[string][]byte `json:"header,omitempty"`
+	Kind          string            `json:"kind,omitempty"`
+	UpdateID      string            `json:"update_id,omitempty"`
+	Canceled      bool              `json:"canceled,omitempty"`
+	SkipValidator bool              `json:"skip_validator,omitempty"`
+	ID            uint64            `json:"id"`
+	Name          string            `json:"name"`
+	Payloads      []byte            `json:"payloads"`
 }
 type QueryResponse struct {
 	Failure  []byte `json:"failure,omitempty"`
@@ -43,10 +46,16 @@ var queryServiceStarted bool
 // registration. Handlers take serialized arguments and return (result, error).
 // They may read captured workflow state, including after workflow completion.
 func SetQueryHandler(ctx context.Context, queryType string, handler any) error {
-	return SetQueryHandlerWithOptions(ctx, queryType, handler, QueryHandlerOptions{})
+	assertWritable()
+	if ctx != nil {
+		if out := currentOutbound(ctx); out != nil {
+			return out.SetQueryHandler(ctx, queryType, handler)
+		}
+	}
+	return setQueryHandlerWithOptions(ctx, queryType, handler, QueryHandlerOptions{})
 }
 
-func SetQueryHandlerWithOptions(ctx context.Context, queryType string, handler any, options QueryHandlerOptions) error {
+func setQueryHandlerWithOptions(ctx context.Context, queryType string, handler any, options QueryHandlerOptions) error {
 	assertWritable()
 	if ctx == nil {
 		return errors.New("workflow: nil context")
@@ -121,7 +130,7 @@ func serveQueries() {
 		if request.Kind == "validate" {
 			outcome.Failure, err = validateUpdate(request)
 		} else {
-			outcome.Payloads, err = invokeQuery(queryHandlers[request.Name], request.Payloads)
+			outcome.Payloads, err = invokeQueryWithHeader(request.Name, queryHandlers[request.Name], request.Payloads, request.Header, request.ObservationID)
 		}
 		if err != nil {
 			outcome.Failed, outcome.Error = true, readOnlyErrorMessage(err)
@@ -145,6 +154,10 @@ func readOnlyErrorMessage(err error) (message string) {
 }
 
 func invokeQuery(handler any, raw []byte) (result []byte, err error) {
+	return invokeQueryWithHeader("", handler, raw, nil)
+}
+
+func invokeQueryWithHeader(name string, handler any, raw []byte, header map[string][]byte, observationID ...string) (result []byte, err error) {
 	defer func() {
 		if p := recover(); p != nil {
 			result = nil
@@ -174,11 +187,40 @@ func invokeQuery(handler any, raw []byte) (result []byte, err error) {
 	if err := currentDataConverter().FromPayloads(payloads, pointers...); err != nil {
 		return nil, err
 	}
-	values := reflect.ValueOf(handler).Call(args)
-	if cause := values[1].Interface(); cause != nil {
-		return nil, cause.(error)
+	var value any
+	if instanceInterceptorFactory.Name() != "" {
+		base := context.Background()
+		if rootContext != nil {
+			base = context.WithoutCancel(rootContext)
+		}
+		if len(observationID) != 0 {
+			base = context.WithValue(base, tracecontext.ScopeKey{}, observationID[0])
+		}
+		ctx, cancel := context.WithCancel(base)
+		defer cancel()
+		ctx, err = withInterceptorHeader(ctx, header)
+		if err != nil {
+			return nil, err
+		}
+		ctx, chain, err := scratchInterceptors(ctx)
+		if err != nil {
+			return nil, err
+		}
+		input := &HandleQueryInput{QueryType: name, Args: make([]any, len(args))}
+		for i, arg := range args {
+			input.Args[i] = arg.Interface()
+		}
+		value, err = chain.inbound.HandleQuery(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		values := reflect.ValueOf(handler).Call(args)
+		if cause := values[1].Interface(); cause != nil {
+			return nil, cause.(error)
+		}
+		value = values[0].Interface()
 	}
-	value := values[0].Interface()
 	if isProtoValue(value) {
 		return nil, errors.New("workflow: protobuf values are outside the isolate POC subset")
 	}

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/mfateev/sdk-go-poc/example/apicoverage"
+	tracingexample "github.com/mfateev/sdk-go-poc/example/tracing"
 	"github.com/mfateev/sdk-go-poc/worker"
 	"github.com/nexus-rpc/sdk-go/nexus"
 	enumspb "go.temporal.io/api/enums/v1"
@@ -24,6 +25,10 @@ func register(w interface{ RegisterWorkflow(any) }) {
 	w.RegisterWorkflow(apicoverage.Coverage)
 	w.RegisterWorkflow(apicoverage.Target)
 	w.RegisterWorkflow(apicoverage.NexusTarget)
+	if tracingMode != "" {
+		must(worker.SetIsolateInterceptors(w, worker.InterceptorOptions{Factory: tracingexample.NewInterceptors, Config: []byte(tracingMode)}))
+		must(worker.RegisterSink(w, tracingexample.SinkOp, func(worker.SinkEvent) {}))
+	}
 }
 func replay(history *historypb.History) error {
 	r := worker.NewWorkflowReplayer()

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"isolate"
 
+	"github.com/mfateev/sdk-go-poc/internal/headerwire"
 	"github.com/mfateev/sdk-go-poc/workflow"
 	commonpb "go.temporal.io/api/common/v1"
 	bindings "go.temporal.io/sdk/internalbindings"
@@ -81,7 +82,11 @@ func (d *definition) handleActivity(command *isolate.Command) error {
 		if err != nil {
 			return err
 		}
-		params := bindings.ExecuteActivityParams{ExecuteActivityOptions: options, ActivityType: bindings.ActivityType{Name: request.Name}, Input: input, DataConverter: dc,
+		header, err := headerwire.Decode(request.Header)
+		if err != nil {
+			return err
+		}
+		params := bindings.ExecuteActivityParams{ExecuteActivityOptions: options, ActivityType: bindings.ActivityType{Name: request.Name}, Input: input, DataConverter: dc, Header: header,
 			FailureConverter: temporal.NewDefaultFailureConverter(temporal.DefaultFailureConverterOptions{DataConverter: dc})}
 		state := &activityState{synchronous: true}
 		d.activities[request.ID] = state

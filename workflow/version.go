@@ -19,7 +19,7 @@ type VersionRequest struct {
 
 // GetVersion delegates marker creation, replay lookup, and range checks to the
 // pinned SDK. Cancellation does not suppress history compatibility decisions.
-func GetVersion(ctx context.Context, changeID string, minSupported, maxSupported Version) Version {
+func getVersion(ctx context.Context, changeID string, minSupported, maxSupported Version) Version {
 	assertWritable()
 	if ctx == nil {
 		panic("workflow: nil context")
@@ -40,7 +40,7 @@ func GetVersion(ctx context.Context, changeID string, minSupported, maxSupported
 }
 
 // IsReplaying has the SDK meaning; use it for logging, never to alter commands.
-func IsReplaying(ctx context.Context) bool {
+func isReplaying(ctx context.Context) bool {
 	if ctx == nil {
 		panic("workflow: nil context")
 	}

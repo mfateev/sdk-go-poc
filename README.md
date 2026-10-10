@@ -1,5 +1,8 @@
 # Temporal isolate SDK POC
 
+See [workflow interceptors and observability](INTERCEPTORS.md) for native SDK-style
+interception, logging/metrics, OpenTelemetry v1/v2 and Datadog configuration.
+
 ## Determinism regression corpus
 
 `example/determinism.DeterminismWorkflow` records observable ordering for native

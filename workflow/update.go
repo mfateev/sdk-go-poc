@@ -13,6 +13,7 @@ import (
 	"github.com/mfateev/sdk-go-poc/internal/failurecodec"
 	"github.com/mfateev/sdk-go-poc/internal/failurewire"
 	"github.com/mfateev/sdk-go-poc/internal/payloadwire"
+	"github.com/mfateev/sdk-go-poc/internal/tracecontext"
 	failurepb "go.temporal.io/api/failure/v1"
 	goWorkflow "go.temporal.io/sdk/workflow"
 )
@@ -33,9 +34,10 @@ type UpdateRegistration struct {
 }
 
 type UpdateRequest struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	Payloads []byte `json:"payloads"`
+	Header   map[string][]byte `json:"header,omitempty"`
+	ID       string            `json:"id"`
+	Name     string            `json:"name"`
+	Payloads []byte            `json:"payloads"`
 }
 
 type UpdateCompletion struct {
@@ -59,7 +61,7 @@ func SetUpdateHandler(ctx context.Context, name string, handler any) error {
 // Validators execute under a separate scratch owner. A validator may allocate
 // temporary values, but cannot change captured workflow state or emit commands.
 // Accepted handlers run as ordinary native workflow goroutines.
-func SetUpdateHandlerWithOptions(ctx context.Context, name string, handler any, options UpdateHandlerOptions) error {
+func setUpdateHandlerWithOptions(ctx context.Context, name string, handler any, options UpdateHandlerOptions) error {
 	assertWritable()
 	if ctx == nil {
 		return errors.New("workflow: nil context")
@@ -84,7 +86,7 @@ func SetUpdateHandlerWithOptions(ctx context.Context, name string, handler any, 
 	return err
 }
 
-func GetCurrentUpdateInfo(ctx context.Context) *UpdateInfo {
+func getCurrentUpdateInfo(ctx context.Context) *UpdateInfo {
 	if ctx == nil {
 		return nil
 	}
@@ -196,10 +198,26 @@ func validateUpdate(request QueryRequest) (failure []byte, err error) {
 	if request.Canceled {
 		cancel()
 	}
+	ctx = context.WithValue(ctx, tracecontext.ScopeKey{}, request.ObservationID)
 	ctxWithInfo := context.WithValue(ctx, updateInfoKey{}, &UpdateInfo{ID: request.UpdateID, Name: request.Name})
 	ctxWithInfo = context.WithValue(ctxWithInfo, updateValidationKey{}, true)
-	_, cause := updateArguments(h.handler, ctxWithInfo, request.Payloads)
-	if cause == nil && !request.SkipValidator && h.validator != nil {
+	ctxWithInfo, err = withInterceptorHeader(ctxWithInfo, request.Header)
+	if err != nil {
+		return nil, err
+	}
+	args, cause := updateArguments(h.handler, ctxWithInfo, request.Payloads)
+	if cause == nil && instanceInterceptorFactory.Name() != "" {
+		ctxWithInfo = context.WithValue(ctxWithInfo, updateSkipValidatorKey{}, request.SkipValidator)
+		ctxWithInfo, chain, chainErr := scratchInterceptors(ctxWithInfo)
+		if chainErr != nil {
+			return nil, chainErr
+		}
+		input := &UpdateInput{Name: request.Name, Args: make([]any, len(args)-1)}
+		for i, arg := range args[1:] {
+			input.Args[i] = arg.Interface()
+		}
+		cause = chain.inbound.ValidateUpdate(ctxWithInfo, input)
+	} else if cause == nil && !request.SkipValidator && h.validator != nil {
 		var args []reflect.Value
 		args, cause = updateArguments(h.validator, ctxWithInfo, request.Payloads)
 		if cause == nil {
@@ -233,17 +251,29 @@ func serveUpdates() {
 func executeUpdate(request UpdateRequest) {
 	info := &UpdateInfo{ID: request.ID, Name: request.Name}
 	ctx := context.WithValue(rootContext, updateInfoKey{}, info)
+	ctx, headerErr := withInterceptorHeader(ctx, request.Header)
+	if headerErr != nil {
+		panic(headerErr)
+	}
 	h := updateHandlers[request.Name]
 	args, cause := updateArguments(h.handler, ctx, request.Payloads)
 	var value any
 	if cause == nil {
 		// Handler panics follow the normal SDK Workflow Task failure policy.
-		results := reflect.ValueOf(h.handler).Call(args)
-		if result := results[len(results)-1].Interface(); result != nil {
-			cause = result.(error)
-		}
-		if len(results) == 2 {
-			value = results[0].Interface()
+		if activeInterceptors != nil {
+			input := &UpdateInput{Name: request.Name, Args: make([]any, len(args)-1)}
+			for i, arg := range args[1:] {
+				input.Args[i] = arg.Interface()
+			}
+			value, cause = activeInterceptors.inbound.ExecuteUpdate(ctx, input)
+		} else {
+			results := reflect.ValueOf(h.handler).Call(args)
+			if result := results[len(results)-1].Interface(); result != nil {
+				cause = result.(error)
+			}
+			if len(results) == 2 {
+				value = results[0].Interface()
+			}
 		}
 	}
 	completion := UpdateCompletion{ID: request.ID}

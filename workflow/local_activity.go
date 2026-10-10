@@ -37,6 +37,7 @@ func GetLocalActivityOptions(ctx context.Context) LocalActivityOptions {
 }
 
 type LocalActivityRequest struct {
+	Header        map[string][]byte
 	ID            uint64
 	Name          string
 	Function      bool
@@ -53,7 +54,7 @@ type LocalActivityOutcome struct {
 
 // ExecuteLocalActivity executes a registered host activity. SDK bindings record
 // its result marker and own in-task retries; longer backoff uses durable timers.
-func ExecuteLocalActivity(ctx context.Context, activity any, args ...any) Future {
+func executeLocalActivity(ctx context.Context, activity any, args ...any) Future {
 	assertWritable()
 	f := newOperationFuture()
 	if ctx == nil {
@@ -102,7 +103,11 @@ func ExecuteLocalActivity(ctx context.Context, activity any, args ...any) Future
 	if err != nil {
 		panic(err)
 	}
-	r := LocalActivityRequest{Name: name, Function: !byName, Payloads: p, Options: o, Attempt: 1, ScheduledTime: time.Now()}
+	header, err := outgoingHeader(ctx)
+	if err != nil {
+		panic(err)
+	}
+	r := LocalActivityRequest{Name: name, Function: !byName, Payloads: p, Options: o, Attempt: 1, ScheduledTime: time.Now(), Header: header}
 	if err = scheduleLocal(&r); err != nil {
 		return failOperation(f, err)
 	}

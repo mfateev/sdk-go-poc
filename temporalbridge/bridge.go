@@ -11,6 +11,7 @@ import (
 	"isolate"
 	"time"
 
+	"github.com/mfateev/sdk-go-poc/internal/headerwire"
 	"github.com/mfateev/sdk-go-poc/workflow"
 	commonpb "go.temporal.io/api/common/v1"
 	bindings "go.temporal.io/sdk/internalbindings"
@@ -54,6 +55,8 @@ type Factory struct {
 	ResolveLogHandler func() LogHandler
 	// ResolveSink looks up worker-configured observation handlers on the host.
 	ResolveSink func(uint32) (SinkHandler, SinkOptions)
+	// ResolveInterceptors snapshots a marked workflow interceptor factory.
+	ResolveInterceptors func() InterceptorOptions
 	// ResolveResourceOptions snapshots host policy for each new execution.
 	ResolveResourceOptions func() ResourceOptions
 	// ResolveDataConverter snapshots the isolate serializer factory and copied configuration.
@@ -61,6 +64,11 @@ type Factory struct {
 }
 
 func (f Factory) NewWorkflowDefinition() bindings.WorkflowDefinition {
+	var interceptors InterceptorOptions
+	if f.ResolveInterceptors != nil {
+		interceptors = f.ResolveInterceptors()
+	}
+	interceptors.Config = append([]byte(nil), interceptors.Config...)
 	var converters DataConverterOptions
 	if f.ResolveDataConverter != nil {
 		converters = f.ResolveDataConverter()
@@ -73,10 +81,22 @@ func (f Factory) NewWorkflowDefinition() bindings.WorkflowDefinition {
 		if converters.Factory.Name() != "" {
 			f.Program = f.Function.ProgramWithSupport(converters.Factory, func(handle, factory isolate.Handle) { _ = workflow.RunFunctionWithDataConverter(handle, factory) })
 		}
+		if interceptors.Factory.Name() != "" {
+			supports := []isolate.Handle{interceptors.Factory}
+			if converters.Factory.Name() != "" {
+				supports = append(supports, converters.Factory)
+			}
+			f.Program = f.Function.ProgramWithSupports(supports, func(handle isolate.Handle, supports []isolate.Handle) {
+				_ = workflow.RunFunctionWithSupports(handle, supports)
+			})
+		}
 		f.EntryName = f.Function.Name()
 	}
 	if converters.Factory.Name() != "" && f.Function.Name() == "" {
 		panic("temporalbridge: configured converters require a marked workflow function")
+	}
+	if interceptors.Factory.Name() != "" && f.Function.Name() == "" {
+		panic("temporalbridge: configured interceptors require a marked workflow function")
 	}
 	var resources ResourceOptions
 	if f.ResolveResourceOptions != nil {
@@ -85,7 +105,7 @@ func (f Factory) NewWorkflowDefinition() bindings.WorkflowDefinition {
 	if err := resources.Validate(); err != nil {
 		panic(err)
 	}
-	return &definition{replayOnly: f.ReplayOnly, resolveLocalActivity: f.ResolveLocalActivity, converters: converters, resources: resources, program: f.Program, entryName: f.EntryName, resolveWorkflow: f.ResolveWorkflow, resolveActivity: f.ResolveActivity, resolveLogHandler: f.ResolveLogHandler, resolveSink: f.ResolveSink}
+	return &definition{replayOnly: f.ReplayOnly, resolveLocalActivity: f.ResolveLocalActivity, converters: converters, interceptors: interceptors, resources: resources, program: f.Program, entryName: f.EntryName, resolveWorkflow: f.ResolveWorkflow, resolveActivity: f.ResolveActivity, resolveLogHandler: f.ResolveLogHandler, resolveSink: f.ResolveSink}
 }
 
 type reply struct {
@@ -113,6 +133,7 @@ type definition struct {
 	locals               map[uint64]*activityState
 	nexus                map[uint64]*nexusState
 	converters           DataConverterOptions
+	interceptors         InterceptorOptions
 	children             map[uint64]*childState
 	childSignals         map[uint64]*activityState
 	updateHandlers       map[string]workflow.UpdateRegistration
@@ -144,21 +165,30 @@ type definition struct {
 	entryName            string
 	env                  bindings.WorkflowEnvironment
 	input                *commonpb.Payloads
+	header               map[string][]byte
 	instance             *isolate.Isolate
 	started              bool
 	completed            bool
 	pending              []reply
 	immediate            []reply
 	signals              []workflow.Signal
+	signalFlushWaiter    *isolate.Command
+	incomingSignals      []workflow.Signal
+	signalHookWaiter     *isolate.Command
 	wantSignals          []signalWaiter
 }
 
 // Execute must be asynchronous. History callbacks only queue data here.
-func (d *definition) Execute(env bindings.WorkflowEnvironment, _ *commonpb.Header, input *commonpb.Payloads) {
+func (d *definition) Execute(env bindings.WorkflowEnvironment, header *commonpb.Header, input *commonpb.Payloads) {
 	if d.closed {
 		return
 	}
 	d.env, d.input = env, input
+	var headerErr error
+	d.header, headerErr = headerwire.Encode(header)
+	if headerErr != nil {
+		d.failTask(headerErr)
+	}
 	// The SDK can deliver a query before workflow code registers handlers.
 	// Install the router immediately so that such queries return an error.
 	env.RegisterQueryHandler(d.query)
@@ -173,7 +203,7 @@ func (d *definition) Execute(env bindings.WorkflowEnvironment, _ *commonpb.Heade
 			d.cancelWaiter = nil
 		}
 	})
-	env.RegisterSignalHandler(func(name string, payloads *commonpb.Payloads, _ *commonpb.Header) error {
+	env.RegisterSignalHandler(func(name string, payloads *commonpb.Payloads, header *commonpb.Header) error {
 		if d.completed || d.closed {
 			return nil
 		}
@@ -181,7 +211,16 @@ func (d *definition) Execute(env bindings.WorkflowEnvironment, _ *commonpb.Heade
 		if err != nil {
 			return err
 		}
-		d.signals = append(d.signals, workflow.Signal{Name: name, Payloads: payload})
+		fields, err := headerwire.Encode(header)
+		if err != nil {
+			return err
+		}
+		signal := workflow.Signal{Name: name, Payloads: payload, Header: fields}
+		if d.interceptors.Factory.Name() != "" {
+			d.incomingSignals = append(d.incomingSignals, signal)
+		} else {
+			d.signals = append(d.signals, signal)
+		}
 		return nil
 	})
 }
@@ -467,6 +506,15 @@ func (d *definition) handle(command *isolate.Command) error {
 		return nil
 	}
 	switch command.Op {
+	case workflow.OpInfo:
+		return d.handleInfo(command)
+	case workflow.OpResolveActivityName:
+		name := string(command.Payload)
+		if d.resolveActivity != nil {
+			name = d.resolveActivity(name)
+		}
+		d.replyWhenSuspended(command, []byte(name), nil)
+		return nil
 	case workflow.OpScheduleExternal, workflow.OpAwaitExternal:
 		return d.handleExternal(command)
 	case workflow.OpScheduleLocal, workflow.OpAwaitLocal, workflow.OpCancelLocal:
@@ -583,7 +631,7 @@ func (d *definition) handle(command *isolate.Command) error {
 				return err
 			}
 		}
-		payload, err := json.Marshal(workflow.PayloadStart{ConverterConfig: d.converters.Config, Name: d.entryName, Payloads: input, Canceled: d.canceled, TaskQueue: d.env.WorkflowInfo().TaskQueueName, Options: workflow.RunOptions{Namespace: d.env.WorkflowInfo().Namespace, TaskQueue: d.env.WorkflowInfo().TaskQueueName, WorkflowExecutionTimeout: d.env.WorkflowInfo().WorkflowExecutionTimeout, WorkflowRunTimeout: d.env.WorkflowInfo().WorkflowRunTimeout, WorkflowTaskTimeout: d.env.WorkflowInfo().WorkflowTaskTimeout}})
+		payload, err := json.Marshal(workflow.PayloadStart{ConverterFactory: d.converters.Factory.Name(), InterceptorFactory: d.interceptors.Factory.Name(), InterceptorConfig: d.interceptors.Config, Header: d.header, ConverterConfig: d.converters.Config, Name: d.entryName, Payloads: input, Canceled: d.canceled, TaskQueue: d.env.WorkflowInfo().TaskQueueName, Options: workflow.RunOptions{Namespace: d.env.WorkflowInfo().Namespace, TaskQueue: d.env.WorkflowInfo().TaskQueueName, WorkflowExecutionTimeout: d.env.WorkflowInfo().WorkflowExecutionTimeout, WorkflowRunTimeout: d.env.WorkflowInfo().WorkflowRunTimeout, WorkflowTaskTimeout: d.env.WorkflowInfo().WorkflowTaskTimeout}})
 		if err != nil {
 			return err
 		}
@@ -689,6 +737,10 @@ func (d *definition) handle(command *isolate.Command) error {
 			state.cancel = func() { d.env.RequestCancelTimer(*timerID) }
 		}
 		return nil
+	case workflow.OpInterceptSignal:
+		return d.interceptSignal(command)
+	case workflow.OpFlushSignals:
+		return d.flushSignals(command)
 	case workflow.OpSignal:
 		name := string(command.Payload)
 		index := d.signalIndex(name)
@@ -783,6 +835,9 @@ func (d *definition) signalIndex(name string) int {
 }
 
 func (d *definition) hasDeliverableSignal() bool {
+	if d.signalHookWaiter != nil && len(d.incomingSignals) != 0 {
+		return true
+	}
 	for _, signal := range d.signals {
 		if d.waiterIndex(signal.Name) >= 0 {
 			return true
@@ -801,6 +856,15 @@ func (d *definition) waiterIndex(name string) int {
 }
 
 func (d *definition) deliverWaitingSignals() {
+	if d.signalHookWaiter != nil && len(d.incomingSignals) != 0 {
+		payload, _ := json.Marshal(d.incomingSignals[0])
+		d.incomingSignals = d.incomingSignals[1:]
+		d.pending = append(d.pending, reply{command: d.signalHookWaiter, payload: payload})
+		d.signalHookWaiter = nil
+	}
+	d.deliverProcessedSignals(false)
+}
+func (d *definition) deliverProcessedSignals(immediate bool) {
 	for signalIndex := 0; signalIndex < len(d.signals); {
 		waiterIndex := d.waiterIndex(d.signals[signalIndex].Name)
 		if waiterIndex < 0 {
@@ -808,7 +872,7 @@ func (d *definition) deliverWaitingSignals() {
 			continue
 		}
 		payload, _ := json.Marshal(d.signals[signalIndex])
-		d.finish(d.wantSignals[waiterIndex].command, d.callsByCommand[d.wantSignals[waiterIndex].command], payload, nil, false)
+		d.finish(d.wantSignals[waiterIndex].command, d.callsByCommand[d.wantSignals[waiterIndex].command], payload, nil, immediate)
 		d.wantSignals = append(d.wantSignals[:waiterIndex], d.wantSignals[waiterIndex+1:]...)
 		d.signals = append(d.signals[:signalIndex], d.signals[signalIndex+1:]...)
 	}
@@ -965,6 +1029,7 @@ func (d *definition) retireOperations() {
 	d.calls, d.callsByCommand, d.earlyCancel = nil, nil, nil
 	d.pending, d.immediate, d.signals, d.wantSignals = nil, nil, nil, nil
 	d.cancelWaiter, d.input = nil, nil
+	d.incomingSignals, d.signalHookWaiter, d.signalFlushWaiter = nil, nil, nil
 	d.program = isolate.Program{}
 	d.resolveActivity, d.resolveWorkflow = nil, nil
 	d.resolveLocalActivity = nil

@@ -8,6 +8,7 @@ import (
 	"isolate"
 	"reflect"
 
+	"github.com/mfateev/sdk-go-poc/internal/headerwire"
 	"github.com/mfateev/sdk-go-poc/workflow"
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/converter"
@@ -106,7 +107,11 @@ func (d *definition) handleLocal(c *isolate.Command) error {
 	s := &activityState{synchronous: true}
 	d.locals[r.ID] = s
 	id := r.ID
-	params := bindings.ExecuteLocalActivityParams{ExecuteLocalActivityOptions: bindings.ExecuteLocalActivityOptions{ScheduleToCloseTimeout: r.Options.ScheduleToCloseTimeout, StartToCloseTimeout: r.Options.StartToCloseTimeout, RetryPolicy: r.Options.RetryPolicy, Summary: r.Options.Summary}, ActivityFn: fn, ActivityType: r.Name, InputArgs: args, WorkflowInfo: info, DataConverter: dc, FailureConverter: temporal.NewDefaultFailureConverter(temporal.DefaultFailureConverterOptions{DataConverter: dc}), Attempt: r.Attempt, ScheduledTime: r.ScheduledTime}
+	header, err := headerwire.Decode(r.Header)
+	if err != nil {
+		return err
+	}
+	params := bindings.ExecuteLocalActivityParams{ExecuteLocalActivityOptions: bindings.ExecuteLocalActivityOptions{ScheduleToCloseTimeout: r.Options.ScheduleToCloseTimeout, StartToCloseTimeout: r.Options.StartToCloseTimeout, RetryPolicy: r.Options.RetryPolicy, Summary: r.Options.Summary}, ActivityFn: fn, ActivityType: r.Name, InputArgs: args, WorkflowInfo: info, DataConverter: dc, FailureConverter: temporal.NewDefaultFailureConverter(temporal.DefaultFailureConverterOptions{DataConverter: dc}), Attempt: r.Attempt, ScheduledTime: r.ScheduledTime, Header: header}
 	activityID := d.env.ExecuteLocalActivity(params, func(result *bindings.LocalActivityResultWrapper) {
 		if d.closed || s.retired || s.done {
 			return

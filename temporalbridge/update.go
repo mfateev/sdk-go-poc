@@ -7,6 +7,7 @@ import (
 	"isolate"
 	"slices"
 
+	"github.com/mfateev/sdk-go-poc/internal/headerwire"
 	"github.com/mfateev/sdk-go-poc/workflow"
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/converter"
@@ -18,13 +19,14 @@ import (
 type updateState struct {
 	id, name  string
 	payload   []byte
+	header    map[string][]byte
 	callbacks bindings.UpdateCallbacks
 	accepted  bool
 }
 
 // History callbacks queue input only. Validation and acceptance take place at
 // a suspension fence, never while workflow goroutines are executing.
-func (d *definition) queueUpdate(name, id string, input *commonpb.Payloads, _ *commonpb.Header, callbacks bindings.UpdateCallbacks) {
+func (d *definition) queueUpdate(name, id string, input *commonpb.Payloads, header *commonpb.Header, callbacks bindings.UpdateCallbacks) {
 	if d.completed || d.closed {
 		callbacks.Reject(errors.New("workflow has completed"))
 		return
@@ -41,7 +43,12 @@ func (d *definition) queueUpdate(name, id string, input *commonpb.Payloads, _ *c
 		callbacks.Reject(err)
 		return
 	}
-	state := &updateState{id: id, name: name, payload: raw, callbacks: callbacks}
+	fields, err := headerwire.Encode(header)
+	if err != nil {
+		callbacks.Reject(err)
+		return
+	}
+	state := &updateState{id: id, name: name, payload: raw, header: fields, callbacks: callbacks}
 	d.updates[id] = state
 	d.queuedUpdates = append(d.queuedUpdates, state)
 }
@@ -120,7 +127,7 @@ func (d *definition) admitUpdate() bool {
 	}
 	state := d.queuedUpdates[index]
 	d.queuedUpdates = append(d.queuedUpdates[:index], d.queuedUpdates[index+1:]...)
-	response, err := d.runReadOnly(workflow.QueryRequest{Kind: "validate", Name: state.name, UpdateID: state.id, Payloads: state.payload, Canceled: d.canceled, SkipValidator: d.env.IsReplaying()})
+	response, err := d.runReadOnly(workflow.QueryRequest{Kind: "validate", Name: state.name, UpdateID: state.id, Payloads: state.payload, Header: state.header, Canceled: d.canceled, SkipValidator: d.env.IsReplaying()})
 	if err != nil {
 		d.failTask(err)
 	}
@@ -138,7 +145,7 @@ func (d *definition) admitUpdate() bool {
 		delete(d.updates, state.id)
 		return true
 	}
-	raw, err := json.Marshal(workflow.UpdateRequest{ID: state.id, Name: state.name, Payloads: state.payload})
+	raw, err := json.Marshal(workflow.UpdateRequest{ID: state.id, Name: state.name, Payloads: state.payload, Header: state.header})
 	if err != nil {
 		d.failTask(err)
 	}

@@ -65,6 +65,10 @@ const (
 	OpSessionID           uint32 = 39
 	OpAddSession          uint32 = 40
 	OpRemoveSession       uint32 = 41
+	OpInfo                uint32 = 42
+	OpResolveActivityName uint32 = 43
+	OpInterceptSignal     uint32 = 44
+	OpFlushSignals        uint32 = 45
 )
 
 // Handler is a named workflow function. Each execution receives its own
@@ -236,12 +240,16 @@ type Start struct {
 // PayloadStart carries the entry name and serialized Temporal Payloads. The
 // bytes cross the isolate boundary; Go argument values do not.
 type PayloadStart struct {
-	ConverterConfig []byte     `json:"converter_config,omitempty"`
-	TaskQueue       string     `json:"task_queue,omitempty"`
-	Options         RunOptions `json:"options"`
-	Canceled        bool       `json:"canceled,omitempty"`
-	Name            string     `json:"name"`
-	Payloads        []byte     `json:"payloads"`
+	ConverterFactory   string            `json:"converter_factory,omitempty"`
+	InterceptorFactory string            `json:"interceptor_factory,omitempty"`
+	InterceptorConfig  []byte            `json:"interceptor_config,omitempty"`
+	Header             map[string][]byte `json:"header,omitempty"`
+	ConverterConfig    []byte            `json:"converter_config,omitempty"`
+	TaskQueue          string            `json:"task_queue,omitempty"`
+	Options            RunOptions        `json:"options"`
+	Canceled           bool              `json:"canceled,omitempty"`
+	Name               string            `json:"name"`
+	Payloads           []byte            `json:"payloads"`
 }
 
 // Run selects the registered function, calls it, and reports its result to the
@@ -324,6 +332,16 @@ func RunFunction(handle isolate.Handle) error {
 // RunFunctionWithDataConverter constructs the worker-configured serializer
 // inside the workflow owner before decoding arguments or invoking user code.
 func RunFunctionWithDataConverter(handle, factory isolate.Handle) error {
+	return runFunction(handle, factory, nil)
+}
+
+// RunFunctionWithSupports composes compiler-created factories, selected by the
+// copied startup envelope. It supports converters and interceptors together.
+func RunFunctionWithSupports(handle isolate.Handle, supports []isolate.Handle) error {
+	return runFunction(handle, isolate.Handle{}, supports)
+}
+
+func runFunction(handle, factory isolate.Handle, supports []isolate.Handle) error {
 	startBytes, err := isolate.Call(OpStartPayloads, nil)
 	if err != nil {
 		return err
@@ -331,6 +349,21 @@ func RunFunctionWithDataConverter(handle, factory isolate.Handle) error {
 	var start PayloadStart
 	if err := json.Unmarshal(startBytes, &start); err != nil {
 		return completePayloads(nil, fmt.Errorf("workflow: decode start: %w", err))
+	}
+	var interceptorFactory isolate.Handle
+	for _, support := range supports {
+		if support.Name() == start.ConverterFactory {
+			factory = support
+		}
+		if support.Name() == start.InterceptorFactory {
+			interceptorFactory = support
+		}
+	}
+	if start.InterceptorFactory != "" && interceptorFactory.Name() == "" {
+		return completePayloads(nil, errors.New("workflow: interceptor factory is not part of the program"))
+	}
+	if start.ConverterFactory != "" && factory.Name() != start.ConverterFactory {
+		return completePayloads(nil, errors.New("workflow: converter factory is not part of the program"))
 	}
 	if err := configureDataConverter(factory, start.ConverterConfig); err != nil {
 		return completePayloads(nil, fmt.Errorf("workflow: create data converter: %w", err))
@@ -341,6 +374,15 @@ func RunFunctionWithDataConverter(handle, factory isolate.Handle) error {
 	}
 	ctx, cancel := executionContext(start.Canceled, start.TaskQueue, start.Options)
 	defer cancel()
+	ctx, err = withInterceptorHeader(ctx, start.Header)
+	if err != nil {
+		return completePayloads(nil, err)
+	}
+	rootContext = ctx
+	configureInterceptors(interceptorFactory, start.InterceptorConfig)
+	if interceptorFactory.Name() != "" {
+		return runInterceptedFunction(handle, ctx, payloads)
+	}
 	var result *commonpb.Payloads
 	err = handle.Invoke(func(args ...isolate.Value) error {
 		if len(args) == 0 {
@@ -394,16 +436,18 @@ type ActivityRequest struct {
 // ActivityPayloadRequest carries arguments encoded inside the isolate using
 // Temporal's default converter. The host forwards them to the activity.
 type ActivityPayloadRequest struct {
-	ID                  uint64           `json:"id,omitempty"`
-	Options             *ActivityOptions `json:"options,omitempty"`
-	Function            bool             `json:"function,omitempty"`
-	Name                string           `json:"name"`
-	Payloads            []byte           `json:"payloads"`
-	StartToCloseTimeout time.Duration    `json:"start_to_close_timeout"`
+	Header              map[string][]byte `json:"header,omitempty"`
+	ID                  uint64            `json:"id,omitempty"`
+	Options             *ActivityOptions  `json:"options,omitempty"`
+	Function            bool              `json:"function,omitempty"`
+	Name                string            `json:"name"`
+	Payloads            []byte            `json:"payloads"`
+	StartToCloseTimeout time.Duration     `json:"start_to_close_timeout"`
 }
 
 // Signal is one incoming workflow signal.
 type Signal struct {
+	Header map[string][]byte `json:"header,omitempty"`
 	// Payloads is the plain serialized envelope; nextSignal decodes Input under
 	// the receiving isolate owner, after host codecs have been removed.
 	Payloads []byte `json:"payloads,omitempty"`
@@ -486,7 +530,7 @@ func decodeActivityResult[R any](response []byte) (R, error) {
 }
 
 // Sleep waits on a durable Temporal timer. Do not use time.Sleep for this POC.
-func Sleep(ctx context.Context, duration time.Duration) error {
+func sleep(ctx context.Context, duration time.Duration) error {
 	if duration < 0 {
 		return errors.New("workflow: negative sleep duration")
 	}
@@ -526,7 +570,7 @@ func nextSignal(ctx context.Context, name string) (Signal, error) {
 // all signals. Each call starts an isolate-owned goroutine that waits through
 // Call; its channel is buffered so a completed call can finish if the workflow
 // has selected another case. A host error is sent once, then the channel closes.
-func GetSignalChannel(ctx context.Context, name string) <-chan SignalResult {
+func getSignalChannel(ctx context.Context, name string) <-chan SignalResult {
 	results := make(chan SignalResult, 1)
 	if ctx == nil {
 		results <- SignalResult{Err: errors.New("workflow: nil context")}

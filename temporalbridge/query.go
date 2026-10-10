@@ -2,6 +2,8 @@ package temporalbridge
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,6 +11,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/mfateev/sdk-go-poc/internal/headerwire"
 	"github.com/mfateev/sdk-go-poc/workflow"
 	commonpb "go.temporal.io/api/common/v1"
 	"google.golang.org/protobuf/proto"
@@ -53,7 +56,7 @@ func (d *definition) handleQuery(command *isolate.Command) error {
 // The SDK serializes query handling with workflow task execution. Replies to
 // ordinary activities, signals and timers remain queued while only the query
 // service has a token. No history timestamp or completion is changed here.
-func (d *definition) query(name string, input *commonpb.Payloads, _ *commonpb.Header) (*commonpb.Payloads, error) {
+func (d *definition) query(name string, input *commonpb.Payloads, header *commonpb.Header) (*commonpb.Payloads, error) {
 	if d.closed || d.instance == nil {
 		return nil, errors.New("workflow query state was evicted")
 	}
@@ -69,7 +72,11 @@ func (d *definition) query(name string, input *commonpb.Payloads, _ *commonpb.He
 	if err != nil {
 		return nil, err
 	}
-	response, err := d.runReadOnly(workflow.QueryRequest{Name: name, Payloads: raw})
+	fields, err := headerwire.Encode(header)
+	if err != nil {
+		return nil, err
+	}
+	response, err := d.runReadOnly(workflow.QueryRequest{Name: name, Payloads: raw, Header: fields})
 	if err != nil {
 		return nil, err
 	}
@@ -90,6 +97,11 @@ func (d *definition) runReadOnly(input workflow.QueryRequest) (*workflow.QueryRe
 	}
 	d.querySequence++
 	input.ID = d.querySequence
+	var observation [16]byte
+	if _, err := rand.Read(observation[:]); err != nil {
+		return nil, err
+	}
+	input.ObservationID = hex.EncodeToString(observation[:])
 	request, err := json.Marshal(input)
 	if err != nil {
 		return nil, err
@@ -130,7 +142,10 @@ func (d *definition) runReadOnly(input workflow.QueryRequest) (*workflow.QueryRe
 			}
 			// Do not send any workflow command to the SDK from a read-only
 			// handler, including calls made directly through isolate.Call/time.
-			if command.Op == workflow.OpIsReplaying {
+			if command.Op == workflow.OpInfo {
+				raw, err := d.infoBytes()
+				command.Reply(raw, err)
+			} else if command.Op == workflow.OpIsReplaying {
 				raw, _ := json.Marshal(d.env.IsReplaying())
 				command.Reply(raw, nil)
 			} else {

@@ -11,16 +11,20 @@ import (
 
 func TestCompiledAPICoverageAndReplay(t *testing.T) {
 	binary := filepath.Join(t.TempDir(), "api-check")
-	if out, err := exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), "build", "-o", binary, ".").CombinedOutput(); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+	if out, err := exec.CommandContext(ctx, filepath.Join(runtime.GOROOT(), "bin", "go"), "build", "-o", binary, ".").CombinedOutput(); err != nil {
 		t.Fatalf("build: %v\n%s", err, out)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
 	dir, err := filepath.Abs("../testdata")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if out, err := exec.CommandContext(ctx, binary, "-history-dir", dir).CombinedOutput(); err != nil {
-		t.Fatalf("API coverage/replay: %v\n%s", err, out)
+	for _, adapter := range []string{"", "v1", "v2", "datadog"} {
+		t.Run("tracing-"+adapter, func(t *testing.T) {
+			if out, err := exec.CommandContext(ctx, binary, "-history-dir", dir, "-tracing", adapter).CombinedOutput(); err != nil {
+				t.Fatalf("API coverage/replay: %v\n%s", err, out)
+			}
+		})
 	}
 }
