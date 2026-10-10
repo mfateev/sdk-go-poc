@@ -1,19 +1,14 @@
 package main
 
 import (
-	"os/exec"
-	"path/filepath"
-	"runtime"
 	"testing"
+
+	"github.com/mfateev/sdk-go-poc/internal/checktest"
 )
 
 func TestWorkerLifecycleAndSDKReplay(t *testing.T) {
-	binary := filepath.Join(t.TempDir(), "lifecycle-check")
-	build := exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), "build", "-o", binary, ".")
-	if output, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("build: %v\n%s", err, output)
-	}
-	run := exec.Command(binary)
+	binary := checktest.Build(t, "lifecycle-check")
+	run := checktest.Command(t, binary)
 	run.Dir = t.TempDir()
 	if output, err := run.CombinedOutput(); err != nil {
 		t.Fatalf("lifecycle check: %v\n%s", err, output)

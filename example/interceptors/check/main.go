@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"strings"
@@ -121,7 +122,7 @@ func must(err error) {
 	}
 }
 
-func check(replay bool) {
+func check(replay bool, taskTimeout time.Duration) {
 	registrations := &registrations{}
 	w := worker.Wrap(registrations)
 	w.RegisterWorkflow(interceptors.Workflow)
@@ -143,7 +144,7 @@ func check(replay bool) {
 		d := registrations.factory.NewWorkflowDefinition()
 		defer d.Close()
 		d.Execute(env, header("start"), input)
-		d.OnWorkflowTaskStarted(5 * time.Second)
+		d.OnWorkflowTaskStarted(taskTimeout)
 		checkQuery := func(name string, want int) {
 			result, err := env.query(name, nil, header("query"))
 			if name == "bad" {
@@ -163,13 +164,13 @@ func check(replay bool) {
 		must(signalErr)
 		startHooks := len(observations)
 		must(env.signal("unused", signalInput, header("signal")))
-		d.OnWorkflowTaskStarted(5 * time.Second)
+		d.OnWorkflowTaskStarted(taskTimeout)
 		if len(observations) != startHooks+2 {
 			panic("signal hook waited for a channel receiver")
 		}
 		startHooks = len(observations)
 		must(env.signal("filtered", signalInput, header("signal")))
-		d.OnWorkflowTaskStarted(5 * time.Second)
+		d.OnWorkflowTaskStarted(taskTimeout)
 		if len(observations) != startHooks+1 {
 			panic("signal interceptor could not filter delivery")
 		}
@@ -179,20 +180,20 @@ func check(replay bool) {
 		if !replay {
 			rejected := new(outcome)
 			env.update("bad", fmt.Sprintf("bad-%d", run), nil, header("update"), rejected)
-			d.OnWorkflowTaskStarted(5 * time.Second)
+			d.OnWorkflowTaskStarted(taskTimeout)
 			if rejected.err == nil || rejected.accepted {
 				panic("invalid validator accepted or killed workflow")
 			}
 			accepted := new(outcome)
 			env.update("bump", fmt.Sprintf("bump-%d", run), nil, header("update"), accepted)
-			d.OnWorkflowTaskStarted(5 * time.Second)
+			d.OnWorkflowTaskStarted(taskTimeout)
 			if !accepted.accepted || !accepted.completed || accepted.err != nil {
 				panic(fmt.Sprintf("update=%+v", accepted))
 			}
 			checkQuery("state", 8)
 		}
 		must(env.signal("renamed", nil, header("signal")))
-		d.OnWorkflowTaskStarted(5 * time.Second)
+		d.OnWorkflowTaskStarted(taskTimeout)
 		if env.completes != 1 || env.err != nil {
 			panic(fmt.Sprintf("complete=%d error=%v", env.completes, env.err))
 		}
@@ -226,7 +227,7 @@ func check(replay bool) {
 		}
 	}
 }
-func checkBufferedSignals() {
+func checkBufferedSignals(taskTimeout time.Duration) {
 	registrations := &registrations{}
 	w := worker.Wrap(registrations)
 	w.RegisterWorkflowWithOptions(interceptors.Immediate, sdkwf.RegisterOptions{Name: "Workflow"})
@@ -242,7 +243,7 @@ func checkBufferedSignals() {
 	for range 3 {
 		must(env.signal("unused", nil, header("signal")))
 	}
-	d.OnWorkflowTaskStarted(5 * time.Second)
+	d.OnWorkflowTaskStarted(taskTimeout)
 	if env.completes != 1 || env.err != nil {
 		panic(fmt.Sprintf("immediate completion: %d %v", env.completes, env.err))
 	}
@@ -259,8 +260,10 @@ func checkBufferedSignals() {
 	}
 }
 func main() {
-	check(false)
-	check(true)
-	checkBufferedSignals()
+	taskTimeout := flag.Duration("task-timeout", 30*time.Second, "synthetic workflow task deadline")
+	flag.Parse()
+	check(false, *taskTimeout)
+	check(true, *taskTimeout)
+	checkBufferedSignals(*taskTimeout)
 	fmt.Fprintln(os.Stdout, "native workflow interceptors, copied factories, read-only state and byte observations passed")
 }

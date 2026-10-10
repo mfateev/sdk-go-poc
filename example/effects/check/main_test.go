@@ -1,19 +1,14 @@
 package main
 
 import (
-	"os/exec"
-	"path/filepath"
-	"runtime"
 	"testing"
+
+	"github.com/mfateev/sdk-go-poc/internal/checktest"
 )
 
 func TestWorkerEffectsAndSDKReplay(t *testing.T) {
-	binary := filepath.Join(t.TempDir(), "effects-check")
-	build := exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), "build", "-o", binary, ".")
-	if output, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("build: %v\n%s", err, output)
-	}
-	run := exec.Command(binary)
+	binary := checktest.Build(t, "effects-check")
+	run := checktest.Command(t, binary)
 	run.Dir = t.TempDir()
 	if output, err := run.CombinedOutput(); err != nil {
 		t.Fatalf("effect/logging check: %v\n%s", err, output)

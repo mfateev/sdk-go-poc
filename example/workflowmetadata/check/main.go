@@ -131,7 +131,7 @@ func setPrivate(info *sdkwf.Info, name string, value any) {
 	field := reflect.ValueOf(info).Elem().FieldByName(name)
 	reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Set(reflect.ValueOf(value))
 }
-func check(previous string, e *environment) {
+func check(previous string, e *environment, taskTimeout time.Duration) {
 	registrations := &registrations{}
 	w := worker.Wrap(registrations)
 	w.RegisterWorkflow(metadata.Workflow)
@@ -141,7 +141,7 @@ func check(previous string, e *environment) {
 	input, err := e.GetDataConverter().ToPayloads(previous, false)
 	must(err)
 	d.Execute(e, nil, input)
-	d.OnWorkflowTaskStarted(5 * time.Second)
+	d.OnWorkflowTaskStarted(taskTimeout)
 	if e.completes != 0 {
 		panic(fmt.Sprintf("premature completion: %v", e.err))
 	}
@@ -174,12 +174,12 @@ func check(previous string, e *environment) {
 	checkQuery()
 	validation := new(outcome)
 	e.update("check", "check", nil, nil, validation)
-	d.OnWorkflowTaskStarted(5 * time.Second)
+	d.OnWorkflowTaskStarted(taskTimeout)
 	if !validation.accepted || !validation.completed || validation.err != nil {
 		panic(fmt.Sprintf("metadata validator: %+v", validation))
 	}
 	must(e.signal("finish", nil, nil))
-	d.OnWorkflowTaskStarted(5 * time.Second)
+	d.OnWorkflowTaskStarted(taskTimeout)
 	if e.completes != 1 || e.err != nil {
 		panic(fmt.Sprintf("completion: %d %v", e.completes, e.err))
 	}
@@ -201,6 +201,7 @@ func newEnvironment(previous string) *environment {
 }
 
 func main() {
+	taskTimeout := flag.Duration("task-timeout", 30*time.Second, "synthetic workflow task deadline")
 	live := flag.String("live", "", "Temporal server address")
 	history := flag.String("history", "", "saved history to replay")
 	output := flag.String("output", "", "path to save live history")
@@ -214,7 +215,7 @@ func main() {
 		return
 	}
 	for _, previous := range []string{"absent", "empty", "values"} {
-		check(previous, newEnvironment(previous))
+		check(previous, newEnvironment(previous), *taskTimeout)
 	}
 	fmt.Println("metadata hooks, precise previous results/failures, read-only getters and signal descriptions passed")
 }

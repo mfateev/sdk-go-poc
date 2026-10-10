@@ -1005,6 +1005,27 @@ module/version/checksum and application VCS revision when embedded by Go.
 These diagnostics are deployment information; they are not replay inputs or
 automatic compatibility proofs.
 
+### Compiled integration test budgets
+
+Run the complete SDK suite with the custom toolchain:
+
+```sh
+export GOCACHE="$(cd .. && pwd)/go-build-cache"
+../golang-go/bin/go test -timeout=20m ./...
+```
+
+Compiled workflow fixtures use `internal/checktest`: each checker build has a
+10-minute budget, and each checker process gets a fresh 2-minute execution
+budget. Compilation cannot consume a subsequent replay's execution allowance.
+Build failures report elapsed time and context status. The outer 20-minute limit
+is per test package; GitHub's native platform jobs have a 90-minute limit.
+
+The interceptor, tracing and workflow-metadata synthetic hosts default to a
+30-second workflow-task deadline, configurable with `-task-timeout`. This allows
+race and ownership instrumentation in CI. Dedicated resource-limit checks retain
+their short enforcement deadlines. Worker task and cleanup policies are separate
+from these fixture budgets. Native CI saves full command output as artifacts.
+
 ### Upgrade and rollback validation
 
 Keep supported histories when changing the compiler, runtime or SDK. Replay with

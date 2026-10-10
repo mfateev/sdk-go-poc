@@ -3,20 +3,17 @@ package main
 import (
 	"bytes"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
 	"testing"
+
+	"github.com/mfateev/sdk-go-poc/internal/checktest"
 )
 
 func TestCompiledDeterministicRandom(t *testing.T) {
-	binary := filepath.Join(t.TempDir(), "random-check")
-	if out, err := exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), "build", "-o", binary, ".").CombinedOutput(); err != nil {
-		t.Fatalf("build: %v\n%s", err, out)
-	}
+	binary := checktest.Build(t, "random-check")
 	var baseline []byte
 	for _, procs := range []string{"1", "2", "8"} {
-		cmd := exec.Command(binary)
+		cmd := checktest.Command(t, binary)
 		cmd.Dir = t.TempDir()
 		cmd.Env = append(os.Environ(), "GOMAXPROCS="+procs, "GOGC=1")
 		out, err := cmd.CombinedOutput()
@@ -32,7 +29,7 @@ func TestCompiledDeterministicRandom(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		replay := exec.Command(binary, "-history", filename)
+		replay := checktest.Command(t, binary, "-history", filename)
 		replay.Dir = t.TempDir()
 		replay.Env = cmd.Env
 		if output, err := replay.CombinedOutput(); err != nil {

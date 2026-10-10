@@ -192,7 +192,7 @@ func check(version string, replay bool, taskTimeout time.Duration) string {
 }
 func main() {
 	live := flag.String("live", "", "Temporal server address")
-	taskTimeout := flag.Duration("task-timeout", 5*time.Second, "synthetic task deadline; allow instrumentation overhead in ownership/race stress checks")
+	taskTimeout := flag.Duration("task-timeout", 30*time.Second, "synthetic task deadline; allow instrumentation overhead in ownership/race stress checks")
 	directory := flag.String("histories", "../testdata", "saved history directory")
 	version := flag.String("version", "", "one live tracing integration")
 	history := flag.String("history", "", "replay one saved history")

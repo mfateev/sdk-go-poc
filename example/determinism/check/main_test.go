@@ -3,29 +3,24 @@ package main
 import (
 	"bytes"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
 	"testing"
 
+	"github.com/mfateev/sdk-go-poc/internal/checktest"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/converter"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
 func TestSavedHistoryChecksComputedTrace(t *testing.T) {
-	binary := filepath.Join(t.TempDir(), "replay")
-	build := exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), "build", "-o", binary, ".")
-	if output, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("build: %v\n%s", err, output)
-	}
+	binary := checktest.Build(t, "replay")
 	filename := "../testdata/history-shared-random.json"
-	if output, err := exec.Command(binary, "-history", filename).CombinedOutput(); err != nil {
+	if output, err := checktest.Command(t, binary, "-history", filename).CombinedOutput(); err != nil {
 		t.Fatalf("saved history: %v\n%s", err, output)
 	}
 	// Retain the pre-change fixture and make this deliberate POC compatibility
 	// break visible. Replacing it would hide changed random/select observations.
-	if output, err := exec.Command(binary, "-history", "../testdata/history.json").CombinedOutput(); err == nil {
+	if output, err := checktest.Command(t, binary, "-history", "../testdata/history.json").CombinedOutput(); err == nil {
 		t.Fatalf("legacy independent-stream history unexpectedly passed:\n%s", output)
 	} else if !bytes.Contains(output, []byte("determinism trace changed")) {
 		t.Fatalf("legacy replay failed without identifying the sequence change: %v\n%s", err, output)
@@ -68,7 +63,7 @@ func TestSavedHistoryChecksComputedTrace(t *testing.T) {
 	if err := os.WriteFile(corrupted, data, 0600); err != nil {
 		t.Fatal(err)
 	}
-	if output, err := exec.Command(binary, "-history", corrupted).CombinedOutput(); err == nil {
+	if output, err := checktest.Command(t, binary, "-history", corrupted).CombinedOutput(); err == nil {
 		t.Fatalf("corrupted trace passed replay:\n%s", output)
 	} else if !bytes.Contains(output, []byte("determinism trace changed")) {
 		t.Fatalf("replay failed without identifying the changed trace: %v\n%s", err, output)
