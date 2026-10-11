@@ -8,6 +8,7 @@ import (
 	"isolate"
 	"reflect"
 	"strings"
+	"sync"
 	"sync/atomic"
 
 	"github.com/mfateev/sdk-go-poc/internal/failurecodec"
@@ -53,6 +54,32 @@ type updateValidationKey struct{}
 var updateHandlers = make(map[string]updateHandler)
 var runningUpdateCount atomic.Int64
 var updateServiceStarted bool
+var updateWaitMu sync.Mutex
+var updateFinished = func() chan struct{} { c := make(chan struct{}); close(c); return c }()
+
+// WaitHandlersFinished waits until accepted update handlers have posted their
+// completion messages. Call it before completing or continuing a workflow.
+func WaitHandlersFinished(ctx context.Context) error {
+	assertWritable()
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		updateWaitMu.Lock()
+		if runningUpdateCount.Load() == 0 {
+			updateWaitMu.Unlock()
+			return nil
+		}
+		done := updateFinished
+		updateWaitMu.Unlock()
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-done:
+			// Another update may have started before this goroutine resumed.
+		}
+	}
+}
 
 func SetUpdateHandler(ctx context.Context, name string, handler any) error {
 	return SetUpdateHandlerWithOptions(ctx, name, handler, UpdateHandlerOptions{})
@@ -60,7 +87,8 @@ func SetUpdateHandler(ctx context.Context, name string, handler any) error {
 
 // Validators execute under a separate scratch owner. A validator may allocate
 // temporary values, but cannot change captured workflow state or emit commands.
-// Accepted handlers run as ordinary native workflow goroutines.
+// Accepted handlers run as high-priority native workflow goroutines. Ordinary
+// children they start keep normal priority.
 func setUpdateHandlerWithOptions(ctx context.Context, name string, handler any, options UpdateHandlerOptions) error {
 	assertWritable()
 	if ctx == nil {
@@ -76,7 +104,7 @@ func setUpdateHandlerWithOptions(ctx context.Context, name string, handler any, 
 	startReadOnlyService()
 	if !updateServiceStarted {
 		updateServiceStarted = true
-		go serveUpdates()
+		isolate.GoWithPriority(isolate.PriorityHigh, serveUpdates)
 	}
 	raw, err := json.Marshal(UpdateRegistration{Name: name, UnfinishedPolicy: options.UnfinishedPolicy, Description: options.Description})
 	if err != nil {
@@ -243,8 +271,12 @@ func serveUpdates() {
 		if err := json.Unmarshal(raw, &request); err != nil {
 			panic(err)
 		}
-		runningUpdateCount.Add(1)
-		go executeUpdate(request)
+		updateWaitMu.Lock()
+		if runningUpdateCount.Add(1) == 1 {
+			updateFinished = make(chan struct{})
+		}
+		updateWaitMu.Unlock()
+		isolate.GoWithPriority(isolate.PriorityHigh, func() { executeUpdate(request) })
 	}
 }
 
@@ -304,5 +336,9 @@ func executeUpdate(request UpdateRequest) {
 	}
 	// A root waiting on AllHandlersFinished must not finish before the SDK has
 	// queued this update's completion message.
-	runningUpdateCount.Add(-1)
+	updateWaitMu.Lock()
+	if runningUpdateCount.Add(-1) == 0 {
+		close(updateFinished)
+	}
+	updateWaitMu.Unlock()
 }

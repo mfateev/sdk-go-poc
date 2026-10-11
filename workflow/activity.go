@@ -124,7 +124,7 @@ type activityFuture struct {
 
 func (f *activityFuture) ToChannel() <-chan FutureResult {
 	results := make(chan FutureResult, 1)
-	go func() {
+	isolate.GoInbound(func() {
 		defer close(results)
 		<-f.done
 		if f.err != nil {
@@ -140,7 +140,7 @@ func (f *activityFuture) ToChannel() <-chan FutureResult {
 			return
 		}
 		results <- FutureResult{Value: &futureValue{future: f, hasValue: len(payloads.Payloads) != 0}}
-	}()
+	})
 	return results
 }
 
@@ -262,7 +262,9 @@ func executeActivity(ctx context.Context, activity any, args ...any) Future {
 		return fail(err)
 	}
 	stop := context.AfterFunc(ctx, func() { p, _ := json.Marshal(id); _, _ = isolate.Call(OpCancelActivity, p) })
-	go func() {
+	// Publish available results during input admission so priority handlers
+	// waiting on this future become runnable before ordinary workflow code.
+	isolate.GoInbound(func() {
 		defer stop()
 		p, _ := json.Marshal(id)
 		response, err := isolate.Call(OpAwaitActivity, p)
@@ -292,7 +294,7 @@ func executeActivity(ctx context.Context, activity any, args ...any) Future {
 		}
 		f.ready.Store(true)
 		close(f.done)
-	}()
+	})
 	return f
 }
 

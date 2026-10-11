@@ -52,11 +52,11 @@ func ExecuteActivityAsyncError[I any](ctx context.Context, activity func(context
 
 func activityAsync[R any](call func() (R, error)) <-chan ActivityResult[R] {
 	results := make(chan ActivityResult[R], 1)
-	go func() {
+	isolate.GoInbound(func() {
 		defer close(results)
 		result, err := call()
 		results <- ActivityResult[R]{Result: result, Err: err}
-	}()
+	})
 	return results
 }
 

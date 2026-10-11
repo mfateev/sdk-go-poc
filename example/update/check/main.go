@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
 	"isolate"
 	"runtime"
+	"slices"
 	"strings"
 	"time"
 
@@ -16,6 +18,7 @@ import (
 	bindings "go.temporal.io/sdk/internalbindings"
 	"go.temporal.io/sdk/log"
 	"go.temporal.io/sdk/temporal"
+	"go.temporal.io/sdk/testsuite"
 	goWorkflow "go.temporal.io/sdk/workflow"
 )
 
@@ -37,15 +40,17 @@ func (o *outcome) Complete(value any, err error) {
 
 type environment struct {
 	bindings.WorkflowEnvironment
-	query     func(string, *commonpb.Payloads, *commonpb.Header) (*commonpb.Payloads, error)
-	update    func(string, string, *commonpb.Payloads, *commonpb.Header, bindings.UpdateCallbacks)
-	signal    func(string, *commonpb.Payloads, *commonpb.Header) error
-	cancel    func()
-	timers    []bindings.ResultHandler
-	replaying bool
-	completes int
-	result    *commonpb.Payloads
-	err       error
+	query      func(string, *commonpb.Payloads, *commonpb.Header) (*commonpb.Payloads, error)
+	update     func(string, string, *commonpb.Payloads, *commonpb.Header, bindings.UpdateCallbacks)
+	signal     func(string, *commonpb.Payloads, *commonpb.Header) error
+	cancel     func()
+	timers     []bindings.ResultHandler
+	activities []bindings.ResultHandler
+	sequence   int64
+	replaying  bool
+	completes  int
+	result     *commonpb.Payloads
+	err        error
 }
 
 func (e *environment) RegisterCancelHandler(fn func()) { e.cancel = fn }
@@ -65,8 +70,13 @@ func (*environment) Now() time.Time { return time.Date(2025, 1, 2, 0, 0, 0, 0, t
 func (*environment) GetDataConverter() converter.DataConverter {
 	return converter.GetDefaultDataConverter()
 }
-func (*environment) GetLogger() log.Logger { return nil }
-func (e *environment) IsReplaying() bool   { return e.replaying }
+func (*environment) GetLogger() log.Logger     { return nil }
+func (e *environment) IsReplaying() bool       { return e.replaying }
+func (e *environment) GenerateSequence() int64 { e.sequence++; return e.sequence }
+func (e *environment) ExecuteActivity(_ bindings.ExecuteActivityParams, callback bindings.ResultHandler) bindings.ActivityID {
+	e.activities = append(e.activities, callback)
+	return bindings.ActivityID{}
+}
 func (e *environment) NewTimer(d time.Duration, _ goWorkflow.TimerOptions, callback bindings.ResultHandler) *bindings.TimerID {
 	if d != time.Second {
 		panic("unexpected update timer")
@@ -121,18 +131,187 @@ func result(o *outcome, expected int64) {
 }
 func main() {
 	address := flag.String("address", "", "optional Temporal server")
+	devServer := flag.Bool("dev-server", false, "start a local Temporal server for live update and replay checks")
 	history := flag.String("history", "", "saved update history to replay")
 	flag.Parse()
 	for _, procs := range []int{1, 2, 8} {
 		runtime.GOMAXPROCS(procs)
 		run()
+		runWait()
+		runOrdering()
+		runCancellationOrdering()
 	}
-	fmt.Println("updates, read-only validators, cancellation and replay validation skipping passed")
+	fmt.Println("priority updates, goroutine ordering, read-only validators, cancellation and replay validation skipping passed")
 	if *history != "" {
 		check(checkHistory(*history))
 	}
 	if *address != "" {
 		check(checkLive(*address))
+	}
+	if *devServer {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
+		server, err := testsuite.StartDevServer(ctx, testsuite.DevServerOptions{})
+		check(err)
+		defer func() { check(server.Stop()) }()
+		check(checkLive(server.FrontendHostPort()))
+	}
+}
+
+func runCancellationOrdering() {
+	h, ok := isolate.LookupFunction(update.CancellationOrderingWorkflow)
+	if !ok {
+		panic("missing cancellation ordering workflow handle")
+	}
+	e := new(environment)
+	d := (temporalbridge.Factory{Function: h}).NewWorkflowDefinition()
+	defer d.Close()
+	d.Execute(e, nil, nil)
+	d.OnWorkflowTaskStarted(5 * time.Second)
+	e.cancel()
+	o := e.send("check-cancellation", "canceled")
+	payloads, err := e.GetDataConverter().ToPayloads(true)
+	check(err)
+	check(e.signal("finish", payloads, nil))
+	d.OnWorkflowTaskStarted(5 * time.Second)
+	check(o.err)
+	check(e.err)
+	var sawCancellation bool
+	check(e.GetDataConverter().FromPayloads(e.result, &sawCancellation))
+	if e.completes != 1 || o.accepted != 1 || o.completed != 1 || !sawCancellation {
+		panic("priority handler ran before cancellation delivery")
+	}
+}
+
+func runOrdering() {
+	h, ok := isolate.LookupFunction(update.OrderingWorkflow)
+	if !ok {
+		panic("missing ordering workflow handle")
+	}
+	for _, mode := range []string{"registration", "validators", "main-timer", "main-activity", "signal", "handler-timer", "handler-activity", "mixed-wakeup", "mixed-channel", "shared-future", "native-timer", "child", "channel"} {
+		e := new(environment)
+		d := (temporalbridge.Factory{Function: h}).NewWorkflowDefinition()
+		input, err := e.GetDataConverter().ToPayloads(mode)
+		check(err)
+		d.Execute(e, nil, input)
+		var outcomes []*outcome
+		var expected []string
+		switch mode {
+		case "registration", "validators":
+			outcomes = append(outcomes, e.send("record", "first", "first"))
+			expected = []string{"first", "main"}
+			if mode == "validators" {
+				outcomes = append(outcomes, e.send("record", "second", "second"))
+				expected = []string{"first", "second", "main"}
+			}
+		default:
+			d.OnWorkflowTaskStarted(5 * time.Second)
+			if mode == "main-timer" {
+				// Queue the root's timer wakeup before the update arrives.
+				e.timers[0](nil, nil)
+			} else if mode == "main-activity" {
+				e.activities[0](nil, nil)
+			} else if mode != "handler-timer" && mode != "handler-activity" && mode != "mixed-wakeup" && mode != "mixed-channel" && mode != "shared-future" && mode != "native-timer" {
+				payloads, err := e.GetDataConverter().ToPayloads(true)
+				check(err)
+				check(e.signal("finish", payloads, nil))
+			}
+			outcomes = append(outcomes, e.send("record", "record", "update"))
+			expected = []string{"update", "main"}
+			if mode == "handler-timer" || mode == "handler-activity" || mode == "mixed-wakeup" || mode == "mixed-channel" || mode == "shared-future" || mode == "native-timer" {
+				d.OnWorkflowTaskStarted(5 * time.Second)
+				if mode == "mixed-wakeup" || mode == "mixed-channel" || mode == "shared-future" || mode == "native-timer" {
+					// The root's direct timer reply precedes the activity reply
+					// consumed by the update's SDK future delivery goroutine.
+					e.timers[0](nil, nil)
+				} else {
+					payloads, err := e.GetDataConverter().ToPayloads(true)
+					check(err)
+					check(e.signal("finish", payloads, nil))
+				}
+				if mode == "native-timer" {
+					e.timers[1](nil, nil)
+				} else if mode == "handler-timer" {
+					e.timers[0](nil, nil)
+				} else {
+					e.activities[0](nil, nil)
+				}
+				expected = []string{"update", "resumed", "main"}
+			} else if mode == "child" {
+				expected = []string{"update", "main", "child", "resumed"}
+			} else if mode == "channel" {
+				expected = []string{"update", "main-before-yield", "resumed", "helper", "main-after-yield"}
+			}
+		}
+		d.OnWorkflowTaskStarted(5 * time.Second)
+		if e.completes != 1 {
+			panic(fmt.Sprintf("%s ordering workflow did not finish", mode))
+		}
+		check(e.err)
+		var actual []string
+		check(e.GetDataConverter().FromPayloads(e.result, &actual))
+		if !slices.Equal(actual, expected) {
+			panic(fmt.Sprintf("%s ordering: got %v, expected %v", mode, actual, expected))
+		}
+		for _, o := range outcomes {
+			check(o.err)
+			if o.accepted != 1 || o.completed != 1 || o.rejected != 0 {
+				panic(fmt.Sprintf("%s lifecycle: %+v", mode, o))
+			}
+		}
+		d.Close()
+	}
+}
+
+func runWait() {
+	h, ok := isolate.LookupFunction(update.WaitWorkflow)
+	if !ok {
+		panic("missing waiter workflow handle")
+	}
+	for _, mode := range []string{"empty", "pending", "canceled"} {
+		e := new(environment)
+		d := (temporalbridge.Factory{Function: h}).NewWorkflowDefinition()
+		d.Execute(e, nil, nil)
+		d.OnWorkflowTaskStarted(5 * time.Second)
+		var pending *outcome
+		if mode != "empty" {
+			pending = e.send("delayed", "pending", int64(7))
+			d.OnWorkflowTaskStarted(5 * time.Second)
+		}
+		check(e.signal("finish", nil, nil))
+		d.OnWorkflowTaskStarted(5 * time.Second)
+		if mode != "empty" {
+			if e.completes != 0 || pending.completed != 0 {
+				panic("waiter finished before its update")
+			}
+			if mode == "canceled" {
+				e.cancel()
+			} else {
+				e.timers[0](nil, nil)
+			}
+			d.OnWorkflowTaskStarted(5 * time.Second)
+		}
+		if e.completes != 1 {
+			panic("waiter did not complete")
+		}
+		if mode == "canceled" {
+			if !temporal.IsCanceledError(e.err) {
+				panic("waiter lost cancellation")
+			}
+		} else {
+			check(e.err)
+			var count int64
+			check(e.GetDataConverter().FromPayloads(e.result, &count))
+			if mode == "pending" {
+				result(pending, 7)
+				if count != 7 {
+					panic("waiter lost update result")
+				}
+			} else if count != 0 {
+				panic("empty waiter result")
+			}
+		}
+		d.Close()
 	}
 }
 func run() {

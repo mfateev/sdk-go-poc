@@ -56,7 +56,7 @@ func ReadOnlyLoggingWorkflow(ctx context.Context) (int, error) {
 	}}); err != nil {
 		return 0, err
 	}
-	<-workflow.GetSignalChannel(ctx, "finish")
+	<-workflow.GetSignalChannel[[]byte](ctx, "finish")
 	fmt.Print("final")
 	workflow.NewSink(TelemetryOp).Emit([]byte("final"))
 	return count, nil

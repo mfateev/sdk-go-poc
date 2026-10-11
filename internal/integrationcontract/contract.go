@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	ProtocolVersion    uint32 = 1
+	// Version 3 adds unconditional priority update admission and execution.
+	ProtocolVersion    uint32 = 3
 	MetadataVersion    uint32 = 1
 	APIVersion         uint32 = 1
 	DeterminismVersion uint32 = 1

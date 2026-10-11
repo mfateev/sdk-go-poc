@@ -78,6 +78,7 @@ const (
 	OpLastError                uint32 = 51
 	OpRegisterSignal           uint32 = 52
 	OpHasLastCompletionResult  uint32 = 53
+	OpFlushSignalChannels      uint32 = 54
 )
 
 // Handler is a named workflow function. Each execution receives its own
@@ -472,7 +473,8 @@ type Signal struct {
 	Input    []byte `json:"input"`
 }
 
-// SignalResult carries one signal or an error from its host call.
+// SignalResult carries a serialized signal or host error through interceptor hooks.
+// Signal.Payloads retains the plain envelope for decoding by the typed channel.
 type SignalResult struct {
 	Signal Signal
 	Err    error
@@ -563,12 +565,7 @@ func sleep(ctx context.Context, duration time.Duration) error {
 func NextSignal(ctx context.Context) (Signal, error) { return nextSignal(ctx, "") }
 
 func nextSignal(ctx context.Context, name string) (Signal, error) {
-	var signal Signal
-	payload, err := call(ctx, OpSignal, []byte(name))
-	if err != nil {
-		return signal, err
-	}
-	err = json.Unmarshal(payload, &signal)
+	signal, err := nextSignalEnvelope(ctx, name)
 	if err == nil && len(signal.Payloads) != 0 {
 		var values *commonpb.Payloads
 		values, err = decodePayloads(signal.Payloads)
@@ -583,6 +580,16 @@ func nextSignal(ctx context.Context, name string) (Signal, error) {
 	return signal, err
 }
 
+func nextSignalEnvelope(ctx context.Context, name string) (Signal, error) {
+	var signal Signal
+	payload, err := call(ctx, OpSignal, []byte(name))
+	if err != nil {
+		return signal, err
+	}
+	err = json.Unmarshal(payload, &signal)
+	return signal, err
+}
+
 func newSignalChannel(ctx context.Context, name string) <-chan SignalResult {
 	results := make(chan SignalResult, 1)
 	if ctx == nil {
@@ -590,10 +597,10 @@ func newSignalChannel(ctx context.Context, name string) <-chan SignalResult {
 		close(results)
 		return results
 	}
-	go func() {
+	isolate.GoInbound(func() {
 		defer close(results)
 		for {
-			signal, err := nextSignal(ctx, name)
+			signal, err := nextSignalEnvelope(ctx, name)
 			select {
 			case results <- SignalResult{Signal: signal, Err: err}:
 			case <-ctx.Done():
@@ -603,7 +610,7 @@ func newSignalChannel(ctx context.Context, name string) <-chan SignalResult {
 				return
 			}
 		}
-	}()
+	})
 	return results
 }
 

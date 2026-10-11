@@ -109,7 +109,7 @@ func (d *definition) handleUpdate(command *isolate.Command) error {
 	return nil
 }
 
-// Admit one update, then let normal goroutines run before validating the next.
+// Admit one update, then run priority goroutines before validating the next.
 // A later validator must observe any state changes made by earlier handlers.
 func (d *definition) admitUpdate() bool {
 	if len(d.queuedUpdates) == 0 || d.updateWaiter == nil || d.queryWaiter == nil {

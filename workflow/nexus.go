@@ -144,7 +144,7 @@ func (c nexusClient) executeOperation(ctx context.Context, operation, input any,
 			requestCancelNexusOperation(ctx, in)
 		}
 	})
-	go func() { defer stop(); awaitOperation(f.activityFuture, OpAwaitNexus, id, ctx) }()
-	go awaitOperation(f.execution, OpAwaitNexusExecution, id, ctx)
+	isolate.GoInbound(func() { defer stop(); awaitOperation(f.activityFuture, OpAwaitNexus, id, ctx) })
+	isolate.GoInbound(func() { awaitOperation(f.execution, OpAwaitNexusExecution, id, ctx) })
 	return f
 }

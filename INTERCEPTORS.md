@@ -287,10 +287,15 @@ byte transport. No SDK pointer crosses into the isolate, and the bridge does not
 depend on private field layouts. Custom
 failure converter types retain the existing POC limitations.
 
-`GetSignalChannelWithOptions` accepts the SDK's `SignalChannelOptions`.
-Repeated requests for a name return the same native channel and retain the first
-registration's description. `__temporal_workflow_metadata` exposes sorted query,
-signal and update definitions using the SDK metadata protobuf and default
+`GetSignalChannel[T]` and `GetSignalChannelWithOptions[T]` return native
+channels of decoded `T` values; the options variant accepts the SDK's
+`SignalChannelOptions`. Repeated requests for a name/type return the same
+channel and retain the first registration's description. Conflicting types panic.
+Go interface methods cannot have type parameters, so outbound signal hooks retain
+`<-chan workflow.SignalResult` with plain serialized `Signal.Payloads`; decoding
+into `T` occurs after the outbound hook. `Signal.Input` is reserved for legacy
+byte-input hosts, and inbound signal hooks still receive payload envelopes.
+`__temporal_workflow_metadata` exposes sorted query, signal and update definitions using the SDK metadata protobuf and default
 serialization, followed by worker transport codecs.
 
 `example/workflowmetadata/check` covers all new hooks, read-only getters,

@@ -175,7 +175,8 @@ Run the local bridge driver without a server:
 
 `workflow` is the API imported by isolate code. `temporalbridge` stays in the
 host and depends on the pinned Temporal Go SDK. The adapter enables
-`isolate.Config.Deterministic`: native goroutines share a FIFO execution token,
+`isolate.Config.Deterministic`: native goroutines share an execution token with
+FIFO readiness order within each priority,
 select polling is reproducible, and string/integer map range is canonical.
 An exact suspend fence batches history replies and services all concurrent
 commands before ending each workflow task. Unsupported map key kinds fail
@@ -241,11 +242,72 @@ so selected package initializers run for every instance. Finer function-level
 dependency selection remains TODO. The older directory-program and explicit
 registration helpers remain available for runtime probes.
 
-`workflow.GetSignalChannel(ctx, name)` provides a channel for signals with that
-name. It wraps the existing host `Call` in an isolate-owned goroutine and
-returns `workflow.SignalResult` values, including any host error. `NextSignal`
-still receives the next signal of any name. The host keeps other named signals
-queued for their matching channels.
+`workflow.GetSignalChannel[T](ctx, name)` returns a native `<-chan T` of signal
+values decoded with the workflow's configured serializer. For example:
+
+```go
+type Approval struct {
+    Approved bool
+    Reason   string
+}
+approvals := workflow.GetSignalChannel[Approval](ctx, "approval")
+select {
+case approval, ok := <-approvals:
+    if !ok {
+        return ctx.Err()
+    }
+    // Use approval.Approved and approval.Reason directly.
+case <-ctx.Done():
+    return ctx.Err()
+}
+```
+
+`GetSignalChannelWithOptions[T]` also accepts `SignalChannelOptions` for a
+signal description. Repeated calls for the same name and type return the same
+channel and retain the first description; a different type for that name panics.
+Channel lifetime follows workflow cancellation, which closes the channel without
+delivering a zero value. Canceling an activity/child context used for registration
+does not close it. A first registration with `context.WithoutCancel(ctx)` keeps
+the channel open after workflow cancellation, allowing cleanup/update handlers
+to finish. Invalid payloads and other host errors panic and fail the
+Workflow Task. `T` supports the same JSON/bytes/null values and configured
+serializers as workflow arguments; general protobuf values remain unsupported.
+Existing callers must supply a type argument and receive values directly,
+e.g. `GetSignalChannel[[]byte]`, instead of accessing `SignalResult.Signal.Input`.
+`NextSignal` retains its byte-input convention and receives the next signal of
+any name. The host keeps other named signals queued for matching channels.
+
+Signals are proactively delivered and decoded into registered native channels
+before application goroutines resume. Registration also delivers signals already
+queued for that name before returning. A `select` receive loop with a `default`
+case can therefore drain the admitted batch before Continue-As-New, just as with
+SDK signal channels. The native buffer holds up to 100,000 values; exceeding it
+fails the Workflow Task. Application goroutines processing signals still need
+to finish before returning or continuing as new.
+
+The bridge uses the runtime's SDK inbound-service admission phase to fill these
+buffers while application channel receivers remain fenced. Inbound signal hooks
+and goroutine-based outbound channel adapters participate in the same phase.
+Only copied bytes cross from the host; decoding and channel sends happen on the
+workflow's own heap. Runtime scheduling for ordinary goroutines is unchanged.
+
+The compiled typed-signal checks cover nonblocking drains at startup, late
+registration, signal/timer wakeups, inbound renaming/filtering, outbound native
+channel adapters, struct payloads, precise integers,
+ordered delivery, channel identity, cancellation, conflicting types, malformed
+payloads and worker-configured converters at GOMAXPROCS 1/2/8:
+
+```sh
+../golang-go/bin/go test ./example/signals/check
+```
+
+The local-server check also sends durable signal batches before worker polling,
+verifies Continue-As-New carryover, and replays the recorded histories:
+
+```sh
+SIGNALS_DEV_SERVER=1 ../golang-go/bin/go test -count=1 ./example/signals/check
+```
+
 Activities use the current Go SDK API: `WithActivityOptions`,
 `ExecuteActivity(ctx, activity, args...)`, and `Future.Get(ctx, &result)`.
 The earlier typed activity helpers are commented out and retained in
@@ -376,8 +438,8 @@ as activity futures. Canceling the execution context requests child cancellation
 after initiation; `WaitForCancellation` keeps the SDK completion policy.
 Canceling a context used only to wait does not abandon the future.
 `SignalChildWorkflow` waits for initiation and signals the current child run,
-including after continue-as-new. Signals to isolate workflows currently use
-the native signal channel's byte-slice input convention.
+including after continue-as-new. Signals to isolate workflows are decoded into
+the registered channel type; use `GetSignalChannel[[]byte]` for existing byte-input histories.
 
 The host SDK owns IDs, retry/cron behavior, timeouts, parent-close policy,
 versioning, priority and summaries. Memo and untyped search-attribute values
@@ -436,8 +498,25 @@ and return `error` or `(result, error)`. Validators may omit context; their othe
 argument types must match the handler. They use the same read-only owner and
 execution fence as queries. A state mutation or forbidden operation panics and
 rejects that update as an SDK `PanicError`, without killing the workflow.
-Accepted handlers run as ordinary native goroutines and may block on durable
-operations. Their contexts follow workflow cancellation.
+Accepted handlers run as high-priority native goroutines and may block on durable
+operations. Their contexts follow workflow cancellation. Each workflow task
+delivers signals into native channels, then runs ready handlers and admits queued
+updates before releasing ordinary workflow goroutines. Updates are admitted one
+at a time, allowing later validators to observe earlier handlers' state changes.
+Workflow cancellation and SDK future results are also delivered before handlers
+resume, including futures created by ordinary workflow goroutines and native
+`ToChannel` adapters. Native timer waiters deliver values into their channels in
+the same input phase; `time.AfterFunc` callbacks remain ordinary user goroutines.
+This prevents an available result from remaining in a delivery goroutine while
+the main goroutine runs first.
+
+The runtime uses `isolate.GoWithPriority(isolate.PriorityHigh, fn)` for the update
+delivery service and handlers. Whenever a goroutine blocks, yields, or finishes,
+ready high-priority goroutines run before ordinary ones. Priority persists across
+activity, timer, and channel wakeups; ordinary children started with `go` keep
+normal priority. Priority does not preempt a running goroutine, bypass read-only
+or signal-delivery fences, or prevent ordinary work from running when handlers
+are blocked. Update priority is unconditional and does not depend on SDK flags.
 
 The host SDK owns update acceptance and completion protocol messages. Results
 stay encoded across the boundary; large JSON integer values do not pass through
@@ -448,12 +527,23 @@ Returning from the root abandons unfinished handlers according to the SDK policy
 it does not implicitly wait for them. `AllHandlersFinished` remains false until
 their completion has reached the host SDK.
 
+Use `WaitHandlersFinished(ctx)` to wait on accepted handlers with native Go
+before returning or continuing as new. It returns `ctx.Err()` on cancellation;
+use `context.WithoutCancel(ctx)` when cleanup must also await update completion.
+
 Validation decodes arguments under the scratch owner; accepted handlers decode
 again under the workflow owner. Custom decoder callbacks must be pure during
 validation. Variadic handlers, context propagation and rich
 validator panic stack diagnostics remain outside this POC. See
-`example/update/check` for compiled mutation/cancellation/concurrency checks and
+`example/update/check` for compiled mutation/cancellation/concurrency checks,
+registration and simultaneous wakeup ordering, ordinary-child dependencies, and
 its checked-in live update history; `-address localhost:7233` records a fresh run.
+
+Run the local-server update and recorded-history replay checks with:
+
+```sh
+UPDATES_DEV_SERVER=1 ../golang-go/bin/go test -count=1 ./example/update/check
+```
 
 ### Continue-as-new and workflow versioning
 
@@ -495,9 +585,9 @@ histories, including the unsupported-version negative case:
 /tmp/isolate-continuation-check -live 127.0.0.1:7233 -history-dir /tmp/continuation-histories
 ```
 
-`workflow.Sleep(ctx, d)`, `NextSignal(ctx)`, and `GetSignalChannel(ctx, name)`
-also honor cancellation. Native timers can be used in `select` alongside
-`ctx.Done()`.
+`workflow.Sleep(ctx, d)` and `NextSignal(ctx)` return cancellation errors;
+`GetSignalChannel[T](ctx, name)` closes on workflow cancellation. Native timers
+can be used in `select` alongside `ctx.Done()`.
 
 Function names and bound methods follow Temporal's short-name convention.
 `activity.RegisterOptions{Name: ...}` aliases resolve on the host, including
@@ -980,7 +1070,10 @@ producer's numeric metadata version; an unsupported version fails before the
 runtime reads descriptor fields or publishes an entry. The compiler's isolate
 build report includes these versions.
 
-The POC SDK separately expects those three versions and uses **host protocol 1**.
+The POC SDK separately expects those three versions and uses **host protocol 3**.
+Protocol 3 requires priority update admission and execution, in addition to the
+signal-channel admission barriers added in protocol 2. Rebuild host and workflow
+SDK together when upgrading.
 Startup requests and replies have a fixed `ISOL` header carrying the four version
 numbers. Both sides validate it before decoding startup data or running converter
 factories and workflow code. An incompatibility fails the Workflow Task; it does

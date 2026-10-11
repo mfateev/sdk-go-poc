@@ -89,9 +89,7 @@ func Workflow(ctx context.Context, input string) (string, error) {
 	if err := workflow.ExecuteActivity(ctx, Echo, input).Get(ctx, &result); err != nil {
 		return "", err
 	}
-	if signal := <-workflow.GetSignalChannel(ctx, "finish"); signal.Err != nil {
-		return "", signal.Err
-	}
+	<-workflow.GetSignalChannel[[]byte](ctx, "finish")
 	return result, nil
 }
 func Echo(_ context.Context, input string) (string, error) { return input + "-echo", nil }

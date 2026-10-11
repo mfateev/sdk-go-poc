@@ -20,7 +20,8 @@ func TestContractValidationBeforeBody(t *testing.T) {
 		}
 	}
 	for i, name := range []string{"protocol", "metadata", "API", "determinism"} {
-		for _, version := range []uint32{0, 2} {
+		current := [...]uint32{ProtocolVersion, MetadataVersion, APIVersion, DeterminismVersion}[i]
+		for _, version := range []uint32{0, current - 1, current + 1} {
 			raw := Pack(body)
 			binary.LittleEndian.PutUint32(raw[4+i*4:], version)
 			if body, err := Unpack(raw); err == nil || body != nil || !strings.Contains(err.Error(), name) {

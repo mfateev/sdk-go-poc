@@ -225,8 +225,8 @@ func Workflow(ctx context.Context, previous string, memo bool) (string, error) {
 		return "", err
 	}
 
-	finish := workflow.GetSignalChannelWithOptions(ctx, "finish", workflow.SignalChannelOptions{Description: "Complete the metadata check"})
-	if finish != workflow.GetSignalChannelWithOptions(ctx, "finish", workflow.SignalChannelOptions{Description: "ignored"}) || finish != workflow.GetSignalChannel(ctx, "finish") {
+	finish := workflow.GetSignalChannelWithOptions[[]byte](ctx, "finish", workflow.SignalChannelOptions{Description: "Complete the metadata check"})
+	if finish != workflow.GetSignalChannelWithOptions[[]byte](ctx, "finish", workflow.SignalChannelOptions{Description: "ignored"}) || finish != workflow.GetSignalChannel[[]byte](ctx, "finish") {
 		return "", fmt.Errorf("signal channel identity changed")
 	}
 	for _, name := range []string{"GetTypedSearchAttributes", "UpsertSearchAttributes", "UpsertTypedSearchAttributes", "UpsertMemo", "GetSignalChannelWithOptions", "HasLastCompletionResult", "GetLastCompletionResult", "GetLastError"} {
@@ -234,10 +234,7 @@ func Workflow(ctx context.Context, previous string, memo bool) (string, error) {
 			return "", fmt.Errorf("missing interceptor hook %s", name)
 		}
 	}
-	signal := <-finish
-	if signal.Err != nil {
-		return "", signal.Err
-	}
+	<-finish
 	return "ok", nil
 }
 

@@ -68,7 +68,7 @@ func runInterceptedFunction(handle isolate.Handle, ctx context.Context, payloads
 	activeInterceptors = chain
 	ctx = context.WithValue(ctx, interceptorChainKey{}, chain)
 	rootContext = ctx
-	go serveInterceptedSignals()
+	isolate.GoInbound(serveInterceptedSignals)
 	result, cause := chain.inbound.ExecuteWorkflow(ctx, input)
 	// An immediate workflow return must not discard admitted signal hooks.
 	if _, err := isolate.Call(OpFlushSignals, nil); err != nil {

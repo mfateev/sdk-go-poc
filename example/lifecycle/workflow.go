@@ -33,7 +33,7 @@ func LifecycleWorkflow(ctx context.Context, mode string) (string, error) {
 		future := workflow.ExecuteActivity(ctx, "pending", []byte("input"))
 		activity := make(chan struct{})
 		go func() { _ = future.Get(ctx, nil); close(activity) }()
-		signals := workflow.GetSignalChannel(ctx, "pending")
+		signals := workflow.GetSignalChannel[[]byte](ctx, "pending")
 		timer := time.NewTimer(time.Hour)
 		select {
 		case <-ctx.Done():

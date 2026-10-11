@@ -247,15 +247,6 @@ func getLastError(ctx context.Context) error {
 var signalChannels = make(map[string]<-chan SignalResult)
 var signalChannelsMu sync.Mutex
 
-// GetSignalChannelWithOptions returns the workflow-owned native signal channel.
-// Repeated registrations for a name reuse the channel and its first description.
-func GetSignalChannelWithOptions(ctx context.Context, name string, options SignalChannelOptions) <-chan SignalResult {
-	assertWritable()
-	if out := currentOutbound(ctx); out != nil {
-		return out.GetSignalChannelWithOptions(ctx, name, options)
-	}
-	return getSignalChannelWithOptions(ctx, name, options)
-}
 func getSignalChannel(ctx context.Context, name string) <-chan SignalResult {
 	return getSignalChannelWithOptions(ctx, name, SignalChannelOptions{})
 }
@@ -282,12 +273,7 @@ func getSignalChannelWithOptions(ctx context.Context, name string, options Signa
 	if _, err := isolate.Call(OpRegisterSignal, raw); err != nil {
 		panic(err)
 	}
-	// Channel lifetime belongs to the workflow, not a caller's activity context.
-	signalCtx := rootContext
-	if signalCtx == nil {
-		signalCtx = ctx
-	}
-	ch := newSignalChannel(signalCtx, name)
+	ch := newSignalChannel(signalChannelContext(ctx), name)
 	signalChannels[name] = ch
 	return ch
 }

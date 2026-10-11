@@ -70,7 +70,7 @@ func QueryWorkflow(ctx context.Context, initial int) (int, error) {
 	}
 	timer := time.NewTimer(time.Minute)
 	defer timer.Stop()
-	signals := workflow.GetSignalChannel(ctx, "finish")
+	signals := workflow.GetSignalChannel[[]byte](ctx, "finish")
 	select {
 	case <-timer.C:
 	case <-signals:

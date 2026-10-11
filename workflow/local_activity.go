@@ -111,7 +111,7 @@ func executeLocalActivity(ctx context.Context, activity any, args ...any) Future
 	if err = scheduleLocal(&r); err != nil {
 		return failOperation(f, err)
 	}
-	go func() {
+	isolate.GoInbound(func() {
 		for {
 			id := r.ID
 			stop := context.AfterFunc(ctx, func() { p, _ := json.Marshal(id); _, _ = isolate.Call(OpCancelLocal, p) })
@@ -134,7 +134,7 @@ func executeLocalActivity(ctx context.Context, activity any, args ...any) Future
 			completeOperation(f, response, err, ctx)
 			return
 		}
-	}()
+	})
 	return f
 }
 func scheduleLocal(r *LocalActivityRequest) error {

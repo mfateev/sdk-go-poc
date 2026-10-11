@@ -165,7 +165,7 @@ func Workflow(ctx context.Context, input string) (string, error) {
 	if err := workflow.ExecuteActivity(ctx, Activity, input).Get(ctx, &result); err != nil {
 		return "", err
 	}
-	<-workflow.GetSignalChannel(ctx, "finish")
+	<-workflow.GetSignalChannel[[]byte](ctx, "finish")
 	return result, nil
 }
 

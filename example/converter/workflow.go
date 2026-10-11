@@ -52,11 +52,8 @@ func Workflow(ctx context.Context, input int64) (int64, error) {
 	}
 	select {
 	case <-time.After(time.Minute):
-	case signal := <-workflow.GetSignalChannel(ctx, "finish"):
-		if signal.Err != nil {
-			return 0, signal.Err
-		}
-		if string(signal.Signal.Input) != "finish" {
+	case signal := <-workflow.GetSignalChannel[[]byte](ctx, "finish"):
+		if string(signal) != "finish" {
 			return 0, errors.New("signal data lost")
 		}
 	}
@@ -68,10 +65,7 @@ func Child(ctx context.Context, input int64) (int64, error) {
 	if input < 0 {
 		return 0, temporal.NewNonRetryableApplicationError("child rejected", "ChildError", nil, input)
 	}
-	signal := <-workflow.GetSignalChannel(ctx, "finish")
-	if signal.Err != nil {
-		return 0, signal.Err
-	}
+	<-workflow.GetSignalChannel[[]byte](ctx, "finish")
 	return input, nil
 }
 

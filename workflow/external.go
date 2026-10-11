@@ -55,7 +55,7 @@ func externalWorkflow(ctx context.Context, workflowID, runID, name string, arg a
 	if _, err = isolate.Call(OpScheduleExternal, p); err != nil {
 		return failOperation(f, err)
 	}
-	go awaitOperation(f, OpAwaitExternal, r.ID, ctx)
+	isolate.GoInbound(func() { awaitOperation(f, OpAwaitExternal, r.ID, ctx) })
 	return f
 }
 

@@ -32,12 +32,14 @@ func executionContext(canceled bool, taskQueue string, options ...RunOptions) (c
 		cancel()
 		return ctx, cancel
 	}
-	go func() {
+	// Cancellation is input delivery: publish it before priority handlers and
+	// ordinary workflow continuations are admitted for this task.
+	isolate.GoInbound(func() {
 		_, err := isolate.Call(OpWorkflowCancel, nil)
 		if err == nil {
 			cancel()
 		}
-	}()
+	})
 	return ctx, cancel
 }
 

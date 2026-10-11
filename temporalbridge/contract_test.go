@@ -13,7 +13,7 @@ func TestStartupMismatchFailsTaskBeforeDecoding(t *testing.T) {
 	// A nil environment would panic if startup reached input conversion, workflow
 	// metadata or SDK commands. Contract rejection must precede all those paths.
 	for _, op := range []uint32{6, 7} {
-		for _, version := range []uint32{0, 2} {
+		for _, version := range []uint32{0, integrationcontract.ProtocolVersion - 1, integrationcontract.ProtocolVersion + 1} {
 			d := &definition{}
 			raw := integrationcontract.Pack(nil)
 			binary.LittleEndian.PutUint32(raw[4:], version)

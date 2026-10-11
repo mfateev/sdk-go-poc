@@ -23,11 +23,8 @@ func Child(ctx context.Context, mode string) (int64, error) {
 	}
 	switch mode {
 	case "signal":
-		input := <-workflow.GetSignalChannel(ctx, "go")
-		if input.Err != nil {
-			return 0, input.Err
-		}
-		if string(input.Signal.Input) != "go" {
+		input := <-workflow.GetSignalChannel[[]byte](ctx, "go")
+		if string(input) != "go" {
 			return 0, errors.New("wrong child signal")
 		}
 	case "cancel", "cancel-before-start", "cancel-wait":

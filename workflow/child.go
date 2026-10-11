@@ -193,17 +193,17 @@ func executeChildWorkflow(ctx context.Context, fn any, args ...any) ChildWorkflo
 		return fail(err)
 	}
 	stop := context.AfterFunc(ctx, func() { p, _ := json.Marshal(id); _, _ = isolate.Call(OpCancelChild, p) })
-	go func() {
+	isolate.GoInbound(func() {
 		defer stop()
 		p, _ := json.Marshal(id)
 		r, err := isolate.Call(OpAwaitChild, p)
 		completeOperation(f.activityFuture, r, err, ctx)
-	}()
-	go func() {
+	})
+	isolate.GoInbound(func() {
 		p, _ := json.Marshal(id)
 		r, err := isolate.Call(OpAwaitChildExecution, p)
 		completeOperation(f.execution, r, err, ctx)
-	}()
+	})
 	return f
 }
 
@@ -243,11 +243,11 @@ func signalChildWorkflow(ctx context.Context, workflowID, name string, data any)
 	if _, err := isolate.Call(OpSignalChild, raw); err != nil {
 		return fail(err)
 	}
-	go func() {
+	isolate.GoInbound(func() {
 		p, _ := json.Marshal(id)
 		r, err := isolate.Call(OpAwaitChildSignal, p)
 		completeOperation(result, r, err, ctx)
-	}()
+	})
 	return result
 }
 

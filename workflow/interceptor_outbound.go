@@ -52,15 +52,6 @@ func SignalExternalWorkflow(ctx context.Context, workflowID, runID, signalName s
 	}
 	return signalExternalWorkflow(ctx, workflowID, runID, signalName, arg)
 }
-func GetSignalChannel(ctx context.Context, signalName string) <-chan SignalResult {
-	assertWritable()
-	if ctx != nil {
-		if out := currentOutbound(ctx); out != nil {
-			return out.GetSignalChannel(ctx, signalName)
-		}
-	}
-	return getSignalChannel(ctx, signalName)
-}
 func GetVersion(ctx context.Context, changeID string, minSupported, maxSupported Version) Version {
 	assertWritable()
 	if ctx != nil {

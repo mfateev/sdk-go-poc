@@ -329,9 +329,25 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 		}
 		return (!d.completed || d.retainedCompletion != nil) && !d.closed
 	}
+	type dispatchPhase uint8
+	const (
+		normalDispatch dispatchPhase = iota
+		inboundDispatch
+		priorityDispatch
+	)
+	phase := inboundDispatch
+	if newInstance {
+		// The root must run once to install its delivery services and handlers.
+		phase = normalDispatch
+	}
 	for {
 		checkBudget()
 		resume := instance.Resume
+		if phase == inboundDispatch {
+			resume = instance.ResumeInbound
+		} else if phase == priorityDispatch {
+			resume = instance.ResumePriority
+		}
 		if d.completed {
 			resume = instance.ResumeReadOnly
 		}
@@ -408,14 +424,28 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 			d.publishRetainedCompletion()
 			return
 		}
-		if d.admitUpdate() {
+		if phase == inboundDispatch && !handled {
+			phase = priorityDispatch
 			continue
 		}
-		if !handled && len(d.updateRegistrations) != 0 {
-			for _, command := range d.updateRegistrations {
-				command.Reply(nil, nil)
+		if phase == priorityDispatch && !handled {
+			// Run ready handlers before validating another update. Registration
+			// acknowledgments and all ordinary wakeups stay fenced until the
+			// accepted handlers have had an execution opportunity.
+			if d.admitUpdate() {
+				continue
 			}
-			d.updateRegistrations = nil
+			if len(d.updateRegistrations) != 0 {
+				for _, command := range d.updateRegistrations {
+					command.Reply(nil, nil)
+				}
+				d.updateRegistrations = nil
+			}
+			phase = normalDispatch
+			continue
+		}
+		if handled {
+			phase = inboundDispatch
 			continue
 		}
 		if !handled {
@@ -753,6 +783,9 @@ func (d *definition) handle(command *isolate.Command) error {
 		return d.interceptSignal(command)
 	case workflow.OpFlushSignals:
 		return d.flushSignals(command)
+	case workflow.OpFlushSignalChannels:
+		d.replyWhenSuspended(command, nil, nil)
+		return nil
 	case workflow.OpSignal:
 		name := string(command.Payload)
 		index := d.signalIndex(name)
