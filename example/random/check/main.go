@@ -40,6 +40,7 @@ type environment struct {
 	bindings.WorkflowEnvironment
 	info          sdkwf.Info
 	replay        bool
+	update        func(string, string, *commonpb.Payloads, *commonpb.Header, bindings.UpdateCallbacks)
 	query         func(string, *commonpb.Payloads, *commonpb.Header) (*commonpb.Payloads, error)
 	activity      bindings.ResultHandler
 	input, result *commonpb.Payloads
@@ -51,7 +52,8 @@ func (*environment) RegisterCancelHandler(func()) {}
 func (e *environment) RegisterQueryHandler(fn func(string, *commonpb.Payloads, *commonpb.Header) (*commonpb.Payloads, error)) {
 	e.query = fn
 }
-func (*environment) RegisterUpdateHandler(func(string, string, *commonpb.Payloads, *commonpb.Header, bindings.UpdateCallbacks)) {
+func (e *environment) RegisterUpdateHandler(fn func(string, string, *commonpb.Payloads, *commonpb.Header, bindings.UpdateCallbacks)) {
+	e.update = fn
 }
 func (*environment) RegisterSignalHandler(func(string, *commonpb.Payloads, *commonpb.Header) error) {}
 func (e *environment) WorkflowInfo() *sdkwf.Info                                                    { return &e.info }
@@ -118,8 +120,24 @@ func run(factory temporalbridge.Factory, originalRunID, currentRunID string, que
 }
 
 func main() {
+	liveStreams := flag.Bool("live-streams", false, "record named-stream histories with a local development server")
+	streamsHistory := flag.String("streams-history", "", "replay a named-stream history")
+	historyDir := flag.String("history-dir", "../testdata", "directory for recorded stream histories")
+	streams := flag.Bool("streams", false, "check named random streams")
 	history := flag.String("history", "", "replay a CLI-exported history instead of the synthetic host probe")
 	flag.Parse()
+	if *liveStreams {
+		recordStreams(*historyDir)
+		return
+	}
+	if *streamsHistory != "" {
+		must(replayStreamsHistory(*streamsHistory))
+		return
+	}
+	if *streams {
+		checkStreams()
+		return
+	}
 	if *history != "" {
 		must(replayHistory(*history))
 		fmt.Println("saved UUID/random history replay passed")

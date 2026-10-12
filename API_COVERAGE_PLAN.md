@@ -126,3 +126,11 @@ unfinished-handler policies. `example/dynamic/check/native_test.go` ports `TestD
 and covers arbitrary handler names, replacement and completed queries.
 `example/dynamic/check` verifies compressed live histories and saved replay with
 workflow cache sizes 1000 and 0. See [dynamic workflows and handlers](README.md#dynamic-workflows-and-handlers).
+
+`workflow.GetRandomStream(ctx, name)` returns persistent named v2 generators,
+seeded from copied startup identity without consuming the runtime default stream.
+Read-only requests use per-name snapshots, including captured generator pointers;
+accepted updates advance the normal stream. Compiled probes and four saved live
+histories cover independence, concurrency, contexts, reset/replay identity,
+validators, distributions, eviction and exact completion replay. The application
+sample lives in `samples-go-poc/random-streams`; no core Go API changes are required.

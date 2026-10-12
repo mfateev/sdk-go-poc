@@ -56,6 +56,61 @@ eviction and GOMAXPROCS 1/2/8 in fresh processes:
 /tmp/isolate-random-check -history example/random/testdata/history.json
 ```
 
+### Named random streams
+
+`workflow.GetRandomStream(ctx, name)` returns a persistent `*math/rand/v2.Rand`
+for the current workflow execution. Repeated lookup continues the same generator;
+derived and canceled contexts share it. Names use exact, case-sensitive byte
+matching, including the empty name. Separate names are independent of each other,
+and creating or drawing from them does not consume top-level randomness or change
+native select polling.
+
+```go
+choices := workflow.GetRandomStream(ctx, "choices")
+jitter := workflow.GetRandomStream(ctx, "jitter")
+choice := choices.IntN(6)
+backoff := time.Duration(jitter.IntN(1000)) * time.Millisecond
+```
+
+Generators can be shared by native workflow goroutines: source draws are
+synchronized. Draw assignment still follows deterministic scheduling; adding or
+reordering draws in one stream can change commands and require workflow versioning.
+The v2 `Rand` facade provides integers, bounded draws, distributions, permutations,
+and shuffling. The generator belongs to one isolate and cannot cross executions
+or the host boundary.
+
+The bridge supplies `PayloadStart.RandomRunID` before workflow callbacks run,
+using the history's `OriginalRunID`, or `RunID` when no original ID exists.
+Synthetic replay IDs, workflow IDs and namespaces do not seed streams. Each name
+uses ChaCha8 with a SHA-256 seed over the fixed domain
+`isolate/workflow-random-stream/v1`, a little-endian uint64 byte length and raw
+bytes for the recorded run ID, then the same length/byte encoding for the name.
+This encoding is a replay contract. Creating a stream requires no host call and
+emits no history event. Custom startup adapters must provide this identity when
+using the API. Calls require a non-nil context inside an active isolate.
+
+Queries and update validators share one scratch generator per name within the
+request, copied from the workflow's current position. This applies both to lookups
+using captured contexts and draws through captured generators. A name first used
+in a read-only request is seeded without registering it in workflow state. Each
+new request gets a fresh snapshot. Accepted update handlers advance the workflow
+stream. Replay and reset reconstruct streams using the recorded identity;
+Continue-As-New creates fresh streams for the new run.
+
+The seed is public, so these values must not be used for cryptographic secrets.
+The runnable application sample is `samples-go-poc/random-streams` in the sibling
+checkout. SDK regression fixtures in `example/random/check` cover concurrent
+readers, contexts, default-stream independence, query/validator snapshots and
+accepted updates. Saved live histories also pin the v2 distribution outputs and
+verify exact completion values after replay at GOMAXPROCS 1/2/8.
+
+```sh
+../golang-go/bin/go test ./example/random/check
+RANDOM_STREAMS_DEV_SERVER=1 ../golang-go/bin/go test -count=1 ./example/random/check -run TestLiveNamedRandomStreams
+```
+
+### Determinism history checks
+
 Build the checker with the custom toolchain and replay the saved history in
 fresh processes from this repository:
 

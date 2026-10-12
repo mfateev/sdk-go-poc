@@ -13,11 +13,15 @@ import (
 // Keep the encoding and domain stable: changing either changes replayed bytes.
 func workflowRandomSeed(info *goWorkflow.Info) [32]byte {
 	identity := []byte("isolate/crypto-rand/v1")
-	runID := info.OriginalRunID
-	if runID == "" {
-		runID = info.WorkflowExecution.RunID
-	}
+	runID := workflowRandomRunID(info)
 	identity = binary.LittleEndian.AppendUint64(identity, uint64(len(runID)))
 	identity = append(identity, runID...)
 	return sha256.Sum256(identity)
+}
+
+func workflowRandomRunID(info *goWorkflow.Info) string {
+	if info.OriginalRunID != "" {
+		return info.OriginalRunID
+	}
+	return info.WorkflowExecution.RunID
 }

@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/mfateev/sdk-go-poc/internal/interceptorscope"
 	"github.com/mfateev/sdk-go-poc/internal/payloadwire"
 	"github.com/mfateev/sdk-go-poc/internal/tracecontext"
 	goWorkflow "go.temporal.io/sdk/workflow"
@@ -133,6 +134,7 @@ func serveQueries() {
 		if err := json.Unmarshal(raw, &request); err != nil {
 			panic(err)
 		}
+		interceptorscope.RandomStreams = nil
 		outcome := QueryResponse{ID: request.ID}
 		if request.Kind == "validate" {
 			outcome.Failure, err = validateUpdate(request)
