@@ -1032,6 +1032,9 @@ func (d *definition) StackTrace() string {
 	if d.failureStack != "" {
 		return d.failureStack
 	}
+	if d.instance != nil {
+		return d.instance.StackTrace()
+	}
 	return "isolate workflow stack trace unavailable"
 }
 

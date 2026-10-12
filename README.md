@@ -1090,6 +1090,30 @@ replay at GOMAXPROCS 1/2/8:
 
 ## Additional workflow APIs
 
+### Stack trace queries
+
+The standard `client.QueryTypeStackTrace` (`__stack_trace`) query returns a Go
+stack dump for the requested workflow instance. It includes the workflow entry,
+its live child goroutines and accepted update handlers. SDK query/validation,
+input-delivery, update-dispatch and session-service goroutines are excluded,
+along with host goroutines and other workflow instances.
+No custom query registration is needed. The host captures the stacks at the
+workflow task's suspension fence without resuming workflow code or advancing
+workflow time or randomness. A retained completed instance with no live workflow
+goroutines returns an empty string.
+
+```go
+value, err := c.QueryWorkflow(ctx, workflowID, runID, client.QueryTypeStackTrace)
+if err != nil {
+    return err
+}
+var stacks string
+if err := value.Get(&stacks); err != nil {
+    return err
+}
+fmt.Print(stacks)
+```
+
 ### External workflows
 
 `SignalExternalWorkflow(ctx, workflowID, runID, name, arg)` and

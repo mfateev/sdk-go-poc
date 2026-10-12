@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/mfateev/sdk-go-poc/example/query"
@@ -59,6 +60,30 @@ func checkLive(address string) error {
 	if err := state(41); err != nil {
 		return err
 	}
+	stackQuery := func(completed bool) error {
+		value, err := c.QueryWorkflow(ctx, run.GetID(), run.GetRunID(), client.QueryTypeStackTrace)
+		if err != nil {
+			return err
+		}
+		var stack string
+		if err := value.Get(&stack); err != nil {
+			return err
+		}
+		if completed {
+			if stack != "" {
+				return fmt.Errorf("completed stack query retained goroutines: %s", stack)
+			}
+		} else if !strings.Contains(stack, "query.QueryWorkflow(") {
+			return fmt.Errorf("live stack query omitted workflow: %s", stack)
+		}
+		if strings.Contains(stack, "workflow.serveQueries()") || strings.Contains(stack, "temporalbridge.(*definition)") {
+			return fmt.Errorf("live stack query included SDK services or host: %s", stack)
+		}
+		return nil
+	}
+	if err := stackQuery(false); err != nil {
+		return err
+	}
 	for _, mode := range []string{"field", "map", "copy", "atomic", "reflect", "callback", "error-callback", "goroutine", "channel", "exit", "goexit", "environment", "mutex", "waitgroup", "cond", "activity", "timer", "raw"} {
 		if _, err := c.QueryWorkflow(ctx, run.GetID(), run.GetRunID(), "bad", mode); err == nil {
 			return fmt.Errorf("live query accepted %s", mode)
@@ -79,6 +104,9 @@ func checkLive(address string) error {
 	}
 	if err := state(42); err != nil {
 		return fmt.Errorf("completed query: %w", err)
+	}
+	if err := stackQuery(true); err != nil {
+		return err
 	}
 	w.Stop()
 	binary, err := os.Executable()

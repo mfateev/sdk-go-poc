@@ -277,6 +277,13 @@ func runWait() {
 		if mode != "empty" {
 			pending = e.send("delayed", "pending", int64(7))
 			d.OnWorkflowTaskStarted(5 * time.Second)
+			stack := d.StackTrace()
+			if !strings.Contains(stack, "update.WaitWorkflow(") || !strings.Contains(stack, "workflow.executeUpdate(") {
+				panic("workflow stack omitted running update handler: " + stack)
+			}
+			if strings.Contains(stack, "workflow.serveUpdates()") || strings.Contains(stack, "workflow.serveQueries()") {
+				panic("workflow stack included SDK services: " + stack)
+			}
 		}
 		check(e.signal("finish", nil, nil))
 		d.OnWorkflowTaskStarted(5 * time.Second)

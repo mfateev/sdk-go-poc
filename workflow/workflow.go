@@ -666,6 +666,7 @@ func Complete(result []byte, cause error) error {
 	if err != nil {
 		return err
 	}
+	isolate.MarkServiceGoroutine()
 	_, err = isolate.Call(OpComplete, payload)
 	return err
 }
@@ -698,6 +699,7 @@ func completePayloads(result *commonpb.Payloads, cause error) error {
 	if err != nil {
 		return err
 	}
+	isolate.MarkServiceGoroutine()
 	_, err = isolate.Call(OpCompletePayloads, payload)
 	return err
 }

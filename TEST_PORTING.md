@@ -17,10 +17,10 @@ Statuses:
 
 | Disposition | Source tests |
 | --- | ---: |
-| covered | 193 |
+| covered | 195 |
 | retained | 786 |
-| blocked | 120 |
-| obsolete | 40 |
+| blocked | 119 |
+| obsolete | 39 |
 | out_of_scope | 332 |
 | suite | 26 |
 | pending | 0 |
@@ -39,7 +39,7 @@ The initial feature group was deferred by the user on 2026-10-11. The subsequent
 | Skip corrupt signals and log/metric them instead of failing a task. | implemented | 0 |
 | Named independent workflow random streams with upstream golden sequence semantics. | user_deferred | 9 |
 | Generated Google protobuf values inside isolate workflow APIs (binary/JSON, private caches and read-only conversion). | implemented | 0 |
-| Legacy workflow coroutine stack-trace query API. | awaiting_user | 1 |
+| Workflow-instance stack-trace query API using native goroutine stacks. | implemented | 0 |
 | Remaining native testing facade, workflow mock callbacks, child-start listeners, completed-workflow queries, and full harness assertion parity (basic activity mocks/listeners and virtual time work through host factories). | user_deferred | 81 |
 | Variadic workflow/query/update handlers. | user_deferred | 0 |
 | Native workflow stream handler namespace and subscription APIs. | awaiting_user | 28 |
@@ -1299,7 +1299,7 @@ PATH="$(cd ../../../../golang-go/bin && pwd):$PATH" ../../../../golang-go/bin/go
 | `TestSendClosedChannel` | covered | Compiled native channel, select, recursive goroutine, or context-cancellation scenario runs at GOMAXPROCS 1/2/8; facade-specific scheduling order is replaced by native Go semantics. [TestUpstreamNativeSDKPorts](example/upstream/check/main_test.go) |
 | `TestBlockedSendClosedChannel` | covered | Compiled native channel, select, recursive goroutine, or context-cancellation scenario runs at GOMAXPROCS 1/2/8; facade-specific scheduling order is replaced by native Go semantics. [TestUpstreamNativeSDKPorts](example/upstream/check/main_test.go) |
 | `TestAsyncSendClosedChannel` | covered | Compiled native channel, select, recursive goroutine, or context-cancellation scenario runs at GOMAXPROCS 1/2/8; facade-specific scheduling order is replaced by native Go semantics. [TestUpstreamNativeSDKPorts](example/upstream/check/main_test.go) |
-| `TestDispatchClose` | obsolete | Removed cooperative dispatcher, eager-coroutine flag, and linked cancellation-list internals. Native lifecycle/cancellation behavior is tested in compiled workflows. [TestUpstreamNativeSDKPorts](example/upstream/check/main_test.go) [TestWorkerLifecycleAndSDKReplay](example/lifecycle/check/main_test.go) |
+| `TestDispatchClose` | covered | Ports the root plus ten blocked children, complete stack membership, root-only history and close/drain assertions through a compiled native workflow. Native goroutine headers and instance resource counts replace named coroutine three-line formatting and process-wide sleep-based counts. [TestDispatchClose](example/query/check/main_test.go) [TestWorkerLifecycleAndSDKReplay](example/lifecycle/check/main_test.go) |
 | `TestPanic` | covered | Source behavior exercised through native SDK APIs or the copied-byte host bridge. [TestWorkerLifecycleAndSDKReplay](example/lifecycle/check/main_test.go) |
 | `TestYieldDuringPanic` | covered | Source behavior exercised through native SDK APIs or the copied-byte host bridge. [TestWorkerLifecycleAndSDKReplay](example/lifecycle/check/main_test.go) |
 | `TestChannelReceivePointer` | covered | Compiled native channel, select, recursive goroutine, or context-cancellation scenario runs at GOMAXPROCS 1/2/8; facade-specific scheduling order is replaced by native Go semantics. [TestUpstreamNativeSDKPorts](example/upstream/check/main_test.go) |
@@ -1903,7 +1903,7 @@ PATH="$(cd ../../../../golang-go/bin && pwd):$PATH" ../../../../golang-go/bin/go
 | `WorkflowUnitTest.Test_StaleGoroutinesAreShutDown` | covered | Source behavior exercised through native SDK APIs or the copied-byte host bridge. [TestWorkerLifecycleAndSDKReplay](example/lifecycle/check/main_test.go) [TestResourcesCompiled](example/resources/check/main_test.go) |
 | `TestQueryFnValidation` | covered | All upstream query signature cases, translated to native handler contracts. [TestUpstreamQueryFnValidation](workflow/upstream_handlers_test.go) |
 | `TestParamValidator` | covered | Upstream equivalent-argument cases translated to native update handler/validator signatures. [TestUpstreamEquivalentParams](workflow/upstream_handlers_test.go) |
-| `TestStackTraceInvalidDepthBounded` | blocked | `stack_trace_query`: Legacy __stack_trace query has no native isolate equivalent; the user was asked about this feature. |
+| `TestStackTraceInvalidDepthBounded` | covered | `stack_trace_query`: Native counterpart exercises shallow/deep values 2 and 100 through __stack_trace, checking readable blocking/entry frames and bounded deep formatting. The private coroutine frame-omission parameter and exact three-line trimming are replaced by native full stacks with explicit Go frame elision. [TestStackTraceInvalidDepthBounded](example/query/check/main_test.go) [TestCompiledQueriesAndCompletedState](example/query/check/main_test.go) |
 
 ### internal/internal_workflow_testsuite_test.go
 

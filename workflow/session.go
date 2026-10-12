@@ -106,6 +106,7 @@ func createSession(ctx context.Context, queue string, options *SessionOptions) (
 	}
 	incoming := make(chan received, 1)
 	go func() {
+		isolate.MarkServiceGoroutine()
 		p, err := call(sessionCtx, OpSignal, id)
 		var signal Signal
 		var value response
@@ -149,6 +150,7 @@ func createSession(ctx context.Context, queue string, options *SessionOptions) (
 		return nil, err
 	}
 	go func() {
+		isolate.MarkServiceGoroutine()
 		err := creation.Get(creationCtx, nil)
 		if err != nil && !temporal.IsCanceledError(err) && !errors.Is(err, context.Canceled) && s.SessionState == SessionStateOpen {
 			s.SessionState = SessionStateFailed

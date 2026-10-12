@@ -231,9 +231,9 @@
       "request": "A second pass found more blocked test groups: workflow context propagators and context-aware/per-context converters, custom failure converters, external payload storage, preferred-version providers, workflow streams, and legacy workflow stack-trace queries. Should these also remain blocked, or should any be implemented?"
     },
     "stack_trace_query": {
-      "description": "Legacy workflow coroutine stack-trace query API.",
-      "decision": "awaiting_user",
-      "request": "A second pass found more blocked test groups: workflow context propagators and context-aware/per-context converters, custom failure converters, external payload storage, preferred-version providers, workflow streams, and legacy workflow stack-trace queries. Should these also remain blocked, or should any be implemented?"
+      "description": "Workflow-instance stack-trace query API using native goroutine stacks.",
+      "decision": "implemented",
+      "request": "User requested stack-trace queries on 2026-10-12, clarified that only workflow goroutines from the specific instance should appear, excluding SDK services, and requested the relevant upstream unit-test ports."
     }
   },
   "tests": [
@@ -4708,10 +4708,10 @@
     {
       "source": "internal/internal_coroutines_test.go",
       "name": "TestDispatchClose",
-      "status": "obsolete",
-      "reason": "Removed cooperative dispatcher, eager-coroutine flag, and linked cancellation-list internals. Native lifecycle/cancellation behavior is tested in compiled workflows.",
+      "status": "covered",
+      "reason": "Ports the root plus ten blocked children, complete stack membership, root-only history and close/drain assertions through a compiled native workflow. Native goroutine headers and instance resource counts replace named coroutine three-line formatting and process-wide sleep-based counts.",
       "targets": [
-        "example/upstream/check/main_test.go::TestUpstreamNativeSDKPorts",
+        "example/query/check/main_test.go::TestDispatchClose",
         "example/lifecycle/check/main_test.go::TestWorkerLifecycleAndSDKReplay"
       ]
     },
@@ -7714,8 +7714,12 @@
     {
       "source": "internal/internal_workflow_test.go",
       "name": "TestStackTraceInvalidDepthBounded",
-      "status": "blocked",
-      "reason": "Legacy __stack_trace query has no native isolate equivalent; the user was asked about this feature.",
+      "status": "covered",
+      "reason": "Native counterpart exercises shallow/deep values 2 and 100 through __stack_trace, checking readable blocking/entry frames and bounded deep formatting. The private coroutine frame-omission parameter and exact three-line trimming are replaced by native full stacks with explicit Go frame elision.",
+      "targets": [
+        "example/query/check/main_test.go::TestStackTraceInvalidDepthBounded",
+        "example/query/check/main_test.go::TestCompiledQueriesAndCompletedState"
+      ],
       "feature": "stack_trace_query"
     },
     {

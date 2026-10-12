@@ -14,6 +14,7 @@ import (
 	"github.com/mfateev/sdk-go-poc/internal/headerwire"
 	"github.com/mfateev/sdk-go-poc/workflow"
 	commonpb "go.temporal.io/api/common/v1"
+	"go.temporal.io/sdk/client"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -63,8 +64,12 @@ func (d *definition) query(name string, input *commonpb.Payloads, header *common
 	if d.closed || d.instance == nil {
 		return nil, errors.New("workflow query state was evicted")
 	}
+	if name == client.QueryTypeStackTrace {
+		return d.env.GetDataConverter().ToPayloads(d.StackTrace())
+	}
 	if _, ok := d.queryHandlers[name]; !ok {
-		keys := make([]string, 0, len(d.queryHandlers))
+		keys := make([]string, 0, len(d.queryHandlers)+1)
+		keys = append(keys, client.QueryTypeStackTrace)
 		for key := range d.queryHandlers {
 			keys = append(keys, key)
 		}

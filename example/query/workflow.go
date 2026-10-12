@@ -10,6 +10,7 @@ import (
 	"os"
 	"reflect"
 	"runtime"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -22,6 +23,71 @@ type State struct {
 	Bytes  []byte
 	Values map[string]int
 	Atomic atomic.Int64
+}
+
+// StackWorkflow deliberately registers no custom query handlers.
+//
+//go:isolate
+func StackWorkflow(ctx context.Context) error {
+	done := make(chan struct{})
+	finished := make(chan struct{}, 2)
+	go stackWait(done, finished)
+	go stackWait(done, finished)
+	time.Sleep(time.Minute)
+	close(done)
+	<-finished
+	<-finished
+	return nil
+}
+
+//go:noinline
+func stackWait(done <-chan struct{}, finished chan<- struct{}) {
+	<-done
+	finished <- struct{}{}
+}
+
+// DispatchCloseWorkflow ports internal/internal_coroutines_test.go::TestDispatchClose.
+// Native goroutine headers replace coroutine names and fixed three-line traces.
+//
+//go:isolate
+func DispatchCloseWorkflow(ctx context.Context) ([]string, error) {
+	var history []string
+	if err := workflow.SetQueryHandler(ctx, "history", func() ([]string, error) {
+		return append([]string(nil), history...), nil
+	}); err != nil {
+		return nil, err
+	}
+	blocked := make(chan struct{})
+	for i := range 10 {
+		go dispatchCloseChild(blocked, &history, i)
+	}
+	history = append(history, "root")
+	<-blocked
+	return history, nil
+}
+
+//go:noinline
+func dispatchCloseChild(blocked <-chan struct{}, history *[]string, i int) {
+	<-blocked
+	*history = append(*history, "child-"+strconv.Itoa(i))
+}
+
+// StackDepthWorkflow exercises the native counterpart of the legacy stack
+// depth-trimming helper with the original shallow/deep values (2 and 100).
+//
+//go:isolate
+func StackDepthWorkflow(ctx context.Context, depth int) error {
+	stackTraceDepth(depth)
+	return nil
+}
+
+//go:noinline
+func stackTraceDepth(depth int) {
+	if depth == 0 {
+		time.Sleep(time.Minute)
+		return
+	}
+	stackTraceDepth(depth - 1)
 }
 
 var packageCount int

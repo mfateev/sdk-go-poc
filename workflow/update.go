@@ -268,6 +268,7 @@ func validateUpdate(request QueryRequest) (failure []byte, err error) {
 }
 
 func serveUpdates() {
+	isolate.MarkServiceGoroutine()
 	for {
 		raw, err := isolate.Call(OpNextUpdate, nil)
 		if err != nil {
