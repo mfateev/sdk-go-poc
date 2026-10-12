@@ -12,8 +12,8 @@ import (
 // Markers can change freely during POC development. They are sanity checks,
 // not source revision identifiers or selectors for compatibility implementations.
 const (
-	// Version 5 adds native failure converter factories to startup.
-	ProtocolVersion    uint32 = 5
+	// Version 6 adds reset-aware named random identity delivery.
+	ProtocolVersion    uint32 = 6
 	MetadataVersion    uint32 = 1
 	APIVersion         uint32 = 1
 	DeterminismVersion uint32 = 1

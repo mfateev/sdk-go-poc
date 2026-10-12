@@ -168,6 +168,8 @@ type callState struct {
 }
 
 type definition struct {
+	randomRunID          string
+	cancelDelivered      bool
 	dynamic              bool
 	dynamicQuery         *workflow.QueryHandlerOptions
 	dynamicUpdate        *workflow.UpdateRegistration
@@ -247,8 +249,9 @@ func (d *definition) Execute(env bindings.WorkflowEnvironment, header *commonpb.
 		}
 		d.canceled = true
 		if d.cancelWaiter != nil {
-			d.pending = append(d.pending, reply{command: d.cancelWaiter})
+			d.pending = append(d.pending, reply{command: d.cancelWaiter, payload: d.controlBytes()})
 			d.cancelWaiter = nil
+			d.cancelDelivered = true
 		}
 	})
 	env.RegisterSignalHandler(func(name string, payloads *commonpb.Payloads, header *commonpb.Header) error {
@@ -301,6 +304,7 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 		return
 	}
 	now := clock.Now()
+	d.updateRandomIdentity()
 	resuming := len(d.pending) != 0 || d.hasDeliverableSignal() || len(d.queuedUpdates) != 0
 	newInstance := !d.started
 	if !d.started {
@@ -628,8 +632,11 @@ func (d *definition) handle(command *isolate.Command) error {
 		if d.cancelWaiter != nil {
 			return errors.New("duplicate workflow cancellation listener")
 		}
-		if d.canceled || d.completed {
+		if d.completed {
 			d.replyWhenSuspended(command, nil, nil)
+		} else if d.canceled && !d.cancelDelivered {
+			d.cancelDelivered = true
+			d.replyWhenSuspended(command, d.controlBytes(), nil)
 		} else {
 			d.cancelWaiter = command
 		}
@@ -724,7 +731,7 @@ func (d *definition) handle(command *isolate.Command) error {
 				return err
 			}
 		}
-		payload, err := json.Marshal(workflow.PayloadStart{RandomRunID: workflowRandomRunID(d.env.WorkflowInfo()), Dynamic: d.dynamic, FailureConverterFactory: d.failures.Factory.Name(), FailureConverterConfig: d.failures.Config, PropagatorFactory: d.propagators.Factory.Name(), PropagatorConfig: d.propagators.Config, ConverterFactory: d.converters.Factory.Name(), InterceptorFactory: d.interceptors.Factory.Name(), InterceptorConfig: d.interceptors.Config, Header: d.header, ConverterConfig: d.converters.Config, Name: d.entryName, Payloads: input, Canceled: d.canceled, TaskQueue: d.env.WorkflowInfo().TaskQueueName, Options: workflow.RunOptions{Namespace: d.env.WorkflowInfo().Namespace, TaskQueue: d.env.WorkflowInfo().TaskQueueName, WorkflowExecutionTimeout: d.env.WorkflowInfo().WorkflowExecutionTimeout, WorkflowRunTimeout: d.env.WorkflowInfo().WorkflowRunTimeout, WorkflowTaskTimeout: d.env.WorkflowInfo().WorkflowTaskTimeout}})
+		payload, err := json.Marshal(workflow.PayloadStart{RandomRunID: d.randomRunID, Dynamic: d.dynamic, FailureConverterFactory: d.failures.Factory.Name(), FailureConverterConfig: d.failures.Config, PropagatorFactory: d.propagators.Factory.Name(), PropagatorConfig: d.propagators.Config, ConverterFactory: d.converters.Factory.Name(), InterceptorFactory: d.interceptors.Factory.Name(), InterceptorConfig: d.interceptors.Config, Header: d.header, ConverterConfig: d.converters.Config, Name: d.entryName, Payloads: input, Canceled: d.canceled, TaskQueue: d.env.WorkflowInfo().TaskQueueName, Options: workflow.RunOptions{Namespace: d.env.WorkflowInfo().Namespace, TaskQueue: d.env.WorkflowInfo().TaskQueueName, WorkflowExecutionTimeout: d.env.WorkflowInfo().WorkflowExecutionTimeout, WorkflowRunTimeout: d.env.WorkflowInfo().WorkflowRunTimeout, WorkflowTaskTimeout: d.env.WorkflowInfo().WorkflowTaskTimeout}})
 		if err != nil {
 			return err
 		}

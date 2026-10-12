@@ -127,10 +127,15 @@ and covers arbitrary handler names, replacement and completed queries.
 `example/dynamic/check` verifies compressed live histories and saved replay with
 workflow cache sizes 1000 and 0. See [dynamic workflows and handlers](README.md#dynamic-workflows-and-handlers).
 
-`workflow.GetRandomStream(ctx, name)` returns persistent named v2 generators,
-seeded from copied startup identity without consuming the runtime default stream.
-Read-only requests use per-name snapshots, including captured generator pointers;
-accepted updates advance the normal stream. Compiled probes and four saved live
-histories cover independence, concurrency, contexts, reset/replay identity,
-validators, distributions, eviction and exact completion replay. The application
-sample lives in `samples-go-poc/random-streams`; no core Go API changes are required.
+`workflow.GetRandomStream(ctx, name)` implements upstream's `WorkflowRandomStream`
+(Source and Reader) with exact seed/byte/Uint64 goldens and stable unaligned
+interleaving. Read-only snapshots include buffered bytes and captured handles.
+A copied reset-aware identity reseeds handles in place before continuation;
+late-created sources and child Continue-As-New runs use the proper identity.
+All nine upstream unit cases are ported and mapped in TEST_PORTING.md. Live tests
+cover reset and child/CAN with cache sizes 1000 and 0; ten saved histories verify
+exact replay results at GOMAXPROCS 1/2/8. Four earlier POC histories remain as
+negative compatibility fixtures. `samples-go-poc/random-streams` demonstrates the
+Source/Reader API and rand.New facade. The math/rand/v2 library is unchanged.
+The isolate runtime adds ControlCall for input-service bookkeeping without
+consuming default randomness; the compiler pins the additional host binding.

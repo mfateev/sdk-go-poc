@@ -58,54 +58,56 @@ eviction and GOMAXPROCS 1/2/8 in fresh processes:
 
 ### Named random streams
 
-`workflow.GetRandomStream(ctx, name)` returns a persistent `*math/rand/v2.Rand`
-for the current workflow execution. Repeated lookup continues the same generator;
-derived and canceled contexts share it. Names use exact, case-sensitive byte
-matching, including the empty name. Separate names are independent of each other,
-and creating or drawing from them does not consume top-level randomness or change
-native select polling.
+`workflow.GetRandomStream(ctx, name)` returns a persistent `WorkflowRandomStream`
+implementing `math/rand/v2.Source` and `io.Reader`. Repeated lookups continue the
+same source. Names use exact, case-sensitive matching, including the empty name;
+derived and canceled contexts share it. Separate streams do not consume top-level
+randomness or affect native select polling.
 
 ```go
-choices := workflow.GetRandomStream(ctx, "choices")
-jitter := workflow.GetRandomStream(ctx, "jitter")
+source := workflow.GetRandomStream(ctx, "choices")
+choices := rand.New(source) // math/rand/v2
 choice := choices.IntN(6)
-backoff := time.Duration(jitter.IntN(1000)) * time.Millisecond
+buf := make([]byte, 3)
+_, _ = source.Read(buf)
+next := source.Uint64() // consumes the next eight bytes, little-endian
 ```
 
-Generators can be shared by native workflow goroutines: source draws are
-synchronized. Draw assignment still follows deterministic scheduling; adding or
-reordering draws in one stream can change commands and require workflow versioning.
-The v2 `Rand` facade provides integers, bounded draws, distributions, permutations,
-and shuffling. The generator belongs to one isolate and cannot cross executions
-or the host boundary.
+Read and Uint64 share one byte sequence, including unaligned reads. Seed and
+UnmarshalBinary are not exposed. Source draws are synchronized for native
+workflow goroutines; draw assignment follows deterministic scheduling. Changing
+the order or number of draws may require workflow versioning.
 
-The bridge supplies `PayloadStart.RandomRunID` before workflow callbacks run,
-using the history's `OriginalRunID`, or `RunID` when no original ID exists.
-Synthetic replay IDs, workflow IDs and namespaces do not seed streams. Each name
-uses ChaCha8 with a SHA-256 seed over the fixed domain
-`isolate/workflow-random-stream/v1`, a little-endian uint64 byte length and raw
-bytes for the recorded run ID, then the same length/byte encoding for the name.
-This encoding is a replay contract. Creating a stream requires no host call and
-emits no history event. Custom startup adapters must provide this identity when
-using the API. Calls require a non-nil context inside an active isolate.
+Seeds and byte sequences match the upstream Temporal SDK exactly: ChaCha8 seeded
+with SHA-256 of `temporal.sdk.random.v1`, a NUL byte, the task run identity, another
+NUL byte, and the stream name. The bridge copies the reset-aware task identity into
+startup and delivers changes through the existing cancellation input service
+before workflow/update continuations run. Subsequent waits use isolate.ControlCall
+with fixed transport polls, preserving the existing default random/select stream. No draws or identity messages add history events. Reset replays
+previous draws up to its reset point, then reseeds existing handles in place; a
+source created after that point uses the new identity. Continue-As-New creates an
+independently seeded source for each run, including child workflows.
 
-Queries and update validators share one scratch generator per name within the
-request, copied from the workflow's current position. This applies both to lookups
-using captured contexts and draws through captured generators. A name first used
-in a read-only request is seeded without registering it in workflow state. Each
-new request gets a fresh snapshot. Accepted update handlers advance the workflow
-stream. Replay and reset reconstruct streams using the recorded identity;
-Continue-As-New creates fresh streams for the new run.
+Queries and update validators share one scratch snapshot per name within the
+request, including captured sources and v2.Rand wrappers. Byte-buffer leftovers
+are copied too. A name first used by a read-only request does not register normal
+workflow state. Accepted updates advance the normal source. Draws into captured
+workflow buffers remain prohibited by read-only ownership checks.
 
-The seed is public, so these values must not be used for cryptographic secrets.
+The initial POC seed encoding is superseded by the upstream contract. Its four
+saved histories remain under `example/random/testdata/pre-upstream` and are tested
+as incompatible, rather than being discarded. Ten current saved histories pin
+normal draws, distributions, reset transitions and child results across replay
+at GOMAXPROCS 1/2/8. All nine upstream unit cases are mapped in TEST_PORTING.md.
+
+These generators are predictable; do not use them for cryptographic secrets.
 The runnable application sample is `samples-go-poc/random-streams` in the sibling
-checkout. SDK regression fixtures in `example/random/check` cover concurrent
-readers, contexts, default-stream independence, query/validator snapshots and
-accepted updates. Saved live histories also pin the v2 distribution outputs and
-verify exact completion values after replay at GOMAXPROCS 1/2/8.
+checkout. Custom startup adapters must supply `PayloadStart.RandomRunID` and
+deliver `WorkflowControl` through the existing `OpWorkflowCancel` service for
+reset transitions.
 
 ```sh
-../golang-go/bin/go test ./example/random/check
+../golang-go/bin/go test ./workflow ./example/random/check
 RANDOM_STREAMS_DEV_SERVER=1 ../golang-go/bin/go test -count=1 ./example/random/check -run TestLiveNamedRandomStreams
 ```
 
@@ -1418,8 +1420,10 @@ producer's numeric metadata version; an unsupported version fails before the
 runtime reads descriptor fields or publishes an entry. The compiler's isolate
 build report includes these versions.
 
-The POC SDK separately expects those three versions and uses **host protocol 5**.
-Protocol 5 adds native failure converter factories to startup, retaining context
+The POC SDK separately expects those three versions and uses **host protocol 6**.
+Protocol 6 adds reset-aware identity messages to the existing cancellation input
+service. Protocol 5 added native failure converter factories to startup, retaining
+context
 propagator factories, priority update admission/execution and signal-channel
 admission barriers from protocols 4, 3 and 2. Rebuild host and workflow
 SDK together when upgrading.
@@ -1433,11 +1437,13 @@ with a versioned workflow is rejected.
 
 The SDK dependency is upstream `go.temporal.io/sdk v1.49.0`, replaced by the
 audited [`mfateev/temporal-go-sdk`](https://github.com/mfateev/temporal-go-sdk/tree/task/modify-go-runtime-for-isolates)
-tag **`v1.49.0-isolates.1`**. Go downloads it automatically; a fourth local checkout
+revision **`v1.49.0-isolates.1.0.20261012175541-b87b0a1d5dda`**. Go downloads it
+automatically; a fourth local checkout
 is unnecessary. The compiler accepts only this exact replacement or the original
 upstream baseline. Other versions, local replacements, nested modules and vendor
 sources require a source audit before receiving metadata privileges. The fork's
-binding contract is **1** and exposes previous failures, reset-aware child IDs,
+binding contract is **1** and exposes previous failures, reset-aware task run
+identity and child IDs,
 memo converter policy and copied typed search-attribute updates, including unset
 markers. Ordinary SDK workflows keep their existing execution path.
 

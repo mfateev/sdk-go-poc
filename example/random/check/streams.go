@@ -88,20 +88,20 @@ func runStreams(factory temporalbridge.Factory, originalRunID, currentRunID, mod
 }
 
 func expectedStream(runID, name string, count int) []uint64 {
-	data := []byte("isolate/workflow-random-stream/v1")
-	data = binary.LittleEndian.AppendUint64(data, uint64(len(runID)))
-	data = append(data, runID...)
-	data = binary.LittleEndian.AppendUint64(data, uint64(len(name)))
-	data = append(data, name...)
+	data := []byte("temporal.sdk.random.v1\x00" + runID + "\x00" + name)
 	source := rand.NewChaCha8(sha256.Sum256(data))
 	values := make([]uint64, count)
 	for i := range values {
-		values[i] = source.Uint64()
+		var data [8]byte
+		_, _ = source.Read(data[:])
+		values[i] = binary.LittleEndian.Uint64(data[:])
 	}
 	return values
 }
 
 func checkStreams() {
+	checkCanceledResetBatch()
+	checkByteStreams()
 	checkAcceptedStreamUpdates()
 	registration := new(registrations)
 	w := worker.Wrap(registration)
@@ -187,5 +187,30 @@ func checkAcceptedStreamUpdates() {
 				panic("validator advanced the accepted-update stream")
 			}
 		}()
+	}
+}
+
+func checkCanceledResetBatch() {
+	registration := new(registrations)
+	worker.Wrap(registration).RegisterWorkflow(example.ResetStreamsWorkflow)
+	e := &environment{info: sdkwf.Info{OriginalRunID: "original", WorkflowExecution: sdkwf.Execution{RunID: "synthetic"}}}
+	d := registration.factory.NewWorkflowDefinition()
+	defer d.Close()
+	input, err := e.GetDataConverter().ToPayloads(false)
+	must(err)
+	d.Execute(e, nil, input)
+	d.OnWorkflowTaskStarted(5 * time.Second)
+	if e.activity == nil || e.cancel == nil {
+		panic("cancel/reset fixture did not suspend")
+	}
+	e.cancel()
+	e.info.OriginalRunID = "reset"
+	e.activity(e.input, nil)
+	d.OnWorkflowTaskStarted(5 * time.Second)
+	must(e.err)
+	var result []uint64
+	must(e.GetDataConverter().FromPayloads(e.result, &result))
+	if !slices.Equal(result, []uint64{expectedStream("original", "reset", 1)[0], expectedStream("reset", "reset", 1)[0]}) {
+		panic("cancellation/reset batch lost the new source identity")
 	}
 }

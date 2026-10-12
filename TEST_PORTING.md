@@ -1,6 +1,6 @@
 # Temporal SDK unit-test porting checklist
 
-Source checkout: `871909974371f6e967e50a24744a09c03c0af0b1`. Runtime dependency: `go.temporal.io/sdk v1.49.0`, replaced by `github.com/mfateev/temporal-go-sdk v1.49.0-isolates.1`.
+Source checkout: `b87b0a1d5dda22d68ddb97237fdc42cd2492043f`. Runtime dependency: `go.temporal.io/sdk v1.49.0`, replaced by `github.com/mfateev/temporal-go-sdk v1.49.0-isolates.1.0.20261012175541-b87b0a1d5dda`.
 
 This list inventories every named unit test and suite test method in the source checkout, including nested contrib modules. The separate `test/` integration module, testdata, generated non-test helpers, and build directories are excluded. Live dev-server scenarios found in contrib test files are listed and marked out of scope.
 
@@ -17,9 +17,9 @@ Statuses:
 
 | Disposition | Source tests |
 | --- | ---: |
-| covered | 206 |
+| covered | 215 |
 | retained | 857 |
-| blocked | 37 |
+| blocked | 28 |
 | obsolete | 39 |
 | out_of_scope | 332 |
 | suite | 26 |
@@ -28,7 +28,7 @@ Statuses:
 
 ## Feature decisions
 
-The initial feature group was deferred by the user on 2026-10-11. Subsequently selected context propagation, data converters, custom failure conversion, generated protobuf values, corrupt-signal handling, stack-trace queries, native dynamic workflow/query/update handlers and the isolate test environment are implemented. Other questions remain marked `awaiting_user` until answered; deferred tests stay blocked. No missing feature is implicitly treated as a completed port.
+The initial feature group was deferred by the user on 2026-10-11. Subsequently selected context propagation, data converters, custom failure conversion, generated protobuf values, corrupt-signal handling, stack-trace queries, native dynamic workflow/query/update handlers, named independent random streams with upstream golden semantics and the isolate test environment are implemented. Other questions remain marked `awaiting_user` until answered; deferred tests stay blocked. No missing feature is implicitly treated as a completed port.
 
 The isolate test facade reuses the host SDK test engine. Its original activity, timeout, retry, child scheduling and tracing assertion suites remain retained; linked native tests supplement those assertions. Direct ports cover the facade's native mock, listener, registration, ordering and completed-query behavior. Retained entries do not claim exhaustive duplication of every original assertion inside an isolate.
 
@@ -39,7 +39,7 @@ The isolate test facade reuses the host SDK test engine. Its original activity, 
 | Native dynamic workflow/query/update handlers. | implemented | 0 |
 | External-storage payload references at the isolate boundary (host middleware remains unchanged). | awaiting_user | 0 |
 | Skip corrupt signals and log/metric them instead of failing a task. | implemented | 0 |
-| Named independent workflow random streams with upstream golden sequence semantics. | user_deferred | 9 |
+| Named independent workflow random streams with upstream golden sequence semantics. | implemented | 0 |
 | Generated Google protobuf values inside isolate workflow APIs (binary/JSON, private caches and read-only conversion). | implemented | 0 |
 | Workflow-instance stack-trace query API using native goroutine stacks. | implemented | 0 |
 | Isolate-aware TestWorkflowEnvironment, native workflow mocks and replacements, child-start listeners, completed root/child queries, virtual time, and typed host-backed test references. | implemented | 0 |
@@ -2224,7 +2224,7 @@ PATH="$(cd ../../../../golang-go/bin && pwd):$PATH" ../../../../golang-go/bin/go
 
 | Source test | Disposition | Coverage / blocker / reason |
 | --- | --- | --- |
-| `TestWorkflowIntegrationHistoryMetadata` | covered | Source behavior exercised through native SDK APIs or the copied-byte host bridge. [TestMetadataAPIAndReplay](example/workflowmetadata/check/main_test.go) [TestPreviousRunSnapshotsPreservePresenceAndDecodeCodecs](temporalbridge/metadata_test.go) |
+| `TestWorkflowIntegrationHistoryMetadata` | covered | Source behavior exercised through native SDK APIs or the copied-byte host bridge. [TestMetadataAPIAndReplay](example/workflowmetadata/check/main_test.go) [TestPreviousRunSnapshotsPreservePresenceAndDecodeCodecs](temporalbridge/metadata_test.go) [TestLiveNamedRandomStreams](example/random/check/streams_test.go) |
 | `TestWorkflowIntegrationSearchAttributeUpdates` | covered | Source behavior exercised through native SDK APIs or the copied-byte host bridge. [TestMetadataAPIAndReplay](example/workflowmetadata/check/main_test.go) [TestPreviousRunSnapshotsPreservePresenceAndDecodeCodecs](temporalbridge/metadata_test.go) |
 
 ### internal/workflow_random_test.go
@@ -2232,15 +2232,15 @@ PATH="$(cd ../../../../golang-go/bin && pwd):$PATH" ../../../../golang-go/bin/go
 | Source test | Disposition | Coverage / blocker / reason |
 | --- | --- | --- |
 | `TestWorkflowRandomTestSuite` | suite | Suite entry point; individual suite test methods are inventoried separately. |
-| `workflowRandomTestSuite.TestDeriveSeed` | blocked | `named_random_streams`: Upstream named independent streams/golden sequence API is absent. Native shared random stream has separate coverage, but does not satisfy this contract. |
-| `workflowRandomTestSuite.TestGetRandomStreamGolden` | blocked | `named_random_streams`: Upstream named independent streams/golden sequence API is absent. Native shared random stream has separate coverage, but does not satisfy this contract. |
-| `workflowRandomTestSuite.TestUint64Golden` | blocked | `named_random_streams`: Upstream named independent streams/golden sequence API is absent. Native shared random stream has separate coverage, but does not satisfy this contract. |
-| `workflowRandomTestSuite.TestInterleavedReadUint64StableOrdering` | blocked | `named_random_streams`: Upstream named independent streams/golden sequence API is absent. Native shared random stream has separate coverage, but does not satisfy this contract. |
-| `workflowRandomTestSuite.TestDeriveSeedSeparators` | blocked | `named_random_streams`: Upstream named independent streams/golden sequence API is absent. Native shared random stream has separate coverage, but does not satisfy this contract. |
-| `workflowRandomTestSuite.TestGetRandomStreamMemoizes` | blocked | `named_random_streams`: Upstream named independent streams/golden sequence API is absent. Native shared random stream has separate coverage, but does not satisfy this contract. |
-| `workflowRandomTestSuite.TestGetRandomStreamNamesAreIndependent` | blocked | `named_random_streams`: Upstream named independent streams/golden sequence API is absent. Native shared random stream has separate coverage, but does not satisfy this contract. |
-| `workflowRandomTestSuite.TestReseedRandomsInPlace` | blocked | `named_random_streams`: Upstream named independent streams/golden sequence API is absent. Native shared random stream has separate coverage, but does not satisfy this contract. |
-| `workflowRandomTestSuite.TestChildContinueAsNewDrawsNewValues` | blocked | `named_random_streams`: Upstream named independent streams/golden sequence API is absent. Native shared random stream has separate coverage, but does not satisfy this contract. |
+| `workflowRandomTestSuite.TestDeriveSeed` | covered | Preserves upstream assertions using the native named source contract; seed and byte sequences match upstream exactly. [TestDeriveSeed](workflow/random_upstream_test.go) [TestCompiledNamedRandomStreams](example/random/check/streams_test.go) |
+| `workflowRandomTestSuite.TestGetRandomStreamGolden` | covered | Preserves upstream assertions using the native named source contract; seed and byte sequences match upstream exactly. [TestGetRandomStreamGolden](workflow/random_upstream_test.go) [TestCompiledNamedRandomStreams](example/random/check/streams_test.go) |
+| `workflowRandomTestSuite.TestUint64Golden` | covered | Preserves upstream assertions using the native named source contract; seed and byte sequences match upstream exactly. [TestUint64Golden](workflow/random_upstream_test.go) [TestCompiledNamedRandomStreams](example/random/check/streams_test.go) |
+| `workflowRandomTestSuite.TestInterleavedReadUint64StableOrdering` | covered | Preserves upstream assertions using the native named source contract; seed and byte sequences match upstream exactly. [TestInterleavedReadUint64StableOrdering](workflow/random_upstream_test.go) [TestCompiledNamedRandomStreams](example/random/check/streams_test.go) |
+| `workflowRandomTestSuite.TestDeriveSeedSeparators` | covered | Preserves upstream assertions using the native named source contract; seed and byte sequences match upstream exactly. [TestDeriveSeedSeparators](workflow/random_upstream_test.go) [TestCompiledNamedRandomStreams](example/random/check/streams_test.go) |
+| `workflowRandomTestSuite.TestGetRandomStreamMemoizes` | covered | Preserves upstream assertions using the native named source contract; seed and byte sequences match upstream exactly. [TestGetRandomStreamMemoizes](workflow/random_upstream_test.go) [TestCompiledNamedRandomStreams](example/random/check/streams_test.go) |
+| `workflowRandomTestSuite.TestGetRandomStreamNamesAreIndependent` | covered | Preserves upstream assertions using the native named source contract; seed and byte sequences match upstream exactly. [TestGetRandomStreamNamesAreIndependent](workflow/random_upstream_test.go) [TestCompiledNamedRandomStreams](example/random/check/streams_test.go) |
+| `workflowRandomTestSuite.TestReseedRandomsInPlace` | covered | Preserves upstream assertions using the native named source contract; seed and byte sequences match upstream exactly. [TestReseedRandomsInPlace](workflow/random_upstream_test.go) [TestCompiledNamedRandomStreams](example/random/check/streams_test.go) [TestLiveNamedRandomStreams](example/random/check/streams_test.go) |
+| `workflowRandomTestSuite.TestChildContinueAsNewDrawsNewValues` | covered | Preserves upstream assertions using the native named source contract; seed and byte sequences match upstream exactly. [TestChildContinueAsNewDrawsNewValues](example/random/check/streams_upstream_test.go) [TestLiveNamedRandomStreams](example/random/check/streams_test.go) |
 
 ### internal/workflow_stream_reserved_name_test.go
 

@@ -1,5 +1,5 @@
 {
-  "source_commit": "871909974371f6e967e50a24744a09c03c0af0b1",
+  "source_commit": "b87b0a1d5dda22d68ddb97237fdc42cd2492043f",
   "sdk_version": "v1.49.0",
   "files": {
     "contrib/aws/lambdaworker/defaults_test.go": "d6fd4a3c28cfd4816980aca57afce45f4ebebc092be2a16beb9232192c44af03",
@@ -158,7 +158,7 @@
     "internal/worker_version_sets_test.go": "aa938fb090af5ef599f8bb720a007e3cb900a362c69f97fb2fd6398e8d109ab1",
     "internal/worker_versioning_rules_test.go": "1aab1cbceecc08b7ada51605ed26c9cbc0fb1971ab80d2121efa7aae64334630",
     "internal/workflow_deadlock_test.go": "2d40885f633e907c0f76a3e8cfacf7b93c3c861a9d542de76714c74017ac3d57",
-    "internal/workflow_integration_test.go": "1f303f8c3fabda10dc621569c061e2ae92780786382dc92bcfc60b56e38f4907",
+    "internal/workflow_integration_test.go": "5f9902036729469ce36281544b34770dc93e2cbb720c663e5e3842edfd61dd57",
     "internal/workflow_random_test.go": "327f52f6df193b3356d7342e8cb32eeb9296feda29c8d869e5abc82da7c0ddfc",
     "internal/workflow_stream_reserved_name_test.go": "916dcea5f3595809d4103033f494ac3871c12b53118c4dc96fe66190d73f95bf",
     "internal/workflow_test.go": "7d849f799170656b60b2c53cf83d274947901cb53cebaf1bc153aec19180c80e",
@@ -207,8 +207,8 @@
     },
     "named_random_streams": {
       "description": "Named independent workflow random streams with upstream golden sequence semantics.",
-      "decision": "user_deferred",
-      "request": "User answered: Keep these blocked for now; finish supported-feature tests (2026-10-11)."
+      "decision": "implemented",
+      "request": "User requested closing the upstream parity gap on 2026-10-12. Implemented exact seed and byte/Uint64 goldens, unaligned interleaving, in-place reset reseeding, and native child Continue-As-New with direct ports and cached/uncached live replay."
     },
     "context_propagation": {
       "description": "Workflow context propagators and native context-aware/per-context data converters.",
@@ -9645,7 +9645,8 @@
       "reason": "Source behavior exercised through native SDK APIs or the copied-byte host bridge.",
       "targets": [
         "example/workflowmetadata/check/main_test.go::TestMetadataAPIAndReplay",
-        "temporalbridge/metadata_test.go::TestPreviousRunSnapshotsPreservePresenceAndDecodeCodecs"
+        "temporalbridge/metadata_test.go::TestPreviousRunSnapshotsPreservePresenceAndDecodeCodecs",
+        "example/random/check/streams_test.go::TestLiveNamedRandomStreams"
       ]
     },
     {
@@ -9667,65 +9668,93 @@
     {
       "source": "internal/workflow_random_test.go",
       "name": "workflowRandomTestSuite.TestDeriveSeed",
-      "status": "blocked",
-      "reason": "Upstream named independent streams/golden sequence API is absent. Native shared random stream has separate coverage, but does not satisfy this contract.",
-      "feature": "named_random_streams"
+      "status": "covered",
+      "reason": "Preserves upstream assertions using the native named source contract; seed and byte sequences match upstream exactly.",
+      "targets": [
+        "workflow/random_upstream_test.go::TestDeriveSeed",
+        "example/random/check/streams_test.go::TestCompiledNamedRandomStreams"
+      ]
     },
     {
       "source": "internal/workflow_random_test.go",
       "name": "workflowRandomTestSuite.TestGetRandomStreamGolden",
-      "status": "blocked",
-      "reason": "Upstream named independent streams/golden sequence API is absent. Native shared random stream has separate coverage, but does not satisfy this contract.",
-      "feature": "named_random_streams"
+      "status": "covered",
+      "reason": "Preserves upstream assertions using the native named source contract; seed and byte sequences match upstream exactly.",
+      "targets": [
+        "workflow/random_upstream_test.go::TestGetRandomStreamGolden",
+        "example/random/check/streams_test.go::TestCompiledNamedRandomStreams"
+      ]
     },
     {
       "source": "internal/workflow_random_test.go",
       "name": "workflowRandomTestSuite.TestUint64Golden",
-      "status": "blocked",
-      "reason": "Upstream named independent streams/golden sequence API is absent. Native shared random stream has separate coverage, but does not satisfy this contract.",
-      "feature": "named_random_streams"
+      "status": "covered",
+      "reason": "Preserves upstream assertions using the native named source contract; seed and byte sequences match upstream exactly.",
+      "targets": [
+        "workflow/random_upstream_test.go::TestUint64Golden",
+        "example/random/check/streams_test.go::TestCompiledNamedRandomStreams"
+      ]
     },
     {
       "source": "internal/workflow_random_test.go",
       "name": "workflowRandomTestSuite.TestInterleavedReadUint64StableOrdering",
-      "status": "blocked",
-      "reason": "Upstream named independent streams/golden sequence API is absent. Native shared random stream has separate coverage, but does not satisfy this contract.",
-      "feature": "named_random_streams"
+      "status": "covered",
+      "reason": "Preserves upstream assertions using the native named source contract; seed and byte sequences match upstream exactly.",
+      "targets": [
+        "workflow/random_upstream_test.go::TestInterleavedReadUint64StableOrdering",
+        "example/random/check/streams_test.go::TestCompiledNamedRandomStreams"
+      ]
     },
     {
       "source": "internal/workflow_random_test.go",
       "name": "workflowRandomTestSuite.TestDeriveSeedSeparators",
-      "status": "blocked",
-      "reason": "Upstream named independent streams/golden sequence API is absent. Native shared random stream has separate coverage, but does not satisfy this contract.",
-      "feature": "named_random_streams"
+      "status": "covered",
+      "reason": "Preserves upstream assertions using the native named source contract; seed and byte sequences match upstream exactly.",
+      "targets": [
+        "workflow/random_upstream_test.go::TestDeriveSeedSeparators",
+        "example/random/check/streams_test.go::TestCompiledNamedRandomStreams"
+      ]
     },
     {
       "source": "internal/workflow_random_test.go",
       "name": "workflowRandomTestSuite.TestGetRandomStreamMemoizes",
-      "status": "blocked",
-      "reason": "Upstream named independent streams/golden sequence API is absent. Native shared random stream has separate coverage, but does not satisfy this contract.",
-      "feature": "named_random_streams"
+      "status": "covered",
+      "reason": "Preserves upstream assertions using the native named source contract; seed and byte sequences match upstream exactly.",
+      "targets": [
+        "workflow/random_upstream_test.go::TestGetRandomStreamMemoizes",
+        "example/random/check/streams_test.go::TestCompiledNamedRandomStreams"
+      ]
     },
     {
       "source": "internal/workflow_random_test.go",
       "name": "workflowRandomTestSuite.TestGetRandomStreamNamesAreIndependent",
-      "status": "blocked",
-      "reason": "Upstream named independent streams/golden sequence API is absent. Native shared random stream has separate coverage, but does not satisfy this contract.",
-      "feature": "named_random_streams"
+      "status": "covered",
+      "reason": "Preserves upstream assertions using the native named source contract; seed and byte sequences match upstream exactly.",
+      "targets": [
+        "workflow/random_upstream_test.go::TestGetRandomStreamNamesAreIndependent",
+        "example/random/check/streams_test.go::TestCompiledNamedRandomStreams"
+      ]
     },
     {
       "source": "internal/workflow_random_test.go",
       "name": "workflowRandomTestSuite.TestReseedRandomsInPlace",
-      "status": "blocked",
-      "reason": "Upstream named independent streams/golden sequence API is absent. Native shared random stream has separate coverage, but does not satisfy this contract.",
-      "feature": "named_random_streams"
+      "status": "covered",
+      "reason": "Preserves upstream assertions using the native named source contract; seed and byte sequences match upstream exactly.",
+      "targets": [
+        "workflow/random_upstream_test.go::TestReseedRandomsInPlace",
+        "example/random/check/streams_test.go::TestCompiledNamedRandomStreams",
+        "example/random/check/streams_test.go::TestLiveNamedRandomStreams"
+      ]
     },
     {
       "source": "internal/workflow_random_test.go",
       "name": "workflowRandomTestSuite.TestChildContinueAsNewDrawsNewValues",
-      "status": "blocked",
-      "reason": "Upstream named independent streams/golden sequence API is absent. Native shared random stream has separate coverage, but does not satisfy this contract.",
-      "feature": "named_random_streams"
+      "status": "covered",
+      "reason": "Preserves upstream assertions using the native named source contract; seed and byte sequences match upstream exactly.",
+      "targets": [
+        "example/random/check/streams_upstream_test.go::TestChildContinueAsNewDrawsNewValues",
+        "example/random/check/streams_test.go::TestLiveNamedRandomStreams"
+      ]
     },
     {
       "source": "internal/workflow_stream_reserved_name_test.go",
@@ -10482,5 +10511,5 @@
       "reason": "The host SDK still owns this implementation and its unit tests; worker.Worker/Options alias and embed upstream types, and temporalbridge delegates through WorkflowEnvironment. No duplicate native implementation to port."
     }
   ],
-  "sdk_replacement": "github.com/mfateev/temporal-go-sdk v1.49.0-isolates.1"
+  "sdk_replacement": "github.com/mfateev/temporal-go-sdk v1.49.0-isolates.1.0.20261012175541-b87b0a1d5dda"
 }

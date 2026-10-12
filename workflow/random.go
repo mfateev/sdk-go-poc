@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/binary"
+	"io"
 	"isolate"
 	rand "math/rand/v2"
 	"sync"
@@ -11,9 +12,13 @@ import (
 	"github.com/mfateev/sdk-go-poc/internal/interceptorscope"
 )
 
-type randomStream struct {
-	source *randomStreamSource
-	random *rand.Rand
+// WorkflowRandomStream is a deterministic random source and byte reader.
+// Uint64 consumes the next eight bytes in little-endian order, so Read and
+// Uint64 may be freely interleaved. Wrap the source with rand.New for v2.Rand
+// distributions. Seed and UnmarshalBinary are deliberately not exposed.
+type WorkflowRandomStream interface {
+	rand.Source
+	io.Reader
 }
 
 type randomStreamSource struct {
@@ -22,25 +27,25 @@ type randomStreamSource struct {
 	mu    sync.Mutex
 }
 
-var randomStreams = make(map[string]*randomStream)
+var randomStreams = make(map[string]*randomStreamSource)
 var randomStreamsMu sync.Mutex
 var randomStreamRunID string
 
-// GetRandomStream returns the execution's persistent generator for name. Names
-// may be empty and use exact, case-sensitive matching. Streams are independent
-// of one another and of top-level random APIs and native select polling.
+// GetRandomStream returns the execution's persistent source for name. Names
+// use exact, case-sensitive matching, including the empty name. Streams are
+// independent of each other and of top-level randomness and native select.
+// Derived and canceled contexts share the source; draws are synchronized.
 //
-// The generator is safe for concurrent use by workflow goroutines, although
-// their draw order still depends on deterministic scheduling. Derived contexts
-// share streams. Cancellation does not reset or disable a stream. Queries and
-// update validators use per-request scratch copies of the current stream state,
-// including when calling a generator captured from workflow code.
+// Queries and update validators use per-request scratch snapshots, including
+// through captured source handles. Accepted updates advance workflow state.
+// Replay reproduces previous draws. Reset reproduces draws before the reset
+// point and reseeds existing handles in place for subsequent draws. Each
+// Continue-As-New run starts independent streams.
 //
-// Seeds derive from the recorded original run ID and name. They are public and
-// predictable: never use these streams for cryptographic secrets. Replay and
-// reset preserve the original identity; Continue-As-New starts fresh streams.
-// Calls require a non-nil context inside an active isolate.
-func GetRandomStream(ctx context.Context, name string) *rand.Rand {
+// The seed and sequence match the upstream Temporal SDK. Draw ordering is part
+// of the workflow's replay contract. These predictable generators must not be
+// used for cryptographic secrets. Calls require a non-nil workflow context.
+func GetRandomStream(ctx context.Context, name string) WorkflowRandomStream {
 	if ctx == nil {
 		panic("workflow: nil context")
 	}
@@ -48,70 +53,90 @@ func GetRandomStream(ctx context.Context, name string) *rand.Rand {
 		panic("workflow: GetRandomStream requires an active isolate")
 	}
 	if isolate.IsReadOnly() {
-		return scratchRandomStream(name, nil).random
+		return scratchRandomStream(name, nil)
 	}
 	randomStreamsMu.Lock()
 	defer randomStreamsMu.Unlock()
-	stream := randomStreams[name]
-	if stream == nil {
-		source := &randomStreamSource{name: name, state: rand.NewChaCha8(randomStreamSeed(name))}
-		stream = &randomStream{source: source, random: rand.New(source)}
-		randomStreams[name] = stream
+	return getRandomStream(randomStreams, randomStreamRunID, name)
+}
+
+func getRandomStream(streams map[string]*randomStreamSource, runID, name string) *randomStreamSource {
+	if source := streams[name]; source != nil {
+		return source
 	}
-	return stream.random
+	if runID == "" {
+		panic("workflow: random streams require startup execution identity")
+	}
+	source := &randomStreamSource{name: name, state: rand.NewChaCha8(deriveRandomStreamSeed(runID, name))}
+	streams[name] = source
+	return source
 }
 
 func (s *randomStreamSource) Uint64() uint64 {
+	var buf [8]byte
+	_, _ = s.Read(buf[:])
+	return binary.LittleEndian.Uint64(buf[:])
+}
+
+func (s *randomStreamSource) Read(p []byte) (int, error) {
 	if isolate.IsReadOnly() {
-		return scratchRandomStream(s.name, s).source.state.Uint64()
+		return scratchRandomStream(s.name, s).state.Read(p)
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.state.Uint64()
+	return s.state.Read(p)
 }
 
-func scratchRandomStream(name string, source *randomStreamSource) *randomStream {
-	streams, _ := interceptorscope.RandomStreams.(map[string]*randomStream)
+func scratchRandomStream(name string, source *randomStreamSource) *randomStreamSource {
+	streams, _ := interceptorscope.RandomStreams.(map[string]*randomStreamSource)
 	if streams == nil {
-		streams = make(map[string]*randomStream)
+		streams = make(map[string]*randomStreamSource)
 		interceptorscope.RandomStreams = streams
 	}
 	if stream := streams[name]; stream != nil {
 		return stream
 	}
-	// Workflow dispatch is fenced during read-only requests, so reading the map
-	// and copying the ChaCha8 value cannot race a workflow draw or registration.
+	// Workflow dispatch is fenced throughout the read-only request.
 	if source == nil {
-		if stream := randomStreams[name]; stream != nil {
-			source = stream.source
-		}
+		source = randomStreams[name]
 	}
-	var state *rand.ChaCha8
 	if source == nil {
-		state = rand.NewChaCha8(randomStreamSeed(name))
-	} else {
-		snapshot := *source.state
-		state = &snapshot
+		return getRandomStream(streams, randomStreamRunID, name)
 	}
-	stream := &randomStream{source: &randomStreamSource{name: name, state: state}, random: rand.New(state)}
+	snapshot := *source.state
+	stream := &randomStreamSource{name: name, state: &snapshot}
 	streams[name] = stream
 	return stream
 }
 
-func randomStreamSeed(name string) [32]byte {
-	if randomStreamRunID == "" {
-		panic("workflow: random streams require startup execution identity")
+func reseedRandomStreams(streams map[string]*randomStreamSource, runID string) {
+	for name, source := range streams {
+		source.mu.Lock()
+		source.state.Seed(deriveRandomStreamSeed(runID, name))
+		source.mu.Unlock()
 	}
-	return deriveRandomStreamSeed(randomStreamRunID, name)
 }
 
-// The domain and length encoding are a replay contract. Streams do not draw
-// seed bytes from the runtime's default generator.
+func startRandomStreams(runID string) { randomStreamRunID = runID }
+
+// WorkflowControl is copied task metadata delivered through the existing
+// cancellation service before workflow or update continuations resume.
+type WorkflowControl struct {
+	RandomRunID string `json:"random_run_id"`
+	Canceled    bool   `json:"canceled"`
+}
+
+func applyRandomRunID(runID string) {
+	if runID == "" || runID == randomStreamRunID {
+		return
+	}
+	randomStreamsMu.Lock()
+	defer randomStreamsMu.Unlock()
+	randomStreamRunID = runID
+	reseedRandomStreams(randomStreams, runID)
+}
+
+// Keep upstream's domain and separators byte-for-byte: this is a replay contract.
 func deriveRandomStreamSeed(runID, name string) [32]byte {
-	data := []byte("isolate/workflow-random-stream/v1")
-	data = binary.LittleEndian.AppendUint64(data, uint64(len(runID)))
-	data = append(data, runID...)
-	data = binary.LittleEndian.AppendUint64(data, uint64(len(name)))
-	data = append(data, name...)
-	return sha256.Sum256(data)
+	return sha256.Sum256([]byte("temporal.sdk.random.v1\x00" + runID + "\x00" + name))
 }

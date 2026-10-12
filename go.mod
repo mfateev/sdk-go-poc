@@ -109,4 +109,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace go.temporal.io/sdk => github.com/mfateev/temporal-go-sdk v1.49.0-isolates.1
+replace go.temporal.io/sdk => github.com/mfateev/temporal-go-sdk v1.49.0-isolates.1.0.20261012175541-b87b0a1d5dda

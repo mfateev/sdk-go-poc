@@ -3,6 +3,10 @@ package temporalbridge
 import (
 	"crypto/sha256"
 	"encoding/binary"
+	"encoding/json"
+	"errors"
+	"github.com/mfateev/sdk-go-poc/workflow"
+	bindings "go.temporal.io/sdk/internalbindings"
 
 	goWorkflow "go.temporal.io/sdk/workflow"
 )
@@ -24,4 +28,45 @@ func workflowRandomRunID(info *goWorkflow.Info) string {
 		return info.OriginalRunID
 	}
 	return info.WorkflowExecution.RunID
+}
+
+func (d *definition) currentRandomRunID() string {
+	if runID := bindings.GetCurrentRunID(d.env); runID != "" {
+		return runID
+	}
+	// Synthetic environments may omit the SDK's private task identity.
+	return workflowRandomRunID(d.env.WorkflowInfo())
+}
+
+func (d *definition) controlBytes() []byte {
+	raw, err := json.Marshal(workflow.WorkflowControl{RandomRunID: d.randomRunID, Canceled: d.canceled})
+	if err != nil {
+		d.failTask(err)
+	}
+	return raw
+}
+
+func (d *definition) updateRandomIdentity() {
+	runID := d.currentRandomRunID()
+	if !d.started {
+		d.randomRunID = runID
+		return
+	}
+	if runID == d.randomRunID {
+		return
+	}
+	d.randomRunID = runID
+	if d.cancelWaiter != nil {
+		d.pending = append(d.pending, reply{command: d.cancelWaiter, payload: d.controlBytes()})
+		d.cancelWaiter = nil
+		return
+	}
+	// Cancellation and reset may have been queued in the same history batch.
+	for i := range d.pending {
+		if d.pending[i].command.Op == workflow.OpWorkflowCancel {
+			d.pending[i].payload = d.controlBytes()
+			return
+		}
+	}
+	d.failTask(errors.New("workflow control service is not suspended"))
 }

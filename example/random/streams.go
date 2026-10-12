@@ -3,6 +3,7 @@ package random
 import (
 	"context"
 	"crypto/rand"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -44,7 +45,7 @@ func defaultValues() []string {
 //go:isolate
 func StreamsWorkflow(ctx context.Context, mode string) (StreamTrace, error) {
 	trace := StreamTrace{Default: defaultValues()}
-	var primary *randv2.Rand
+	var primary workflow.WorkflowRandomStream
 	if mode != "default-only" {
 		primary = workflow.GetRandomStream(ctx, "primary")
 		derived := context.WithValue(ctx, streamContextKey{}, "derived")
@@ -97,6 +98,8 @@ func StreamsWorkflow(ctx context.Context, mode string) (StreamTrace, error) {
 	if err := workflow.SetUpdateHandlerWithOptions(ctx, "probe", func(context.Context) error {
 		return errors.New("rejected validator executed its handler")
 	}, workflow.UpdateHandlerOptions{Validator: func(context.Context) error {
+		var prefix [3]byte
+		_, _ = primary.Read(prefix[:])
 		_ = primary.Uint64()
 		_ = workflow.GetRandomStream(ctx, "primary").Uint64()
 		_ = workflow.GetRandomStream(ctx, "validator-only").Uint64()
@@ -155,7 +158,7 @@ func EchoStream(_ context.Context, input StreamTrace) (StreamTrace, error) { ret
 //
 //go:isolate
 func DistributionWorkflow(ctx context.Context) ([]string, error) {
-	stream := workflow.GetRandomStream(ctx, "distributions")
+	stream := randv2.New(workflow.GetRandomStream(ctx, "distributions"))
 	return []string{fmt.Sprint(stream.IntN(123), stream.Float64(), stream.NormFloat64(), stream.ExpFloat64(), stream.Perm(7))}, nil
 }
 
@@ -169,6 +172,8 @@ func UpdateStreamsWorkflow(ctx context.Context) (StreamTrace, error) {
 		}
 		return workflow.GetRandomStream(ctx, "primary").Uint64(), nil
 	}, workflow.UpdateHandlerOptions{Validator: func(context.Context) error {
+		var prefix [3]byte
+		_, _ = primary.Read(prefix[:])
 		_ = primary.Uint64()
 		_ = workflow.GetRandomStream(ctx, "primary").Uint64()
 		return nil
@@ -182,4 +187,106 @@ func UpdateStreamsWorkflow(ctx context.Context) (StreamTrace, error) {
 	}
 	trace.Primary = append(trace.Primary, primary.Uint64())
 	return trace, nil
+}
+
+const GoldenStreamName = "go.temporal.io/sdk/internal/test"
+
+//go:isolate
+func GoldenStreamsWorkflow(ctx context.Context, mode string) (string, error) {
+	source := workflow.GetRandomStream(ctx, GoldenStreamName)
+	if mode == "uint64" {
+		return fmt.Sprintf("%016x", source.Uint64()), nil
+	}
+	if mode == "interleaved" {
+		first, last := make([]byte, 3), make([]byte, 5)
+		_, _ = source.Read(first)
+		var middle [8]byte
+		binary.LittleEndian.PutUint64(middle[:], source.Uint64())
+		_, _ = source.Read(last)
+		return hex.EncodeToString(append(append(first, middle[:]...), last...)), nil
+	}
+	data := make([]byte, 32)
+	_, _ = source.Read(data)
+	return hex.EncodeToString(data), nil
+}
+
+type ByteTrace struct{ Before, After string }
+
+//go:isolate
+func ByteStreamsWorkflow(ctx context.Context) (ByteTrace, error) {
+	source := workflow.GetRandomStream(ctx, "bytes")
+	prefix := make([]byte, 3)
+	_, _ = source.Read(prefix)
+	trace := ByteTrace{Before: hex.EncodeToString(prefix)}
+	if err := workflow.SetQueryHandler(ctx, "next-bytes", func() (string, error) {
+		first, last := make([]byte, 3), make([]byte, 5)
+		_, _ = source.Read(first)
+		var middle [8]byte
+		binary.LittleEndian.PutUint64(middle[:], workflow.GetRandomStream(ctx, "bytes").Uint64())
+		_, _ = source.Read(last)
+		return hex.EncodeToString(append(append(first, middle[:]...), last...)), nil
+	}); err != nil {
+		return trace, err
+	}
+	if err := workflow.SetQueryHandler(ctx, "bad-bytes", func() (int, error) {
+		return source.Read(prefix)
+	}); err != nil {
+		return trace, err
+	}
+	activityCtx := workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: time.Minute})
+	var echo ByteTrace
+	if err := workflow.ExecuteActivity(activityCtx, "EchoBytes", trace).Get(ctx, &echo); err != nil {
+		return trace, err
+	}
+	data := make([]byte, 16)
+	_, _ = source.Read(data)
+	trace.After = hex.EncodeToString(data)
+	return trace, nil
+}
+
+func EchoBytes(_ context.Context, trace ByteTrace) (ByteTrace, error) { return trace, nil }
+
+//go:isolate
+func ContinueStreamsWorkflow(ctx context.Context, previous uint64) ([]uint64, error) {
+	current := workflow.GetRandomStream(ctx, "continue").Uint64()
+	if previous == 0 {
+		return nil, workflow.NewContinueAsNewError(ctx, ContinueStreamsWorkflow, current)
+	}
+	return []uint64{previous, current}, nil
+}
+
+//go:isolate
+func ParentStreamsWorkflow(ctx context.Context) ([]uint64, error) {
+	parent := workflow.GetRandomStream(ctx, "continue").Uint64()
+	childCtx := workflow.WithChildWorkflowOptions(ctx, workflow.ChildWorkflowOptions{WorkflowRunTimeout: time.Minute})
+	var child []uint64
+	if err := workflow.ExecuteChildWorkflow(childCtx, ContinueStreamsWorkflow, uint64(0)).Get(ctx, &child); err != nil {
+		return nil, err
+	}
+	return append([]uint64{parent}, child...), nil
+}
+
+//go:isolate
+func ResetStreamsWorkflow(ctx context.Context, late bool) ([]uint64, error) {
+	name := "reset"
+	if late {
+		name = "other"
+	}
+	captured := workflow.GetRandomStream(ctx, name)
+	first := captured.Uint64()
+	// Leave unaligned byte state to ensure in-place reseeding clears leftovers.
+	var prefix [3]byte
+	_, _ = captured.Read(prefix[:])
+	activityCtx := workflow.WithActivityOptions(context.WithoutCancel(ctx), workflow.ActivityOptions{StartToCloseTimeout: time.Minute})
+	var ignored StreamTrace
+	if err := workflow.ExecuteActivity(activityCtx, "EchoStream", StreamTrace{}).Get(activityCtx, &ignored); err != nil {
+		return nil, err
+	}
+	source := captured
+	if late {
+		source = workflow.GetRandomStream(ctx, "reset")
+	} else if source != workflow.GetRandomStream(ctx, name) {
+		return nil, errors.New("reset replaced a captured source")
+	}
+	return []uint64{first, source.Uint64()}, nil
 }

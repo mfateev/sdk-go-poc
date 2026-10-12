@@ -30,14 +30,36 @@ func executionContext(canceled bool, taskQueue string, options ...RunOptions) (c
 	rootContext = ctx
 	if canceled {
 		cancel()
-		return ctx, cancel
+		if !isolate.IsActive() {
+			return ctx, cancel
+		}
 	}
 	// Cancellation is input delivery: publish it before priority handlers and
 	// ordinary workflow continuations are admitted for this task.
 	isolate.GoInbound(func() {
-		_, err := isolate.Call(OpWorkflowCancel, nil)
-		if err == nil {
-			cancel()
+		call := isolate.Call
+		if canceled {
+			call = isolate.ControlCall
+		}
+		for {
+			raw, err := call(OpWorkflowCancel, nil)
+			call = isolate.ControlCall
+			if err != nil {
+				return
+			}
+			// Legacy custom hosts reply with an empty cancellation message.
+			if len(raw) == 0 {
+				cancel()
+				return
+			}
+			var control WorkflowControl
+			if err := json.Unmarshal(raw, &control); err != nil {
+				panic(err)
+			}
+			applyRandomRunID(control.RandomRunID)
+			if control.Canceled {
+				cancel()
+			}
 		}
 	})
 	return ctx, cancel

@@ -33,8 +33,8 @@ func TestNamedRandomStreamHistoryReplay(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(paths) != 4 {
-		t.Fatalf("expected four named stream histories, got %d", len(paths))
+	if len(paths) != 10 {
+		t.Fatalf("expected ten named stream histories, got %d", len(paths))
 	}
 	for _, procs := range []string{"1", "2", "8"} {
 		for _, path := range paths {
@@ -57,5 +57,24 @@ func TestLiveNamedRandomStreams(t *testing.T) {
 	binary := checktest.Build(t, "named-streams-live")
 	if output, err := checktest.Command(t, binary, "-live-streams", "-history-dir", t.TempDir()).CombinedOutput(); err != nil {
 		t.Fatalf("live named streams: %v\n%s", err, output)
+	}
+}
+
+func TestPreUpstreamRandomStreamHistoriesAreIncompatible(t *testing.T) {
+	binary := checktest.Build(t, "pre-upstream-streams-replay")
+	paths, err := filepath.Glob("../testdata/pre-upstream/*-cache-*.json")
+	if err != nil || len(paths) != 4 {
+		t.Fatalf("pre-upstream histories: %v %v", paths, err)
+	}
+	for _, path := range paths {
+		absolute, err := filepath.Abs(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		command := checktest.Command(t, binary, "-streams-history", absolute)
+		output, err := command.CombinedOutput()
+		if err == nil || !bytes.Contains(output, []byte("changed")) {
+			t.Fatalf("pre-upstream golden sequence accepted: %s: %v\n%s", path, err, output)
+		}
 	}
 }

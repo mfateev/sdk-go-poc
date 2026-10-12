@@ -280,7 +280,7 @@ func Run() error {
 	if err := json.Unmarshal(payload, &start); err != nil {
 		return Complete(nil, fmt.Errorf("workflow: decode start: %w", err))
 	}
-	randomStreamRunID = start.RandomRunID
+	startRandomStreams(start.RandomRunID)
 	ctx, cancel := executionContext(start.Canceled, start.TaskQueue, start.Options)
 	defer cancel()
 	ctx, err = withIncomingHeader(ctx, start.Header)
@@ -379,7 +379,7 @@ func runFunction(handle, factory isolate.Handle, supports []isolate.Handle) erro
 	if err := json.Unmarshal(startBytes, &start); err != nil {
 		return completePayloads(nil, fmt.Errorf("workflow: decode start: %w", err))
 	}
-	randomStreamRunID = start.RandomRunID
+	startRandomStreams(start.RandomRunID)
 	var interceptorFactory, propagatorFactory, failureFactory isolate.Handle
 	for _, support := range supports {
 		if support.Name() == start.FailureConverterFactory {
