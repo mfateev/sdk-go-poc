@@ -33,15 +33,19 @@ func MetadataWorkflow(_ context.Context, mode string) (result string, err error)
 			err = fmt.Errorf("metadata workflow unexpected panic: %v", p)
 		}
 	}()
-	// These receiver checks are ownership faults, so the workflow's recover
+	// Registry receiver checks are ownership faults, so the workflow's recover
 	// above must not turn them into a normal result or workflow error.
 	if mode == "private registry" {
 		_ = (&protoregistry.Types{}).NumMessages()
 		return "ownership violation recovered", nil
 	}
 	if mode == "private message info" {
-		_ = (&protoimpl.MessageInfo{}).Descriptor()
-		return "ownership violation recovered", nil
+		// Generated protobuf support permits private message caches while keeping
+		// their initialization and mutations under the isolate's owner.
+		if (&protoimpl.MessageInfo{}).Descriptor() != nil {
+			return "", fmt.Errorf("empty private message info has a descriptor")
+		}
+		return "metadata services passed", nil
 	}
 	switch mode {
 	case "reject visitor":

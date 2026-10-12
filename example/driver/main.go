@@ -139,7 +139,7 @@ func main() {
 	runTypedEcho()
 	runTypedActivity()
 	runInferredActivity()
-	runUnsupportedProto()
+	runMissingArgument()
 	runSignal()
 	runClock()
 	runConcurrent()
@@ -317,17 +317,17 @@ func runTypedEcho() {
 	d.Close()
 }
 
-func runUnsupportedProto() {
+func runMissingArgument() {
 	d := definitionFor(order.TypedEchoWorkflow)
 	e := &environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}
-	input, err := e.GetDataConverter().ToPayloads(&commonpb.Payload{Data: []byte("hello")})
+	input, err := e.GetDataConverter().ToPayloads(order.TypedEchoRequest{Name: "world"})
 	if err != nil {
 		panic(err)
 	}
 	d.Execute(e, nil, input)
 	d.OnWorkflowTaskStarted(5 * time.Second)
-	if e.err == nil || !strings.Contains(e.err.Error(), "outside the isolate POC subset") || e.result != nil {
-		panic(fmt.Sprintf("unsupported proto input result = %v, error = %v", e.result, e.err))
+	if e.err == nil || !strings.Contains(e.err.Error(), "got 1 arguments, want 2") || e.result != nil {
+		panic(fmt.Sprintf("missing argument result = %v, error = %v", e.result, e.err))
 	}
 	d.Close()
 }
@@ -704,7 +704,7 @@ func runMetadataServices() {
 				d.Close()
 				continue
 			}
-			if strings.HasPrefix(mode, "private ") {
+			if mode == "private registry" {
 				var failure any
 				func() { defer func() { failure = recover() }(); d.OnWorkflowTaskStarted(5 * time.Second) }()
 				taskFailure, ok := failure.(*temporalbridge.WorkflowTaskError)
