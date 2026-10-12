@@ -67,7 +67,7 @@ func TestTypedHandlerRejectsProtoArgumentBeforeConversion(t *testing.T) {
 		Data:     []byte(`{}`),
 	}}}
 	_, err := typedHandlers["test-proto-argument"](context.Background(), payloads)
-	if err == nil || !strings.Contains(err.Error(), "protobuf values") {
+	if err == nil || !strings.Contains(err.Error(), "generated Google protobuf") {
 		t.Fatalf("protobuf argument error = %v", err)
 	}
 }
@@ -151,7 +151,7 @@ func TestTypedActivityFailuresReturnZero(t *testing.T) {
 	}
 	f := &activityFuture{done: make(chan struct{}), payload: []byte{1}}
 	close(f.done)
-	if err := f.Get(context.Background(), new(*commonpb.Payload)); err == nil || !strings.Contains(err.Error(), "protobuf values") {
+	if err := f.Get(context.Background(), new(*commonpb.Payload)); err == nil || !strings.Contains(err.Error(), "generated Google protobuf") {
 		t.Fatalf("protobuf activity result: %v", err)
 	}
 	if _, err := encodeActivityArgs([]any{make(chan int)}); err == nil {

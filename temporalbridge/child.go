@@ -31,6 +31,10 @@ func (d *definition) operationOutcome(result *commonpb.Payloads, cause error, co
 	if len(converters) > 0 {
 		dc = converters[0]
 	}
+	return d.operationOutcomeWithConverters(result, cause, dc, d.hostFailureConverter(dc))
+}
+
+func (d *definition) operationOutcomeWithConverters(result *commonpb.Payloads, cause error, dc converter.DataConverter, fc converter.FailureConverter) []byte {
 	o := workflow.ActivityOutcome{}
 	if cause == nil && result != nil {
 		var err error
@@ -52,7 +56,7 @@ func (d *definition) operationOutcome(result *commonpb.Payloads, cause error, co
 			o.ErrorKind = "external-not-found"
 		}
 		var err error
-		o.Failure, err = encodeInboundFailure(cause, dc)
+		o.Failure, err = d.encodeInboundFailure(cause, dc, fc)
 		if err != nil {
 			panic(fmt.Errorf("encode child operation failure: %w", err))
 		}

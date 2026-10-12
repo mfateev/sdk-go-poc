@@ -21,11 +21,11 @@ func runInterceptedFunction(handle isolate.Handle, ctx context.Context, payloads
 	pointers := make([]any, signature.NumIn()-1)
 	for i := range pointers {
 		pointers[i] = reflect.New(signature.In(i + 1)).Interface()
-		if isProtoValue(pointers[i]) {
-			return completePayloads(nil, errors.New("workflow: protobuf values are outside the isolate POC subset"))
+		if isUnsupportedProtoValue(pointers[i]) {
+			return completePayloads(nil, errors.New("workflow: only generated Google protobuf messages without extensions are supported"))
 		}
 	}
-	if err := currentDataConverter().FromPayloads(payloads, pointers...); err != nil {
+	if err := GetDataConverter(ctx).FromPayloads(payloads, pointers...); err != nil {
 		return completePayloads(nil, fmt.Errorf("workflow: decode arguments: %w", err))
 	}
 	input := &ExecuteWorkflowInput{Args: make([]any, len(pointers))}
@@ -80,10 +80,10 @@ func runInterceptedFunction(handle isolate.Handle, ctx context.Context, payloads
 	if signature.NumOut() < 2 && result == nil {
 		return completePayloads(nil, nil)
 	}
-	if isProtoValue(result) {
-		return completePayloads(nil, errors.New("workflow: protobuf values are outside the isolate POC subset"))
+	if isUnsupportedProtoValue(result) {
+		return completePayloads(nil, errors.New("workflow: only generated Google protobuf messages without extensions are supported"))
 	}
-	encoded, err := currentDataConverter().ToPayloads(result)
+	encoded, err := GetDataConverter(ctx).ToPayloads(result)
 	if err != nil {
 		return completePayloads(nil, fmt.Errorf("workflow: encode result: %w", err))
 	}

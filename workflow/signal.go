@@ -22,7 +22,8 @@ var typedSignalChannelsMu sync.Mutex
 // Each name has one type and channel for the workflow's lifetime. Registering
 // the same name with another type panics. Workflow cancellation closes the channel
 // unless its first registration uses a context without cancellation;
-// other host errors and invalid payloads panic rather than delivering a zero value.
+// Undecodable signals are discarded with an error log and a corrupted-signal
+// counter increment. Other host errors still fail the workflow task.
 func GetSignalChannel[T any](ctx context.Context, name string) <-chan T {
 	return registerSignalChannel[T](ctx, name, SignalChannelOptions{}, false)
 }
@@ -39,6 +40,10 @@ func registerSignalChannel[T any](ctx context.Context, name string, options Sign
 	assertWritable()
 	if ctx == nil {
 		panic("workflow: nil context")
+	}
+	var value T
+	if isUnsupportedProtoValue(value) || isUnsupportedProtoValue(&value) {
+		panic("workflow: only generated Google protobuf messages without extensions are supported")
 	}
 	// Serialize registration for each name across the metadata handshake. In
 	// particular, repeated calls must not start unused interceptor adapters that
@@ -116,9 +121,10 @@ func typedSignalChannel[T any](ctx context.Context, name string, raw <-chan Sign
 				}
 				panic(fmt.Sprintf("workflow: receive signal %q: %v", name, result.Err))
 			}
-			value, err := decodeSignal[T](result.Signal)
+			value, err := decodeSignal[T](result.Signal, ctx)
 			if err != nil {
-				panic(fmt.Sprintf("workflow: decode signal %q as %v: %v", name, reflect.TypeFor[T](), err))
+				reportCorruptSignal(ctx, name, err)
+				continue
 			}
 			select {
 			case ch <- value:
@@ -130,6 +136,14 @@ func typedSignalChannel[T any](ctx context.Context, name string, raw <-chan Sign
 		}
 	})
 	return ch
+}
+
+// Use the same diagnostic and metric as the Temporal SDK. Only value decoding
+// errors reach here; cancellation and host/interceptor failures retain their
+// normal behavior. The bridge suppresses metric writes during replay.
+func reportCorruptSignal(ctx context.Context, name string, err error) {
+	GetLogger(ctx).Error(fmt.Sprintf("Deserialization error. Corrupted signal received on channel %s.", name), "Error", err)
+	GetMetricsHandler(ctx).Counter("temporal_corrupted_signals").Inc(1)
 }
 
 // Preserve caller values for outbound hooks while binding channel cancellation
@@ -157,10 +171,10 @@ func signalChannelContext(ctx context.Context) context.Context {
 	return signalLifetimeContext{Context: ctx, lifetime: lifetime}
 }
 
-func decodeSignal[T any](signal Signal) (T, error) {
+func decodeSignal[T any](signal Signal, contexts ...context.Context) (T, error) {
 	var value T
-	if isProtoValue(value) || isProtoValue(&value) {
-		return value, errors.New("workflow: protobuf values are outside the isolate POC subset")
+	if isUnsupportedProtoValue(value) || isUnsupportedProtoValue(&value) {
+		return value, errors.New("workflow: only generated Google protobuf messages without extensions are supported")
 	}
 	if len(signal.Payloads) == 0 {
 		// Legacy byte-input hosts may omit the serialized envelope.
@@ -169,12 +183,16 @@ func decodeSignal[T any](signal Signal) (T, error) {
 		}
 		return value, errors.New("signal has no serialized payload")
 	}
-	payloads, err := decodePayloads(signal.Payloads)
+	dc := rootDataConverter()
+	if len(contexts) != 0 {
+		dc = GetDataConverter(contexts[0])
+	}
+	payloads, err := decodePayloads(signal.Payloads, dc)
 	if err == nil {
 		err = checkArgumentCount(payloads, 1)
 	}
 	if err == nil {
-		err = currentDataConverter().FromPayloads(payloads, &value)
+		err = dc.FromPayloads(payloads, &value)
 	}
 	if err != nil {
 		var zero T

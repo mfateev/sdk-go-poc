@@ -64,6 +64,8 @@ type isolateWorker struct {
 	interceptors        interceptorConfiguration
 	resources           resourceConfiguration
 	converters          converterConfiguration
+	propagators         propagatorConfiguration
+	failures            failureConverterConfiguration
 	failWorkflowOnPanic bool
 }
 
@@ -140,6 +142,8 @@ func (w *isolateWorker) RegisterWorkflowWithOptions(fn any, options goWorkflow.R
 		factory.ResolveWorkflow = w.workflows.resolve
 		factory.ResolveSink = w.sinks.resolve
 		factory.ResolveInterceptors = w.interceptors.resolve
+		factory.ResolveContextPropagators = w.propagators.resolve
+		factory.ResolveFailureConverter = w.failures.resolve
 		fn = factory
 	}
 	w.Worker.RegisterWorkflowWithOptions(converterFactory(resourceFactory(fn, &w.resources), &w.converters), options)
@@ -171,6 +175,8 @@ type isolateReplayer struct {
 	interceptors interceptorConfiguration
 	resources    resourceConfiguration
 	converters   converterConfiguration
+	propagators  propagatorConfiguration
+	failures     failureConverterConfiguration
 }
 
 func (r *isolateReplayer) RegisterActivity(fn any) {
@@ -195,6 +201,8 @@ func (r *isolateReplayer) RegisterWorkflowWithOptions(fn any, options goWorkflow
 		factory.ResolveWorkflow = r.workflows.resolve
 		factory.ResolveSink = r.sinks.resolve
 		factory.ResolveInterceptors = r.interceptors.resolve
+		factory.ResolveContextPropagators = r.propagators.resolve
+		factory.ResolveFailureConverter = r.failures.resolve
 		factory.ReplayOnly = true
 		fn = factory
 	}

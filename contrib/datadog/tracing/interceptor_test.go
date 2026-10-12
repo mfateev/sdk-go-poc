@@ -33,3 +33,12 @@ func TestLegacyDatadogHeaders(t *testing.T) {
 		t.Fatal("malformed context accepted")
 	}
 }
+
+func TestUpstreamSpanName(t *testing.T) {
+	native := NewTracer(TracerOptions{SinkOp: 0x10200}).(*nativeTracer)
+	for _, operation := range []string{"ValidateUpdate", "HandleUpdate", "RunWorkflow", "StartActivity"} {
+		if got := native.SpanName(&interceptor.TracerStartSpanOptions{Operation: operation, Name: "ignored"}); got != "temporal."+operation {
+			t.Fatalf("span name=%q", got)
+		}
+	}
+}

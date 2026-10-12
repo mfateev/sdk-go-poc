@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/mfateev/sdk-go-poc/internal/activityref"
+	"github.com/mfateev/sdk-go-poc/internal/headerwire"
 	"github.com/mfateev/sdk-go-poc/internal/payloadwire"
 	commonpb "go.temporal.io/api/common/v1"
 	goWorkflow "go.temporal.io/sdk/workflow"
@@ -58,11 +59,11 @@ func newContinueAsNewError(ctx context.Context, fn any, args ...any) error {
 	if err != nil {
 		panic(err)
 	}
-	raw, err := encodeActivityArgs(args)
+	raw, err := encodeContextArgs(ctx, args)
 	if err != nil {
 		panic(err)
 	}
-	input, err := decodePayloads(raw)
+	input, err := decodePayloads(raw, GetDataConverter(ctx))
 	if err != nil {
 		panic(err)
 	}
@@ -70,8 +71,13 @@ func newContinueAsNewError(ctx context.Context, fn any, args ...any) error {
 	e := &ContinueAsNewError{WorkflowType: &goWorkflow.Type{Name: name}, Input: input,
 		TaskQueueName: o.TaskQueue, WorkflowExecutionTimeout: o.WorkflowExecutionTimeout,
 		WorkflowRunTimeout: o.WorkflowRunTimeout, WorkflowTaskTimeout: o.WorkflowTaskTimeout, VersioningIntent: o.VersioningIntent}
-	if fields := InterceptorHeader(ctx); len(fields) != 0 {
-		e.Header = &commonpb.Header{Fields: fields}
+	fields, err := outgoingHeader(ctx)
+	if err != nil {
+		panic(err)
+	}
+	e.Header, err = headerwire.Decode(fields)
+	if err != nil {
+		panic(err)
 	}
 	if function {
 		resolved, err := isolate.Call(OpResolveWorkflowName, []byte(name))

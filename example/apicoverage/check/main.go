@@ -77,9 +77,17 @@ func (e *environment) ExecuteActivity(p bindings.ExecuteActivityParams, cb bindi
 		if p.TaskQueueName != "resource@host" {
 			panic("session completion queue lost")
 		}
-		cb(nil, nil)
+		if e.mode == "session-completion-failure" {
+			cb(nil, temporal.NewNonRetryableApplicationError("completion failed", "CompletionFailed", nil))
+		} else {
+			cb(nil, nil)
+		}
 	default:
-		if p.TaskQueueName != "resource@host" {
+		expected := "resource@host"
+		if e.mode == "session-activity-closed" {
+			expected = "coverage"
+		}
+		if p.TaskQueueName != expected {
 			panic("session user activity queue lost")
 		}
 		cb(payload(p.TaskQueueName), nil)
@@ -201,6 +209,16 @@ func runFake(mode string) {
 	if mode == "session" && (e.sessionAdds != 1 || e.sessionRemoves != 1) {
 		panic("session metadata lifecycle lost")
 	}
+
+	if (mode == "session-from-closed" || mode == "session-from-failed") && (e.sessionAdds != 2 || e.sessionRemoves != 2) {
+		panic("inactive session prevented new metadata lifecycle")
+	}
+	if (mode == "session-activity-closed" || mode == "session-completion-failure" || mode == "session-timer") && (e.sessionAdds != 1 || e.sessionRemoves != 1) {
+		panic("session edge lifecycle lost")
+	}
+	if mode == "session-timer" && e.timers != 1 {
+		panic("session timer not scheduled exactly once")
+	}
 	if mode == "session-recreate" && (e.sessionAdds != 2 || e.sessionRemoves != 2) {
 		panic("session recreation lifecycle lost")
 	}
@@ -228,7 +246,7 @@ func main() {
 	}
 	for _, procs := range []int{1, 2, 8} {
 		runtime.GOMAXPROCS(procs)
-		for _, mode := range []string{"external", "external-failure", "local", "local-retry", "local-failure", "local-cancel", "session", "session-recreate", "session-failure", "nexus", "nexus-async", "nexus-failure", "nexus-cancel", "nexus-abandon", "nexus-try-cancel", "nexus-wait-requested"} {
+		for _, mode := range []string{"external", "external-failure", "local", "local-retry", "local-failure", "local-cancel", "session", "session-recreate", "session-failure", "session-from-closed", "session-from-failed", "session-activity-closed", "session-completion-failure", "session-timer", "nexus", "nexus-async", "nexus-failure", "nexus-cancel", "nexus-abandon", "nexus-try-cancel", "nexus-wait-requested"} {
 			runFake(mode)
 		}
 	}

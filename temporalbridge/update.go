@@ -85,7 +85,7 @@ func (d *definition) handleUpdate(command *isolate.Command) error {
 		var cause error
 		if len(r.Failure) != 0 {
 			var err error
-			cause, err = decodeOutboundFailure(r.Failure, d.env.GetDataConverter())
+			cause, err = d.decodeOutboundFailure(r.Failure, d.env.GetDataConverter())
 			if err != nil {
 				return err
 			}
@@ -135,7 +135,7 @@ func (d *definition) admitUpdate() bool {
 		cause := error(errors.New(response.Error))
 		if len(response.Failure) != 0 {
 			var err error
-			cause, err = decodeOutboundFailure(response.Failure, d.env.GetDataConverter())
+			cause, err = d.decodeOutboundFailure(response.Failure, d.env.GetDataConverter())
 			if err != nil {
 				d.failTask(err)
 			}

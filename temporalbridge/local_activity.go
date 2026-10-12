@@ -111,7 +111,8 @@ func (d *definition) handleLocal(c *isolate.Command) error {
 	if err != nil {
 		return err
 	}
-	params := bindings.ExecuteLocalActivityParams{ExecuteLocalActivityOptions: bindings.ExecuteLocalActivityOptions{ScheduleToCloseTimeout: r.Options.ScheduleToCloseTimeout, StartToCloseTimeout: r.Options.StartToCloseTimeout, RetryPolicy: r.Options.RetryPolicy, Summary: r.Options.Summary}, ActivityFn: fn, ActivityType: r.Name, InputArgs: args, WorkflowInfo: info, DataConverter: dc, FailureConverter: temporal.NewDefaultFailureConverter(temporal.DefaultFailureConverterOptions{DataConverter: dc}), Attempt: r.Attempt, ScheduledTime: r.ScheduledTime, Header: header}
+	fc := d.activityFailureConverter(dc, r.Name, info.TaskQueueName, true)
+	params := bindings.ExecuteLocalActivityParams{ExecuteLocalActivityOptions: bindings.ExecuteLocalActivityOptions{ScheduleToCloseTimeout: r.Options.ScheduleToCloseTimeout, StartToCloseTimeout: r.Options.StartToCloseTimeout, RetryPolicy: r.Options.RetryPolicy, Summary: r.Options.Summary}, ActivityFn: fn, ActivityType: r.Name, InputArgs: args, WorkflowInfo: info, DataConverter: dc, FailureConverter: fc, Attempt: r.Attempt, ScheduledTime: r.ScheduledTime, Header: header}
 	activityID := d.env.ExecuteLocalActivity(params, func(result *bindings.LocalActivityResultWrapper) {
 		if d.closed || s.retired || s.done {
 			return
@@ -120,7 +121,7 @@ func (d *definition) handleLocal(c *isolate.Command) error {
 			panic("nil local activity result")
 		}
 		var outcome workflow.LocalActivityOutcome
-		if err := json.Unmarshal(d.operationOutcome(result.Result, result.Err, dc), &outcome.ActivityOutcome); err != nil {
+		if err := json.Unmarshal(d.operationOutcomeWithConverters(result.Result, result.Err, dc, fc), &outcome.ActivityOutcome); err != nil {
 			panic(err)
 		}
 		if result.Err != nil && !temporal.IsCanceledError(result.Err) {

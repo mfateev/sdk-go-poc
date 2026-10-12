@@ -113,13 +113,14 @@ func createSession(ctx context.Context, queue string, options *SessionOptions) (
 			err = json.Unmarshal(p, &signal)
 		}
 		if err == nil {
-			payloads, decodeErr := decodePayloads(signal.Payloads)
+			dc := GetDataConverter(sessionCtx)
+			payloads, decodeErr := decodePayloads(signal.Payloads, dc)
 			err = decodeErr
 			if err == nil {
 				err = checkArgumentCount(payloads, 1)
 			}
 			if err == nil {
-				err = currentDataConverter().FromPayloads(payloads, &value)
+				err = dc.FromPayloads(payloads, &value)
 			}
 		}
 		incoming <- received{value, err}

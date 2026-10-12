@@ -8,7 +8,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/mfateev/sdk-go-poc/internal/failurecodec"
 	"github.com/mfateev/sdk-go-poc/internal/payloadwire"
 	"github.com/mfateev/sdk-go-poc/internal/searchattrwire"
 	commonpb "go.temporal.io/api/common/v1"
@@ -164,7 +163,7 @@ func upsertMemo(ctx context.Context, memo map[string]any) error {
 	if err := json.Unmarshal(raw, &useUser); err != nil {
 		return err
 	}
-	fields, err := encodeMemoFields(memo, currentDataConverter(), useUser)
+	fields, err := encodeMemoFields(memo, GetDataConverter(ctx), useUser)
 	if err != nil {
 		return err
 	}
@@ -227,7 +226,7 @@ func getLastCompletionResult(ctx context.Context, values ...any) error {
 	if err != nil {
 		return err
 	}
-	return currentDataConverter().FromPayloads(p, values...)
+	return GetDataConverter(ctx).FromPayloads(p, values...)
 }
 func getLastError(ctx context.Context) error {
 	raw, err := metadataCall(ctx, OpLastError)
@@ -237,7 +236,7 @@ func getLastError(ctx context.Context) error {
 	if len(raw) == 0 {
 		return nil
 	}
-	cause, err := failurecodec.Decode(raw, currentDataConverter())
+	cause, err := decodeFailure(raw, GetDataConverter(ctx))
 	if err != nil {
 		panic(err)
 	}

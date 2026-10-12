@@ -62,6 +62,10 @@ type Factory struct {
 	ResolveResourceOptions func() ResourceOptions
 	// ResolveDataConverter snapshots the isolate serializer factory and copied configuration.
 	ResolveDataConverter func() DataConverterOptions
+	// ResolveContextPropagators snapshots the native propagator factory/config.
+	ResolveContextPropagators func() ContextPropagatorOptions
+	// ResolveFailureConverter snapshots the native failure converter factory/config.
+	ResolveFailureConverter func() FailureConverterOptions
 }
 
 func (f Factory) NewWorkflowDefinition() bindings.WorkflowDefinition {
@@ -81,6 +85,16 @@ func (f Factory) NewWorkflowDefinition() bindings.WorkflowDefinition {
 		converters = f.ResolveDataConverter()
 	}
 	converters.Config = append([]byte(nil), converters.Config...)
+	var propagators ContextPropagatorOptions
+	if f.ResolveContextPropagators != nil {
+		propagators = f.ResolveContextPropagators()
+	}
+	propagators.Config = append([]byte(nil), propagators.Config...)
+	var failures FailureConverterOptions
+	if f.ResolveFailureConverter != nil {
+		failures = f.ResolveFailureConverter()
+	}
+	failures.Config = append([]byte(nil), failures.Config...)
 	if f.Function.Name() != "" {
 		// The runtime entry wrapper transfers compiler-created metadata by
 		// value. This dispatcher captures no host-owned closure state.
@@ -88,8 +102,17 @@ func (f Factory) NewWorkflowDefinition() bindings.WorkflowDefinition {
 		if converters.Factory.Name() != "" {
 			f.Program = f.Function.ProgramWithSupport(converters.Factory, func(handle, factory isolate.Handle) { _ = workflow.RunFunctionWithDataConverter(handle, factory) })
 		}
-		if interceptors.Factory.Name() != "" {
-			supports := []isolate.Handle{interceptors.Factory}
+		if interceptors.Factory.Name() != "" || propagators.Factory.Name() != "" || failures.Factory.Name() != "" {
+			supports := []isolate.Handle{}
+			if failures.Factory.Name() != "" {
+				supports = append(supports, failures.Factory)
+			}
+			if interceptors.Factory.Name() != "" {
+				supports = append(supports, interceptors.Factory)
+			}
+			if propagators.Factory.Name() != "" {
+				supports = append(supports, propagators.Factory)
+			}
 			if converters.Factory.Name() != "" {
 				supports = append(supports, converters.Factory)
 			}
@@ -105,6 +128,12 @@ func (f Factory) NewWorkflowDefinition() bindings.WorkflowDefinition {
 	if interceptors.Factory.Name() != "" && f.Function.Name() == "" {
 		panic("temporalbridge: configured interceptors require a marked workflow function")
 	}
+	if propagators.Factory.Name() != "" && f.Function.Name() == "" {
+		panic("temporalbridge: configured context propagators require a marked workflow function")
+	}
+	if failures.Factory.Name() != "" && f.Function.Name() == "" {
+		panic("temporalbridge: configured failure converters require a marked workflow function")
+	}
 	var resources ResourceOptions
 	if f.ResolveResourceOptions != nil {
 		resources = f.ResolveResourceOptions()
@@ -112,7 +141,7 @@ func (f Factory) NewWorkflowDefinition() bindings.WorkflowDefinition {
 	if err := resources.Validate(); err != nil {
 		panic(err)
 	}
-	return &definition{replayOnly: f.ReplayOnly, resolveLocalActivity: f.ResolveLocalActivity, converters: converters, interceptors: interceptors, resources: resources, program: f.Program, entryName: f.EntryName, resolveWorkflow: f.ResolveWorkflow, resolveActivity: f.ResolveActivity, resolveLogHandler: f.ResolveLogHandler, resolveSink: f.ResolveSink}
+	return &definition{replayOnly: f.ReplayOnly, resolveLocalActivity: f.ResolveLocalActivity, converters: converters, failures: failures, propagators: propagators, interceptors: interceptors, resources: resources, program: f.Program, entryName: f.EntryName, resolveWorkflow: f.ResolveWorkflow, resolveActivity: f.ResolveActivity, resolveLogHandler: f.ResolveLogHandler, resolveSink: f.ResolveSink}
 }
 
 type reply struct {
@@ -140,6 +169,8 @@ type definition struct {
 	locals               map[uint64]*activityState
 	nexus                map[uint64]*nexusState
 	converters           DataConverterOptions
+	failures             FailureConverterOptions
+	propagators          ContextPropagatorOptions
 	interceptors         InterceptorOptions
 	children             map[uint64]*childState
 	childSignals         map[uint64]*activityState
@@ -673,7 +704,7 @@ func (d *definition) handle(command *isolate.Command) error {
 				return err
 			}
 		}
-		payload, err := json.Marshal(workflow.PayloadStart{ConverterFactory: d.converters.Factory.Name(), InterceptorFactory: d.interceptors.Factory.Name(), InterceptorConfig: d.interceptors.Config, Header: d.header, ConverterConfig: d.converters.Config, Name: d.entryName, Payloads: input, Canceled: d.canceled, TaskQueue: d.env.WorkflowInfo().TaskQueueName, Options: workflow.RunOptions{Namespace: d.env.WorkflowInfo().Namespace, TaskQueue: d.env.WorkflowInfo().TaskQueueName, WorkflowExecutionTimeout: d.env.WorkflowInfo().WorkflowExecutionTimeout, WorkflowRunTimeout: d.env.WorkflowInfo().WorkflowRunTimeout, WorkflowTaskTimeout: d.env.WorkflowInfo().WorkflowTaskTimeout}})
+		payload, err := json.Marshal(workflow.PayloadStart{FailureConverterFactory: d.failures.Factory.Name(), FailureConverterConfig: d.failures.Config, PropagatorFactory: d.propagators.Factory.Name(), PropagatorConfig: d.propagators.Config, ConverterFactory: d.converters.Factory.Name(), InterceptorFactory: d.interceptors.Factory.Name(), InterceptorConfig: d.interceptors.Config, Header: d.header, ConverterConfig: d.converters.Config, Name: d.entryName, Payloads: input, Canceled: d.canceled, TaskQueue: d.env.WorkflowInfo().TaskQueueName, Options: workflow.RunOptions{Namespace: d.env.WorkflowInfo().Namespace, TaskQueue: d.env.WorkflowInfo().TaskQueueName, WorkflowExecutionTimeout: d.env.WorkflowInfo().WorkflowExecutionTimeout, WorkflowRunTimeout: d.env.WorkflowInfo().WorkflowRunTimeout, WorkflowTaskTimeout: d.env.WorkflowInfo().WorkflowTaskTimeout}})
 		if err != nil {
 			return err
 		}
@@ -808,7 +839,7 @@ func (d *definition) handle(command *isolate.Command) error {
 		}
 		if len(completion.Failure) != 0 {
 			var transportErr error
-			err, transportErr = decodeOutboundFailure(completion.Failure, d.env.GetDataConverter())
+			err, transportErr = d.decodeOutboundFailure(completion.Failure, d.env.GetDataConverter())
 			if transportErr != nil {
 				return fmt.Errorf("decode workflow failure: %w", transportErr)
 			}
@@ -834,7 +865,7 @@ func (d *definition) handle(command *isolate.Command) error {
 		}
 		if len(completion.Failure) != 0 {
 			var transportErr error
-			err, transportErr = decodeOutboundFailure(completion.Failure, d.env.GetDataConverter())
+			err, transportErr = d.decodeOutboundFailure(completion.Failure, d.env.GetDataConverter())
 			if transportErr != nil {
 				return fmt.Errorf("decode workflow failure: %w", transportErr)
 			}

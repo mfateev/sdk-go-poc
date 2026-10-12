@@ -86,8 +86,9 @@ func (d *definition) handleActivity(command *isolate.Command) error {
 		if err != nil {
 			return err
 		}
+		fc := d.activityFailureConverter(dc, request.Name, options.TaskQueueName, false)
 		params := bindings.ExecuteActivityParams{ExecuteActivityOptions: options, ActivityType: bindings.ActivityType{Name: request.Name}, Input: input, DataConverter: dc, Header: header,
-			FailureConverter: temporal.NewDefaultFailureConverter(temporal.DefaultFailureConverterOptions{DataConverter: dc})}
+			FailureConverter: fc}
 		state := &activityState{synchronous: true}
 		d.activities[request.ID] = state
 		callID := request.ID // Do not retain the request or its argument bytes in SDK callbacks.
@@ -104,7 +105,7 @@ func (d *definition) handleActivity(command *isolate.Command) error {
 				outcome.Error = cause.Error()
 				outcome.Canceled = temporal.IsCanceledError(cause)
 				var err error
-				outcome.Failure, err = encodeInboundFailure(cause, dc)
+				outcome.Failure, err = d.encodeInboundFailure(cause, dc, fc)
 				if err != nil {
 					panic(fmt.Errorf("encode activity failure: %w", err))
 				}

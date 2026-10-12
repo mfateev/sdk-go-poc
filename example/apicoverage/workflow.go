@@ -90,7 +90,7 @@ func Coverage(ctx context.Context, input Input) (string, error) {
 				return "", errors.New("local future not repeatable")
 			}
 		}
-	case "session", "session-recreate", "session-failure":
+	case "session", "session-recreate", "session-failure", "session-from-closed", "session-from-failed", "session-activity-closed", "session-completion-failure", "session-timer":
 		ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: 5 * time.Second})
 		sessionCtx, err := workflow.CreateSession(ctx, &workflow.SessionOptions{CreationTimeout: 5 * time.Second, ExecutionTimeout: 20 * time.Second, HeartbeatTimeout: time.Second})
 		if err != nil {
@@ -99,6 +99,41 @@ func Coverage(ctx context.Context, input Input) (string, error) {
 		info := workflow.GetSessionInfo(sessionCtx)
 		if info == nil || info.HostName == "" || info.SessionState != workflow.SessionStateOpen {
 			return "", errors.New("session metadata lost")
+		}
+
+		if input.Mode == "session-from-closed" || input.Mode == "session-from-failed" {
+			previousID := info.SessionID
+			workflow.CompleteSession(sessionCtx)
+			if input.Mode == "session-from-failed" {
+				info.SessionState = workflow.SessionStateFailed
+			}
+			sessionCtx, err = workflow.CreateSession(context.WithoutCancel(sessionCtx), &workflow.SessionOptions{CreationTimeout: 5 * time.Second, ExecutionTimeout: 20 * time.Second})
+			if err != nil {
+				return "", err
+			}
+			info = workflow.GetSessionInfo(sessionCtx)
+			if info.SessionID == previousID || info.SessionState != workflow.SessionStateOpen {
+				return "", errors.New("inactive session prevented fresh session creation")
+			}
+		}
+		if input.Mode == "session-activity-closed" {
+			workflow.CompleteSession(sessionCtx)
+			var queue string
+			activityCtx := context.WithoutCancel(sessionCtx)
+			if err = workflow.ExecuteActivity(activityCtx, Identity).Get(activityCtx, &queue); err != nil {
+				return "", err
+			}
+			if queue != workflow.GetActivityOptions(ctx).TaskQueue {
+				return "", errors.New("closed session activity retained resource queue")
+			}
+			return "ok", nil
+		}
+		if input.Mode == "session-timer" {
+			started := time.Now()
+			<-time.After(time.Hour)
+			if time.Since(started) != time.Hour {
+				return "", errors.New("session timer did not advance virtual clock")
+			}
 		}
 		if input.Mode == "session-failure" {
 			if err = workflow.SetQueryHandler(ctx, "session-ready", func() (bool, error) { return true, nil }); err != nil {

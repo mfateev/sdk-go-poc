@@ -1,0 +1,807 @@
+{
+  "events":  [
+    {
+      "eventId":  "1",
+      "eventTime":  "2026-10-11T09:05:27.217239805Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED",
+      "taskId":  "1051225",
+      "workflowExecutionStartedEventAttributes":  {
+        "workflowType":  {
+          "name":  "Workflow"
+        },
+        "taskQueue":  {
+          "name":  "isolate-context-1791709522941892303",
+          "kind":  "TASK_QUEUE_KIND_NORMAL"
+        },
+        "input":  {
+          "payloads":  [
+            {
+              "metadata":  {
+                "encoding":  "anNvbi9wbGFpbg=="
+              },
+              "data":  "ImNvbnRleHQtYXdhcmUtY29udmVydGVyIg=="
+            }
+          ]
+        },
+        "workflowExecutionTimeout":  "0s",
+        "workflowRunTimeout":  "0s",
+        "workflowTaskTimeout":  "10s",
+        "originalExecutionRunId":  "01a12a35-bcb1-73a4-9261-16108e5f935c",
+        "identity":  "2058657@modify-go-runtime-for-isolates@",
+        "firstExecutionRunId":  "01a12a35-bcb1-73a4-9261-16108e5f935c",
+        "attempt":  1,
+        "firstWorkflowTaskBackoff":  "0s",
+        "header":  {
+          "fields":  {
+            "test-header":  {
+              "metadata":  {
+                "encoding":  "anNvbi9wbGFpbg=="
+              },
+              "data":  "InRlc3QtZGF0YSI="
+            }
+          }
+        },
+        "workflowId":  "isolate-context-1791709522941892303-context-aware-converter"
+      }
+    },
+    {
+      "eventId":  "2",
+      "eventTime":  "2026-10-11T09:05:27.217330847Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId":  "1051226",
+      "workflowTaskScheduledEventAttributes":  {
+        "taskQueue":  {
+          "name":  "isolate-context-1791709522941892303",
+          "kind":  "TASK_QUEUE_KIND_NORMAL"
+        },
+        "startToCloseTimeout":  "10s",
+        "attempt":  1
+      }
+    },
+    {
+      "eventId":  "3",
+      "eventTime":  "2026-10-11T09:05:27.220353430Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId":  "1051231",
+      "workflowTaskStartedEventAttributes":  {
+        "scheduledEventId":  "2",
+        "identity":  "2058657@modify-go-runtime-for-isolates@",
+        "requestId":  "fdcc25a0-64b4-4571-b135-4a6f1f623fe1",
+        "historySizeBytes":  "458",
+        "workerVersion":  {
+          "buildId":  "046e42af26272333351d0d82ac5d2a43"
+        }
+      }
+    },
+    {
+      "eventId":  "4",
+      "eventTime":  "2026-10-11T09:05:27.228056055Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId":  "1051236",
+      "workflowTaskCompletedEventAttributes":  {
+        "scheduledEventId":  "2",
+        "startedEventId":  "3",
+        "identity":  "2058657@modify-go-runtime-for-isolates@",
+        "workerVersion":  {
+          "buildId":  "046e42af26272333351d0d82ac5d2a43"
+        },
+        "sdkMetadata":  {
+          "langUsedFlags":  [
+            3
+          ],
+          "sdkName":  "temporal-go",
+          "sdkVersion":  "1.49.0"
+        },
+        "meteringMetadata":  {}
+      }
+    },
+    {
+      "eventId":  "5",
+      "eventTime":  "2026-10-11T09:05:27.228117722Z",
+      "eventType":  "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED",
+      "taskId":  "1051237",
+      "activityTaskScheduledEventAttributes":  {
+        "activityId":  "5",
+        "activityType":  {
+          "name":  "Echo"
+        },
+        "taskQueue":  {
+          "name":  "isolate-context-1791709522941892303",
+          "kind":  "TASK_QUEUE_KIND_NORMAL"
+        },
+        "header":  {
+          "fields":  {
+            "test-header":  {
+              "metadata":  {
+                "encoding":  "anNvbi9wbGFpbg=="
+              },
+              "data":  "InRlc3QtZGF0YSI="
+            }
+          }
+        },
+        "input":  {
+          "payloads":  [
+            {
+              "metadata":  {
+                "encoding":  "anNvbi9wbGFpbg==",
+                "propagated-context":  "dGVzdC1kYXRh"
+              },
+              "data":  "InQ/c3Qi"
+            }
+          ]
+        },
+        "scheduleToCloseTimeout":  "0s",
+        "scheduleToStartTimeout":  "0s",
+        "startToCloseTimeout":  "60s",
+        "heartbeatTimeout":  "0s",
+        "workflowTaskCompletedEventId":  "4",
+        "retryPolicy":  {
+          "initialInterval":  "1s",
+          "backoffCoefficient":  2,
+          "maximumInterval":  "100s"
+        },
+        "useWorkflowBuildId":  true
+      }
+    },
+    {
+      "eventId":  "6",
+      "eventTime":  "2026-10-11T09:05:27.228146305Z",
+      "eventType":  "EVENT_TYPE_ACTIVITY_TASK_STARTED",
+      "taskId":  "1051241",
+      "activityTaskStartedEventAttributes":  {
+        "scheduledEventId":  "5",
+        "identity":  "2058657@modify-go-runtime-for-isolates@",
+        "requestId":  "51951c96-6f33-41db-ad1c-6fd52b4e65fe",
+        "attempt":  1,
+        "workerVersion":  {
+          "buildId":  "046e42af26272333351d0d82ac5d2a43"
+        }
+      }
+    },
+    {
+      "eventId":  "7",
+      "eventTime":  "2026-10-11T09:05:27.231305889Z",
+      "eventType":  "EVENT_TYPE_ACTIVITY_TASK_COMPLETED",
+      "taskId":  "1051242",
+      "activityTaskCompletedEventAttributes":  {
+        "result":  {
+          "payloads":  [
+            {
+              "metadata":  {
+                "encoding":  "anNvbi9wbGFpbg=="
+              },
+              "data":  "InQ/c3Qi"
+            }
+          ]
+        },
+        "scheduledEventId":  "5",
+        "startedEventId":  "6",
+        "identity":  "2058657@modify-go-runtime-for-isolates@"
+      }
+    },
+    {
+      "eventId":  "8",
+      "eventTime":  "2026-10-11T09:05:27.231320722Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId":  "1051243",
+      "workflowTaskScheduledEventAttributes":  {
+        "taskQueue":  {
+          "name":  "modify-go-runtime-for-isolates:0d9196ac-0415-4a16-9c5d-ae23755451a1",
+          "kind":  "TASK_QUEUE_KIND_STICKY",
+          "normalName":  "isolate-context-1791709522941892303"
+        },
+        "startToCloseTimeout":  "10s",
+        "attempt":  1
+      }
+    },
+    {
+      "eventId":  "9",
+      "eventTime":  "2026-10-11T09:05:27.232638055Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId":  "1051247",
+      "workflowTaskStartedEventAttributes":  {
+        "scheduledEventId":  "8",
+        "identity":  "2058657@modify-go-runtime-for-isolates@",
+        "requestId":  "4fe99413-03ab-4f51-a144-f88df9ad8225",
+        "historySizeBytes":  "1371",
+        "workerVersion":  {
+          "buildId":  "046e42af26272333351d0d82ac5d2a43"
+        }
+      }
+    },
+    {
+      "eventId":  "10",
+      "eventTime":  "2026-10-11T09:05:27.237133389Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId":  "1051252",
+      "workflowTaskCompletedEventAttributes":  {
+        "scheduledEventId":  "8",
+        "startedEventId":  "9",
+        "identity":  "2058657@modify-go-runtime-for-isolates@",
+        "workerVersion":  {
+          "buildId":  "046e42af26272333351d0d82ac5d2a43"
+        },
+        "sdkMetadata":  {},
+        "meteringMetadata":  {}
+      }
+    },
+    {
+      "eventId":  "11",
+      "eventTime":  "2026-10-11T09:05:27.237175139Z",
+      "eventType":  "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED",
+      "taskId":  "1051253",
+      "activityTaskScheduledEventAttributes":  {
+        "activityId":  "11",
+        "activityType":  {
+          "name":  "Echo"
+        },
+        "taskQueue":  {
+          "name":  "isolate-context-1791709522941892303",
+          "kind":  "TASK_QUEUE_KIND_NORMAL"
+        },
+        "header":  {
+          "fields":  {
+            "test-header":  {
+              "metadata":  {
+                "encoding":  "anNvbi9wbGFpbg=="
+              },
+              "data":  "InRlc3QtZGF0YSI="
+            }
+          }
+        },
+        "input":  {
+          "payloads":  [
+            {
+              "metadata":  {
+                "encoding":  "anNvbi9wbGFpbg==",
+                "propagated-context":  "dGVzdC1kYXRh"
+              },
+              "data":  "Ij9lcz8i"
+            }
+          ]
+        },
+        "scheduleToCloseTimeout":  "0s",
+        "scheduleToStartTimeout":  "0s",
+        "startToCloseTimeout":  "60s",
+        "heartbeatTimeout":  "0s",
+        "workflowTaskCompletedEventId":  "10",
+        "retryPolicy":  {
+          "initialInterval":  "1s",
+          "backoffCoefficient":  2,
+          "maximumInterval":  "100s"
+        },
+        "useWorkflowBuildId":  true
+      }
+    },
+    {
+      "eventId":  "12",
+      "eventTime":  "2026-10-11T09:05:27.237200222Z",
+      "eventType":  "EVENT_TYPE_ACTIVITY_TASK_STARTED",
+      "taskId":  "1051256",
+      "activityTaskStartedEventAttributes":  {
+        "scheduledEventId":  "11",
+        "identity":  "2058657@modify-go-runtime-for-isolates@",
+        "requestId":  "aa9c85f3-eae8-49a3-9ad3-dca29c4764c9",
+        "attempt":  1,
+        "workerVersion":  {
+          "buildId":  "046e42af26272333351d0d82ac5d2a43"
+        }
+      }
+    },
+    {
+      "eventId":  "13",
+      "eventTime":  "2026-10-11T09:05:27.239578514Z",
+      "eventType":  "EVENT_TYPE_ACTIVITY_TASK_COMPLETED",
+      "taskId":  "1051257",
+      "activityTaskCompletedEventAttributes":  {
+        "result":  {
+          "payloads":  [
+            {
+              "metadata":  {
+                "encoding":  "anNvbi9wbGFpbg=="
+              },
+              "data":  "Ij9lcz8i"
+            }
+          ]
+        },
+        "scheduledEventId":  "11",
+        "startedEventId":  "12",
+        "identity":  "2058657@modify-go-runtime-for-isolates@"
+      }
+    },
+    {
+      "eventId":  "14",
+      "eventTime":  "2026-10-11T09:05:27.239589722Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId":  "1051258",
+      "workflowTaskScheduledEventAttributes":  {
+        "taskQueue":  {
+          "name":  "modify-go-runtime-for-isolates:0d9196ac-0415-4a16-9c5d-ae23755451a1",
+          "kind":  "TASK_QUEUE_KIND_STICKY",
+          "normalName":  "isolate-context-1791709522941892303"
+        },
+        "startToCloseTimeout":  "10s",
+        "attempt":  1
+      }
+    },
+    {
+      "eventId":  "15",
+      "eventTime":  "2026-10-11T09:05:27.240737597Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId":  "1051262",
+      "workflowTaskStartedEventAttributes":  {
+        "scheduledEventId":  "14",
+        "identity":  "2058657@modify-go-runtime-for-isolates@",
+        "requestId":  "ec4517df-b04c-4156-a106-468d82c899ca",
+        "historySizeBytes":  "2260",
+        "workerVersion":  {
+          "buildId":  "046e42af26272333351d0d82ac5d2a43"
+        }
+      }
+    },
+    {
+      "eventId":  "16",
+      "eventTime":  "2026-10-11T09:05:27.244325680Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId":  "1051267",
+      "workflowTaskCompletedEventAttributes":  {
+        "scheduledEventId":  "14",
+        "startedEventId":  "15",
+        "identity":  "2058657@modify-go-runtime-for-isolates@",
+        "workerVersion":  {
+          "buildId":  "046e42af26272333351d0d82ac5d2a43"
+        },
+        "sdkMetadata":  {},
+        "meteringMetadata":  {}
+      }
+    },
+    {
+      "eventId":  "17",
+      "eventTime":  "2026-10-11T09:05:27.244361389Z",
+      "eventType":  "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED",
+      "taskId":  "1051268",
+      "activityTaskScheduledEventAttributes":  {
+        "activityId":  "17",
+        "activityType":  {
+          "name":  "Echo"
+        },
+        "taskQueue":  {
+          "name":  "isolate-context-1791709522941892303",
+          "kind":  "TASK_QUEUE_KIND_NORMAL"
+        },
+        "header":  {
+          "fields":  {
+            "test-header":  {
+              "metadata":  {
+                "encoding":  "anNvbi9wbGFpbg=="
+              },
+              "data":  "InRlc3QtZGF0YSI="
+            }
+          }
+        },
+        "input":  {
+          "payloads":  [
+            {
+              "metadata":  {
+                "encoding":  "anNvbi9wbGFpbg==",
+                "propagated-context":  "dGVzdC1kYXRh"
+              },
+              "data":  "InRlc3Qi"
+            }
+          ]
+        },
+        "scheduleToCloseTimeout":  "0s",
+        "scheduleToStartTimeout":  "0s",
+        "startToCloseTimeout":  "60s",
+        "heartbeatTimeout":  "0s",
+        "workflowTaskCompletedEventId":  "16",
+        "retryPolicy":  {
+          "initialInterval":  "1s",
+          "backoffCoefficient":  2,
+          "maximumInterval":  "100s"
+        },
+        "useWorkflowBuildId":  true
+      }
+    },
+    {
+      "eventId":  "18",
+      "eventTime":  "2026-10-11T09:05:27.244381805Z",
+      "eventType":  "EVENT_TYPE_ACTIVITY_TASK_STARTED",
+      "taskId":  "1051271",
+      "activityTaskStartedEventAttributes":  {
+        "scheduledEventId":  "17",
+        "identity":  "2058657@modify-go-runtime-for-isolates@",
+        "requestId":  "617c9b8d-d7a2-4356-ae7d-a49b6fc6cdb2",
+        "attempt":  1,
+        "workerVersion":  {
+          "buildId":  "046e42af26272333351d0d82ac5d2a43"
+        }
+      }
+    },
+    {
+      "eventId":  "19",
+      "eventTime":  "2026-10-11T09:05:27.246588180Z",
+      "eventType":  "EVENT_TYPE_ACTIVITY_TASK_COMPLETED",
+      "taskId":  "1051272",
+      "activityTaskCompletedEventAttributes":  {
+        "result":  {
+          "payloads":  [
+            {
+              "metadata":  {
+                "encoding":  "anNvbi9wbGFpbg=="
+              },
+              "data":  "InRlc3Qi"
+            }
+          ]
+        },
+        "scheduledEventId":  "17",
+        "startedEventId":  "18",
+        "identity":  "2058657@modify-go-runtime-for-isolates@"
+      }
+    },
+    {
+      "eventId":  "20",
+      "eventTime":  "2026-10-11T09:05:27.246596639Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId":  "1051273",
+      "workflowTaskScheduledEventAttributes":  {
+        "taskQueue":  {
+          "name":  "modify-go-runtime-for-isolates:0d9196ac-0415-4a16-9c5d-ae23755451a1",
+          "kind":  "TASK_QUEUE_KIND_STICKY",
+          "normalName":  "isolate-context-1791709522941892303"
+        },
+        "startToCloseTimeout":  "10s",
+        "attempt":  1
+      }
+    },
+    {
+      "eventId":  "21",
+      "eventTime":  "2026-10-11T09:05:27.247679097Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId":  "1051277",
+      "workflowTaskStartedEventAttributes":  {
+        "scheduledEventId":  "20",
+        "identity":  "2058657@modify-go-runtime-for-isolates@",
+        "requestId":  "88e00cc3-2355-4ad1-a577-6de499251588",
+        "historySizeBytes":  "3149",
+        "workerVersion":  {
+          "buildId":  "046e42af26272333351d0d82ac5d2a43"
+        }
+      }
+    },
+    {
+      "eventId":  "22",
+      "eventTime":  "2026-10-11T09:05:27.252080097Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId":  "1051282",
+      "workflowTaskCompletedEventAttributes":  {
+        "scheduledEventId":  "20",
+        "startedEventId":  "21",
+        "identity":  "2058657@modify-go-runtime-for-isolates@",
+        "workerVersion":  {
+          "buildId":  "046e42af26272333351d0d82ac5d2a43"
+        },
+        "sdkMetadata":  {},
+        "meteringMetadata":  {}
+      }
+    },
+    {
+      "eventId":  "23",
+      "eventTime":  "2026-10-11T09:05:27.252110389Z",
+      "eventType":  "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED",
+      "taskId":  "1051283",
+      "activityTaskScheduledEventAttributes":  {
+        "activityId":  "23",
+        "activityType":  {
+          "name":  "Echo"
+        },
+        "taskQueue":  {
+          "name":  "isolate-context-1791709522941892303",
+          "kind":  "TASK_QUEUE_KIND_NORMAL"
+        },
+        "header":  {
+          "fields":  {
+            "test-header":  {
+              "metadata":  {
+                "encoding":  "anNvbi9wbGFpbg=="
+              },
+              "data":  "InRlc3QtZGF0YSI="
+            }
+          }
+        },
+        "input":  {
+          "payloads":  [
+            {
+              "metadata":  {
+                "encoding":  "anNvbi9wbGFpbg==",
+                "propagated-context":  "dGVzdC1kYXRh"
+              },
+              "data":  "InF1ZXJ5LXJlc3VsdCI="
+            }
+          ]
+        },
+        "scheduleToCloseTimeout":  "0s",
+        "scheduleToStartTimeout":  "0s",
+        "startToCloseTimeout":  "60s",
+        "heartbeatTimeout":  "0s",
+        "workflowTaskCompletedEventId":  "22",
+        "retryPolicy":  {
+          "initialInterval":  "1s",
+          "backoffCoefficient":  2,
+          "maximumInterval":  "100s"
+        },
+        "useWorkflowBuildId":  true
+      }
+    },
+    {
+      "eventId":  "24",
+      "eventTime":  "2026-10-11T09:05:27.252131180Z",
+      "eventType":  "EVENT_TYPE_ACTIVITY_TASK_STARTED",
+      "taskId":  "1051286",
+      "activityTaskStartedEventAttributes":  {
+        "scheduledEventId":  "23",
+        "identity":  "2058657@modify-go-runtime-for-isolates@",
+        "requestId":  "2dc31955-8028-4081-9135-47e00a7647d8",
+        "attempt":  1,
+        "workerVersion":  {
+          "buildId":  "046e42af26272333351d0d82ac5d2a43"
+        }
+      }
+    },
+    {
+      "eventId":  "25",
+      "eventTime":  "2026-10-11T09:05:27.254701222Z",
+      "eventType":  "EVENT_TYPE_ACTIVITY_TASK_COMPLETED",
+      "taskId":  "1051287",
+      "activityTaskCompletedEventAttributes":  {
+        "result":  {
+          "payloads":  [
+            {
+              "metadata":  {
+                "encoding":  "anNvbi9wbGFpbg=="
+              },
+              "data":  "InF1ZXJ5LXJlc3VsdCI="
+            }
+          ]
+        },
+        "scheduledEventId":  "23",
+        "startedEventId":  "24",
+        "identity":  "2058657@modify-go-runtime-for-isolates@"
+      }
+    },
+    {
+      "eventId":  "26",
+      "eventTime":  "2026-10-11T09:05:27.254711597Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId":  "1051288",
+      "workflowTaskScheduledEventAttributes":  {
+        "taskQueue":  {
+          "name":  "modify-go-runtime-for-isolates:0d9196ac-0415-4a16-9c5d-ae23755451a1",
+          "kind":  "TASK_QUEUE_KIND_STICKY",
+          "normalName":  "isolate-context-1791709522941892303"
+        },
+        "startToCloseTimeout":  "10s",
+        "attempt":  1
+      }
+    },
+    {
+      "eventId":  "27",
+      "eventTime":  "2026-10-11T09:05:27.255673972Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId":  "1051292",
+      "workflowTaskStartedEventAttributes":  {
+        "scheduledEventId":  "26",
+        "identity":  "2058657@modify-go-runtime-for-isolates@",
+        "requestId":  "48d7d43e-2227-42f2-abf0-accd7c7c7485",
+        "historySizeBytes":  "4054",
+        "workerVersion":  {
+          "buildId":  "046e42af26272333351d0d82ac5d2a43"
+        }
+      }
+    },
+    {
+      "eventId":  "28",
+      "eventTime":  "2026-10-11T09:05:27.259137055Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId":  "1051296",
+      "workflowTaskCompletedEventAttributes":  {
+        "scheduledEventId":  "26",
+        "startedEventId":  "27",
+        "identity":  "2058657@modify-go-runtime-for-isolates@",
+        "workerVersion":  {
+          "buildId":  "046e42af26272333351d0d82ac5d2a43"
+        },
+        "sdkMetadata":  {},
+        "meteringMetadata":  {}
+      }
+    },
+    {
+      "eventId":  "29",
+      "eventTime":  "2026-10-11T09:05:27.259160347Z",
+      "eventType":  "EVENT_TYPE_TIMER_STARTED",
+      "taskId":  "1051297",
+      "timerStartedEventAttributes":  {
+        "timerId":  "29",
+        "startToFireTimeout":  "1s",
+        "workflowTaskCompletedEventId":  "28"
+      }
+    },
+    {
+      "eventId":  "30",
+      "eventTime":  "2026-10-11T09:05:27.263354347Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId":  "1051304",
+      "workflowTaskScheduledEventAttributes":  {
+        "taskQueue":  {
+          "name":  "modify-go-runtime-for-isolates:0d9196ac-0415-4a16-9c5d-ae23755451a1",
+          "kind":  "TASK_QUEUE_KIND_STICKY",
+          "normalName":  "isolate-context-1791709522941892303"
+        },
+        "startToCloseTimeout":  "10s",
+        "attempt":  1
+      }
+    },
+    {
+      "eventId":  "31",
+      "eventTime":  "2026-10-11T09:05:27.263658805Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId":  "1051305",
+      "workflowTaskStartedEventAttributes":  {
+        "scheduledEventId":  "30",
+        "identity":  "2058657@modify-go-runtime-for-isolates@",
+        "requestId":  "b2442245-1164-491a-b304-e1731dab38ce",
+        "historySizeBytes":  "4346",
+        "workerVersion":  {
+          "buildId":  "046e42af26272333351d0d82ac5d2a43"
+        }
+      }
+    },
+    {
+      "eventId":  "32",
+      "eventTime":  "2026-10-11T09:05:27.266587722Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId":  "1051306",
+      "workflowTaskCompletedEventAttributes":  {
+        "scheduledEventId":  "30",
+        "startedEventId":  "31",
+        "identity":  "2058657@modify-go-runtime-for-isolates@",
+        "workerVersion":  {
+          "buildId":  "046e42af26272333351d0d82ac5d2a43"
+        },
+        "sdkMetadata":  {},
+        "meteringMetadata":  {}
+      }
+    },
+    {
+      "eventId":  "33",
+      "eventTime":  "2026-10-11T09:05:27.266646764Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_EXECUTION_UPDATE_ACCEPTED",
+      "taskId":  "1051307",
+      "workflowExecutionUpdateAcceptedEventAttributes":  {
+        "protocolInstanceId":  "7dde5003-a756-45d5-8d29-ae903ff19775",
+        "acceptedRequestMessageId":  "7dde5003-a756-45d5-8d29-ae903ff19775/request",
+        "acceptedRequestSequencingEventId":  "30",
+        "acceptedRequest":  {
+          "meta":  {
+            "updateId":  "7dde5003-a756-45d5-8d29-ae903ff19775",
+            "identity":  "2058657@modify-go-runtime-for-isolates@"
+          },
+          "input":  {
+            "header":  {
+              "fields":  {
+                "test-header":  {
+                  "metadata":  {
+                    "encoding":  "anNvbi9wbGFpbg=="
+                  },
+                  "data":  "InRlc3QtZGF0YSI="
+                }
+              }
+            },
+            "name":  "value"
+          }
+        }
+      }
+    },
+    {
+      "eventId":  "34",
+      "eventTime":  "2026-10-11T09:05:27.266668972Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_EXECUTION_UPDATE_COMPLETED",
+      "taskId":  "1051308",
+      "workflowExecutionUpdateCompletedEventAttributes":  {
+        "meta":  {
+          "updateId":  "7dde5003-a756-45d5-8d29-ae903ff19775"
+        },
+        "acceptedEventId":  "33",
+        "outcome":  {
+          "success":  {
+            "payloads":  [
+              {
+                "metadata":  {
+                  "encoding":  "anNvbi9wbGFpbg==",
+                  "propagated-context":  "dGVzdC1kYXRh"
+                },
+                "data":  "InRlc3QtZGF0YSI="
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "eventId":  "35",
+      "eventTime":  "2026-10-11T09:05:28.264140139Z",
+      "eventType":  "EVENT_TYPE_TIMER_FIRED",
+      "taskId":  "1051311",
+      "timerFiredEventAttributes":  {
+        "timerId":  "29",
+        "startedEventId":  "29"
+      }
+    },
+    {
+      "eventId":  "36",
+      "eventTime":  "2026-10-11T09:05:28.264181181Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId":  "1051312",
+      "workflowTaskScheduledEventAttributes":  {
+        "taskQueue":  {
+          "name":  "modify-go-runtime-for-isolates:0d9196ac-0415-4a16-9c5d-ae23755451a1",
+          "kind":  "TASK_QUEUE_KIND_STICKY",
+          "normalName":  "isolate-context-1791709522941892303"
+        },
+        "startToCloseTimeout":  "10s",
+        "attempt":  1
+      }
+    },
+    {
+      "eventId":  "37",
+      "eventTime":  "2026-10-11T09:05:28.274339556Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId":  "1051316",
+      "workflowTaskStartedEventAttributes":  {
+        "scheduledEventId":  "36",
+        "identity":  "2058657@modify-go-runtime-for-isolates@",
+        "requestId":  "071695fd-63fa-4049-bc0c-181b291bb971",
+        "historySizeBytes":  "5326",
+        "workerVersion":  {
+          "buildId":  "046e42af26272333351d0d82ac5d2a43"
+        }
+      }
+    },
+    {
+      "eventId":  "38",
+      "eventTime":  "2026-10-11T09:05:28.286460306Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId":  "1051320",
+      "workflowTaskCompletedEventAttributes":  {
+        "scheduledEventId":  "36",
+        "startedEventId":  "37",
+        "identity":  "2058657@modify-go-runtime-for-isolates@",
+        "workerVersion":  {
+          "buildId":  "046e42af26272333351d0d82ac5d2a43"
+        },
+        "sdkMetadata":  {},
+        "meteringMetadata":  {}
+      }
+    },
+    {
+      "eventId":  "39",
+      "eventTime":  "2026-10-11T09:05:28.286537931Z",
+      "eventType":  "EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED",
+      "taskId":  "1051321",
+      "workflowExecutionCompletedEventAttributes":  {
+        "result":  {
+          "payloads":  [
+            {
+              "metadata":  {
+                "encoding":  "anNvbi9wbGFpbg==",
+                "propagated-context":  "dGVzdC1kYXRh"
+              },
+              "data":  "Im9rIg=="
+            }
+          ]
+        },
+        "workflowTaskCompletedEventId":  "38"
+      }
+    }
+  ]
+}

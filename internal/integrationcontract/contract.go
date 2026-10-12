@@ -1,4 +1,4 @@
-// Package integrationcontract versions the private host/workflow byte protocol.
+// Package integrationcontract checks the single current POC host/workflow protocol.
 // A fixed header is validated before JSON, converters, or user code run. It is
 // transport metadata, not a history event or application payload.
 package integrationcontract
@@ -9,21 +9,24 @@ import (
 	"isolate"
 )
 
+// Markers can change freely during POC development. They are sanity checks,
+// not source revision identifiers or selectors for compatibility implementations.
 const (
-	// Version 3 adds unconditional priority update admission and execution.
-	ProtocolVersion    uint32 = 3
+	// Version 5 adds native failure converter factories to startup.
+	ProtocolVersion    uint32 = 5
 	MetadataVersion    uint32 = 1
 	APIVersion         uint32 = 1
 	DeterminismVersion uint32 = 1
 	headerSize                = 20
 )
 
-// ValidateRuntime rejects a toolchain whose contracts this SDK has not audited.
-// Expected versions intentionally do not derive from the linked runtime.
+// ValidateRuntime checks the current POC markers expected by the SDK.
+// Equal markers do not establish that source revisions match. Expected markers
+// intentionally do not derive from the linked runtime.
 func ValidateRuntime(actual isolate.Contract) error {
 	want := isolate.Contract{Metadata: MetadataVersion, API: APIVersion, Determinism: DeterminismVersion}
 	if actual != want {
-		return fmt.Errorf("isolate integration: incompatible runtime contract %+v, SDK requires %+v; rebuild with a supported toolchain", actual, want)
+		return fmt.Errorf("isolate integration: incompatible runtime contract %+v, SDK requires %+v; rebuild with the current development toolchain", actual, want)
 	}
 	return nil
 }

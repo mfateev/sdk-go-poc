@@ -99,7 +99,9 @@ func executeLocalActivity(ctx context.Context, activity any, args ...any) Future
 	if o.ScheduleToCloseTimeout == 0 {
 		o.ScheduleToCloseTimeout = o.StartToCloseTimeout
 	}
-	p, err := encodeActivityArgs(args)
+	f.converterContext = ctx
+	f.dataConverter = GetDataConverter(ctx)
+	p, err := encodeArgsWithConverter(args, f.dataConverter)
 	if err != nil {
 		panic(err)
 	}

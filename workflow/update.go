@@ -11,7 +11,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/mfateev/sdk-go-poc/internal/failurecodec"
 	"github.com/mfateev/sdk-go-poc/internal/failurewire"
 	"github.com/mfateev/sdk-go-poc/internal/payloadwire"
 	"github.com/mfateev/sdk-go-poc/internal/tracecontext"
@@ -47,7 +46,10 @@ type UpdateCompletion struct {
 	Failure  []byte `json:"failure,omitempty"`
 }
 
-type updateHandler struct{ handler, validator any }
+type updateHandler struct {
+	handler, validator any
+	ctx                context.Context
+}
 type updateInfoKey struct{}
 type updateValidationKey struct{}
 
@@ -100,7 +102,7 @@ func setUpdateHandlerWithOptions(ctx context.Context, name string, handler any, 
 	if err := validateUpdateFunctions(handler, options.Validator); err != nil {
 		return err
 	}
-	updateHandlers[name] = updateHandler{handler, options.Validator}
+	updateHandlers[name] = updateHandler{handler: handler, validator: options.Validator, ctx: ctx}
 	startReadOnlyService()
 	if !updateServiceStarted {
 		updateServiceStarted = true
@@ -179,7 +181,7 @@ func updateArguments(fn any, ctx context.Context, raw []byte) ([]reflect.Value, 
 	if t.NumIn() > 0 && t.In(0) == reflect.TypeFor[context.Context]() {
 		offset = 1
 	}
-	payloads, err := decodePayloads(raw)
+	payloads, err := decodePayloads(raw, GetDataConverter(ctx))
 	if err != nil {
 		return nil, err
 	}
@@ -193,12 +195,12 @@ func updateArguments(fn any, ctx context.Context, raw []byte) ([]reflect.Value, 
 	pointers := make([]any, t.NumIn()-offset)
 	for i := range pointers {
 		p := reflect.New(t.In(i + offset))
-		if isProtoValue(p.Interface()) {
-			return nil, errors.New("workflow: protobuf values are outside the isolate POC subset")
+		if isUnsupportedProtoValue(p.Interface()) {
+			return nil, errors.New("workflow: only generated Google protobuf messages without extensions are supported")
 		}
 		pointers[i], args[i+offset] = p.Interface(), p.Elem()
 	}
-	if err := currentDataConverter().FromPayloads(payloads, pointers...); err != nil {
+	if err := GetDataConverter(ctx).FromPayloads(payloads, pointers...); err != nil {
 		return nil, err
 	}
 	return args, nil
@@ -221,7 +223,11 @@ func validateUpdate(request QueryRequest) (failure []byte, err error) {
 	}
 	// Native context cancellation internals are mutable. Give validation its own
 	// cancellation snapshot, retaining only read-only access to root values.
-	ctx, cancel := context.WithCancel(context.WithoutCancel(rootContext))
+	base := h.ctx
+	if base == nil {
+		base = rootContext
+	}
+	ctx, cancel := context.WithCancel(context.WithoutCancel(base))
 	defer cancel()
 	if request.Canceled {
 		cancel()
@@ -229,7 +235,7 @@ func validateUpdate(request QueryRequest) (failure []byte, err error) {
 	ctx = context.WithValue(ctx, tracecontext.ScopeKey{}, request.ObservationID)
 	ctxWithInfo := context.WithValue(ctx, updateInfoKey{}, &UpdateInfo{ID: request.UpdateID, Name: request.Name})
 	ctxWithInfo = context.WithValue(ctxWithInfo, updateValidationKey{}, true)
-	ctxWithInfo, err = withInterceptorHeader(ctxWithInfo, request.Header)
+	ctxWithInfo, err = withIncomingHeader(ctxWithInfo, request.Header)
 	if err != nil {
 		return nil, err
 	}
@@ -258,7 +264,7 @@ func validateUpdate(request QueryRequest) (failure []byte, err error) {
 	if cause == nil {
 		return nil, nil
 	}
-	return failurecodec.Encode(cause, currentDataConverter())
+	return encodeFailure(cause, GetDataConverter(ctxWithInfo))
 }
 
 func serveUpdates() {
@@ -282,12 +288,16 @@ func serveUpdates() {
 
 func executeUpdate(request UpdateRequest) {
 	info := &UpdateInfo{ID: request.ID, Name: request.Name}
-	ctx := context.WithValue(rootContext, updateInfoKey{}, info)
-	ctx, headerErr := withInterceptorHeader(ctx, request.Header)
+	h := updateHandlers[request.Name]
+	base := h.ctx
+	if base == nil {
+		base = rootContext
+	}
+	ctx := context.WithValue(base, updateInfoKey{}, info)
+	ctx, headerErr := withIncomingHeader(ctx, request.Header)
 	if headerErr != nil {
 		panic(headerErr)
 	}
-	h := updateHandlers[request.Name]
 	args, cause := updateArguments(h.handler, ctx, request.Payloads)
 	var value any
 	if cause == nil {
@@ -310,10 +320,10 @@ func executeUpdate(request UpdateRequest) {
 	}
 	completion := UpdateCompletion{ID: request.ID}
 	if cause == nil {
-		if isProtoValue(value) {
-			cause = errors.New("workflow: protobuf values are outside the isolate POC subset")
+		if isUnsupportedProtoValue(value) {
+			cause = errors.New("workflow: only generated Google protobuf messages without extensions are supported")
 		} else {
-			payloads, err := currentDataConverter().ToPayloads(value)
+			payloads, err := GetDataConverter(ctx).ToPayloads(value)
 			cause = err
 			if cause == nil {
 				completion.Payloads, cause = payloadwire.Encode(payloads)
@@ -322,7 +332,7 @@ func executeUpdate(request UpdateRequest) {
 	}
 	if cause != nil {
 		var err error
-		completion.Failure, err = failurecodec.Encode(cause, currentDataConverter())
+		completion.Failure, err = encodeFailure(cause, GetDataConverter(ctx))
 		if err != nil {
 			panic(err)
 		}

@@ -28,9 +28,5 @@ func withInterceptorHeader(ctx context.Context, fields map[string][]byte) (conte
 	return context.WithValue(ctx, interceptorHeaderKey{}, header.Fields), nil
 }
 func outgoingHeader(ctx context.Context) (map[string][]byte, error) {
-	fields := InterceptorHeader(ctx)
-	if len(fields) == 0 {
-		return nil, nil
-	}
-	return headerwire.Encode(&commonpb.Header{Fields: fields})
+	return propagatedHeader(ctx)
 }

@@ -1,0 +1,10 @@
+syntax = "proto2";
+package native.protobuf;
+option go_package = "github.com/mfateev/sdk-go-poc/example/protobufvalues/model;model";
+enum SettingMode { MODE_ZERO = 0; MODE_ONE = 1; }
+message Settings {
+ optional string label = 1 [default = "native"];
+ optional bytes data = 2 [default = "\001\377"];
+ optional SettingMode mode = 4 [default = MODE_ONE];
+ optional int64 sequence = 3 [default = 9007199254740993];
+}

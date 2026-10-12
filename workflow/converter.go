@@ -2,7 +2,9 @@ package workflow
 
 import (
 	"bytes"
+	"context"
 	"errors"
+	"fmt"
 	"isolate"
 	"reflect"
 
@@ -80,5 +82,96 @@ func currentDataConverter() converter.DataConverter {
 		}
 		return dc
 	}
-	return instanceDataConverter
+	if isolate.IsReadOnly() {
+		return protectProtobuf(newDefaultDataConverter())
+	}
+	return protectProtobuf(instanceDataConverter)
+}
+
+// ContextAware tailors serialization to native workflow and host/activity
+// contexts. Implementations must return an independently usable converter;
+// WithWorkflowContext also runs in read-only queries and update validators.
+// Neither method may mutate its parent converter or the supplied context.
+type ContextAware interface {
+	WithWorkflowContext(context.Context) converter.DataConverter
+	WithContext(context.Context) converter.DataConverter
+}
+
+type dataConverterKey struct{}
+
+// WithDataConverter overrides serialization for operations using this derived
+// context. The converter must be constructed inside the isolate, be deterministic,
+// and support concurrent use by native workflow goroutines. Queries/validators
+// cannot mutate a captured converter: ContextAware implementations can construct
+// scratch-owned state in WithWorkflowContext. Host codecs remain on the host.
+func WithDataConverter(ctx context.Context, dc converter.DataConverter) context.Context {
+	if ctx == nil {
+		panic("workflow: nil context")
+	}
+	if isNilConverter(dc) {
+		panic("workflow: nil data converter")
+	}
+	return context.WithValue(ctx, dataConverterKey{}, dc)
+}
+
+// WithWorkflowContext binds the optional native context-aware interface. The
+// standard WithContext method is also supported for converters using one native
+// context interface in both workflows and activities.
+func WithWorkflowContext(ctx context.Context, dc converter.DataConverter) converter.DataConverter {
+	if aware, ok := dc.(interface {
+		WithWorkflowContext(context.Context) converter.DataConverter
+	}); ok {
+		dc = aware.WithWorkflowContext(ctx)
+	} else if aware, ok := dc.(interface {
+		WithContext(context.Context) converter.DataConverter
+	}); ok {
+		dc = aware.WithContext(ctx)
+	}
+	if isNilConverter(dc) {
+		panic("workflow: context-aware data converter returned nil")
+	}
+	return dc
+}
+
+func WithContext(ctx context.Context, dc converter.DataConverter) converter.DataConverter {
+	if aware, ok := dc.(interface {
+		WithContext(context.Context) converter.DataConverter
+	}); ok {
+		dc = aware.WithContext(ctx)
+	}
+	if isNilConverter(dc) {
+		panic("workflow: context-aware data converter returned nil")
+	}
+	return dc
+}
+
+func isNilConverter(dc converter.DataConverter) bool {
+	return dc == nil || reflect.ValueOf(dc).Kind() == reflect.Pointer && reflect.ValueOf(dc).IsNil()
+}
+
+// GetDataConverter returns the converter selected and bound to ctx. Futures
+// capture it when scheduled, rather than using the context passed to Get.
+func GetDataConverter(ctx context.Context) converter.DataConverter {
+	if ctx == nil {
+		panic("workflow: nil context")
+	}
+	dc, _ := ctx.Value(dataConverterKey{}).(converter.DataConverter)
+	if dc == nil {
+		dc = currentDataConverter()
+	}
+	return protectProtobuf(WithWorkflowContext(ctx, dc))
+}
+
+func rootDataConverter() converter.DataConverter {
+	if rootContext != nil {
+		return GetDataConverter(rootContext)
+	}
+	return currentDataConverter()
+}
+
+func encodeContextArgs(ctx context.Context, args []any) ([]byte, error) {
+	if ctx == nil {
+		return nil, fmt.Errorf("workflow: nil context")
+	}
+	return encodeArgsWithConverter(args, GetDataConverter(ctx))
 }

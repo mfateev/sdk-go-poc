@@ -67,3 +67,52 @@ result/error getters. Native Go concurrency/time and SideEffect exclusions remai
 explicit. Method-set conformance, compiled isolate checks, race/ownership checks
 and saved server-history replay cover this contract. See the parity table and
 metadata behavior in [INTERCEPTORS.md](INTERCEPTORS.md).
+
+## Upstream unit-test migration
+
+[TEST_PORTING.md](TEST_PORTING.md) lists every source unit test, its disposition,
+new SDK coverage, and missing-feature decisions. The normal test suite enforces
+that list. Compare it with the upstream checkout when changing SDK dependencies:
+
+```sh
+../golang-go/bin/go run ./internal/cmd/testports -upstream ../temporal-go-sdk
+```
+
+The user-selected context propagation and converter feature is implemented.
+Marked factories construct native propagators inside each isolate; native
+context-aware converters and `WithDataConverter` choose serialization per context.
+Queries and validators use scratch instances, and futures preserve their scheduling
+converter. The eight associated source entries are resolved in the checklist:
+five native ports, one retained host activity-environment test with native boundary
+coverage, and two obsolete cooperative deadlock-detector wrapper tests.
+`example/contextpropagation/check` exercises the ports and saved server-history
+replay at GOMAXPROCS 1/2/8. Live checks passed with workflow cache sizes 1000 and 0.
+
+Custom failure conversion is also implemented using the existing Temporal
+`converter.FailureConverter` interface. Marked native factories receive copied
+configuration and the operation's data converter; fresh instances cover read-only
+validation/query ownership. Host converters retain activity retry and client
+decoding responsibilities. `example/failureconversion/check` ports
+`TestCustomFailureConverter`, asserting custom error identity and one activity
+attempt, and adds workflow/local/child/update/previous-run coverage, per-context
+details, compressed live histories and replay. The startup protocol is now 5.
+
+
+Generated Google protobuf values are implemented for the native workflow API
+boundaries using the pinned SDK's binary and JSON converters. Canonical descriptors
+stay process-owned; reflection/coder caches and pools are private, including scratch
+conversion for read-only handlers. Generated type provenance is part of the current
+POC interface. The API marker remains 1; markers can change freely
+during development and do not select compatibility implementations.
+Both original protobuf cases use host-only activity environments and are retained,
+with native counterparts, compiled API/ownership checks, codecs and saved-history
+replay. Gogo, dynamic messages, extensions, weak/opaque layouts and custom resolvers
+remain separate scope.
+
+Corrupt-signal handling is implemented for native typed channels, inbound payload
+admission and byte-valued `NextSignal`. Undecodable values produce an error log
+and increment `temporal_corrupted_signals`, then readers continue to the next
+valid value. All five upstream receive/select/nonblocking/closed-channel tests
+are covered in `example/signals/check`, including converter/interceptor adapters,
+late registration, malformed envelopes and replay metric suppression. The live
+server check verifies skipping and replays the recorded histories.

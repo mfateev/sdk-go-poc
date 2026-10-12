@@ -35,6 +35,8 @@ func externalWorkflow(ctx context.Context, workflowID, runID, name string, arg a
 	if workflowID == "" || (!cancel && name == "") {
 		return failOperation(f, errors.New("workflow: empty external workflow ID or signal name"))
 	}
+	f.converterContext = ctx
+	f.dataConverter = GetDataConverter(ctx)
 	r := ExternalRequest{ID: nextCallID.Add(1), Namespace: runOptions(ctx).Namespace, WorkflowID: workflowID, RunID: runID, SignalName: name, Cancel: cancel}
 	var headerErr error
 	r.Header, headerErr = outgoingHeader(ctx)
@@ -43,7 +45,7 @@ func externalWorkflow(ctx context.Context, workflowID, runID, name string, arg a
 	}
 	if !cancel {
 		var err error
-		r.Payloads, err = encodeActivityArgs([]any{arg})
+		r.Payloads, err = encodeArgsWithConverter([]any{arg}, f.dataConverter)
 		if err != nil {
 			return failOperation(f, err)
 		}

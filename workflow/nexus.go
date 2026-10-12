@@ -124,7 +124,9 @@ func (c nexusClient) executeOperation(ctx context.Context, operation, input any,
 	if options.CancellationType < NexusOperationCancellationTypeAbandon || options.CancellationType > NexusOperationCancellationTypeWaitCompleted {
 		return fail(errors.New("workflow: invalid Nexus cancellation policy"))
 	}
-	payloads, err := encodeActivityArgs([]any{input})
+	f.converterContext = ctx
+	f.dataConverter = GetDataConverter(ctx)
+	payloads, err := encodeArgsWithConverter([]any{input}, f.dataConverter)
 	if err != nil {
 		return fail(err)
 	}

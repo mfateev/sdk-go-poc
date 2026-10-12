@@ -105,7 +105,7 @@ func completeOperation(f *activityFuture, response []byte, err error, ctx contex
 			}
 			if f.err == nil && len(outcome.Failure) != 0 {
 				var transportErr error
-				f.err, transportErr = failurecodec.Decode(outcome.Failure, currentDataConverter())
+				f.err, transportErr = decodeFailure(outcome.Failure, futureDataConverter(f))
 				if transportErr != nil {
 					f.err = fmt.Errorf("workflow: decode operation failure: %w", transportErr)
 				}
@@ -121,13 +121,13 @@ func completeOperation(f *activityFuture, response []byte, err error, ctx contex
 	close(f.done)
 }
 
-func encodeOptionValues(values map[string]any) (map[string][]byte, error) {
+func encodeOptionValues(values map[string]any, dc converter.DataConverter) (map[string][]byte, error) {
 	if values == nil {
 		return nil, nil
 	}
 	result := make(map[string][]byte, len(values))
 	for key, value := range values {
-		raw, err := encodeActivityArgs([]any{value})
+		raw, err := encodeArgsWithConverter([]any{value}, dc)
 		if err != nil {
 			return nil, err
 		}
@@ -166,11 +166,13 @@ func executeChildWorkflow(ctx context.Context, fn any, args ...any) ChildWorkflo
 	if o.WorkflowExecutionTimeout < 0 || o.WorkflowRunTimeout < 0 || o.WorkflowTaskTimeout < 0 {
 		return fail(errors.New("workflow: negative child workflow timeout"))
 	}
-	payloads, err := encodeActivityArgs(args)
+	f.converterContext = ctx
+	f.dataConverter = GetDataConverter(ctx)
+	payloads, err := encodeArgsWithConverter(args, f.dataConverter)
 	if err != nil {
 		panic(err)
 	}
-	memo, err := encodeOptionValues(o.Memo)
+	memo, err := encodeOptionValues(o.Memo, f.dataConverter)
 	if err != nil {
 		return fail(err)
 	}
@@ -227,7 +229,9 @@ func signalChildWorkflow(ctx context.Context, workflowID, name string, data any)
 	if ctx == nil {
 		return fail(errors.New("workflow: nil context"))
 	}
-	payloads, err := encodeActivityArgs([]any{data})
+	result.converterContext = ctx
+	result.dataConverter = GetDataConverter(ctx)
+	payloads, err := encodeArgsWithConverter([]any{data}, result.dataConverter)
 	if err != nil {
 		return fail(err)
 	}

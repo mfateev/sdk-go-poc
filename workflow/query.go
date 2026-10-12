@@ -40,6 +40,7 @@ type QueryResponse struct {
 }
 
 var queryHandlers = make(map[string]any)
+var queryContexts = make(map[string]context.Context)
 var queryServiceStarted bool
 
 // SetQueryHandler retains the SDK signature, with a standard Go context for
@@ -67,6 +68,7 @@ func setQueryHandlerWithOptions(ctx context.Context, queryType string, handler a
 		return err
 	}
 	queryHandlers[queryType] = handler // The SDK permits replacing a handler.
+	queryContexts[queryType] = ctx
 	startReadOnlyService()
 	raw, err := json.Marshal(QueryRegistration{Name: queryType, Options: options})
 	if err != nil {
@@ -167,8 +169,24 @@ func invokeQueryWithHeader(name string, handler any, raw []byte, header map[stri
 	if handler == nil {
 		return nil, errors.New("workflow: query handler not registered")
 	}
+	base := context.Background()
+	if registered := queryContexts[name]; registered != nil {
+		base = context.WithoutCancel(registered)
+	} else if rootContext != nil {
+		base = context.WithoutCancel(rootContext)
+	}
+	if len(observationID) != 0 {
+		base = context.WithValue(base, tracecontext.ScopeKey{}, observationID[0])
+	}
+	ctx, cancel := context.WithCancel(base)
+	defer cancel()
+	ctx, err = withIncomingHeader(ctx, header)
+	if err != nil {
+		return nil, err
+	}
+	dc := GetDataConverter(ctx)
 	t := reflect.TypeOf(handler)
-	payloads, err := decodePayloads(raw)
+	payloads, err := decodePayloads(raw, dc)
 	if err != nil {
 		return nil, err
 	}
@@ -179,29 +197,17 @@ func invokeQueryWithHeader(name string, handler any, raw []byte, header map[stri
 	pointers := make([]any, len(args))
 	for i := range args {
 		p := reflect.New(t.In(i))
-		if isProtoValue(p.Interface()) {
-			return nil, errors.New("workflow: protobuf values are outside the isolate POC subset")
+		if isUnsupportedProtoValue(p.Interface()) {
+			return nil, errors.New("workflow: only generated Google protobuf messages without extensions are supported")
 		}
 		pointers[i], args[i] = p.Interface(), p.Elem()
 	}
-	if err := currentDataConverter().FromPayloads(payloads, pointers...); err != nil {
+	if err := dc.FromPayloads(payloads, pointers...); err != nil {
 		return nil, err
 	}
 	var value any
 	if instanceInterceptorFactory.Name() != "" {
-		base := context.Background()
-		if rootContext != nil {
-			base = context.WithoutCancel(rootContext)
-		}
-		if len(observationID) != 0 {
-			base = context.WithValue(base, tracecontext.ScopeKey{}, observationID[0])
-		}
-		ctx, cancel := context.WithCancel(base)
-		defer cancel()
-		ctx, err = withInterceptorHeader(ctx, header)
-		if err != nil {
-			return nil, err
-		}
+
 		ctx, chain, err := scratchInterceptors(ctx)
 		if err != nil {
 			return nil, err
@@ -221,10 +227,10 @@ func invokeQueryWithHeader(name string, handler any, raw []byte, header map[stri
 		}
 		value = values[0].Interface()
 	}
-	if isProtoValue(value) {
-		return nil, errors.New("workflow: protobuf values are outside the isolate POC subset")
+	if isUnsupportedProtoValue(value) {
+		return nil, errors.New("workflow: only generated Google protobuf messages without extensions are supported")
 	}
-	payloads, err = currentDataConverter().ToPayloads(value)
+	payloads, err = dc.ToPayloads(value)
 	if err != nil {
 		return nil, err
 	}

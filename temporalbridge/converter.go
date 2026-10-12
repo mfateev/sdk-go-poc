@@ -9,6 +9,7 @@ import (
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/converter"
 	bindings "go.temporal.io/sdk/internalbindings"
+	"go.temporal.io/sdk/temporal"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -143,18 +144,26 @@ func mapFailurePayloads(raw []byte, dc converter.DataConverter, encode bool) ([]
 	return failurewire.Encode(f)
 }
 
-func encodeInboundFailure(cause error, dc converter.DataConverter) ([]byte, error) {
-	raw, err := failurecodec.Encode(cause, dc)
+func encodeInboundFailure(cause error, dc converter.DataConverter, converters ...converter.FailureConverter) ([]byte, error) {
+	fc := converter.FailureConverter(temporal.NewDefaultFailureConverter(temporal.DefaultFailureConverterOptions{DataConverter: dc}))
+	if len(converters) != 0 {
+		fc = converters[0]
+	}
+	raw, err := failurecodec.EncodeWithConverter(cause, fc)
 	if err != nil {
 		return nil, err
 	}
 	return mapFailurePayloads(raw, dc, false)
 }
 
-func decodeOutboundFailure(raw []byte, dc converter.DataConverter) (error, error) {
+func decodeOutboundFailure(raw []byte, dc converter.DataConverter, converters ...converter.FailureConverter) (error, error) {
 	encoded, err := mapFailurePayloads(raw, dc, true)
 	if err != nil {
 		return nil, err
 	}
-	return failurecodec.Decode(encoded, dc)
+	fc := converter.FailureConverter(temporal.NewDefaultFailureConverter(temporal.DefaultFailureConverterOptions{DataConverter: dc}))
+	if len(converters) != 0 {
+		fc = converters[0]
+	}
+	return failurecodec.DecodeWithConverter(encoded, fc)
 }

@@ -21,6 +21,7 @@ func checkLive() {
 	must(err)
 	defer func() { must(server.Stop()) }()
 	c := server.Client()
+	checkLiveCorrupt(ctx, c)
 	for _, mode := range []string{"wake", "late", "continue"} {
 		queue := fmt.Sprintf("proactive-signals-%s-%d", mode, time.Now().UnixNano())
 		w := worker.New(c, queue, worker.Options{})

@@ -1,0 +1,16 @@
+syntax = "proto3";
+package native.protobuf;
+option go_package = "github.com/mfateev/sdk-go-poc/example/protobufvalues/model;model";
+import "google/protobuf/timestamp.proto";
+import "settings.proto";
+import "state.proto";
+message Record {
+ int64 sequence = 1;
+ bytes data = 2;
+ repeated string names = 3;
+ map<string, Record> entries = 4;
+ State state = 5;
+ google.protobuf.Timestamp at = 6;
+ Settings settings = 9;
+ oneof choice { string title = 7; Record child = 8; }
+}

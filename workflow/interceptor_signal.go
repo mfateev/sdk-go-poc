@@ -27,13 +27,17 @@ func serveInterceptedSignals() {
 		if err = json.Unmarshal(raw, &signal); err != nil {
 			panic(err)
 		}
-		ctx, err := withInterceptorHeader(rootContext, signal.Header)
+		ctx, err := withIncomingHeader(rootContext, signal.Header)
 		if err != nil {
 			panic(err)
 		}
-		payloads, err := decodePayloads(signal.Payloads)
+		payloads, err := decodePayloads(signal.Payloads, GetDataConverter(ctx))
 		if err != nil {
-			panic(err)
+			reportCorruptSignal(ctx, signal.Name, err)
+			// Acknowledge a dropped signal so admission can finish and the next
+			// signal can traverse the interceptor chain.
+			response = []byte("{}")
+			continue
 		}
 		outcome := InterceptedSignals{}
 		ctx = context.WithValue(ctx, interceptedSignalKey{}, func(in *HandleSignalInput) error {

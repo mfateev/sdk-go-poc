@@ -1,0 +1,4 @@
+syntax = "proto3";
+package native.protobuf;
+option go_package = "github.com/mfateev/sdk-go-poc/example/protobufvalues/model;model";
+enum State { STATE_UNKNOWN = 0; STATE_READY = 1; }

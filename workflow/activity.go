@@ -115,11 +115,12 @@ func (v *futureValue) Get(valuePtr any) error {
 
 type activityFuture struct {
 	// Execution handles are SDK metadata, encoded with built-in JSON.
-	dataConverter converter.DataConverter
-	ready         atomic.Bool
-	done          chan struct{}
-	payload       []byte
-	err           error
+	dataConverter    converter.DataConverter
+	converterContext context.Context
+	ready            atomic.Bool
+	done             chan struct{}
+	payload          []byte
+	err              error
 }
 
 func (f *activityFuture) ToChannel() <-chan FutureResult {
@@ -131,7 +132,7 @@ func (f *activityFuture) ToChannel() <-chan FutureResult {
 			results <- FutureResult{Err: f.err}
 			return
 		}
-		payloads, err := decodePayloads(f.payload)
+		payloads, err := decodePayloads(f.payload, futureDataConverter(f))
 		if err == nil && len(payloads.Payloads) > 1 {
 			err = fmt.Errorf("workflow: operation returned %d payloads, want 1", len(payloads.Payloads))
 		}
@@ -161,7 +162,13 @@ func (f *activityFuture) Get(ctx context.Context, valuePtr any) error {
 	}
 	// Like SDK Future.Get, a canceled waiting context does not abandon the wait.
 	// The execution context controls cancellation of the underlying activity.
-	<-f.done
+	if isolate.IsReadOnly() {
+		if !f.ready.Load() {
+			return errors.New("workflow: read-only handlers cannot wait on an incomplete future")
+		}
+	} else {
+		<-f.done
+	}
 	if f.err != nil || valuePtr == nil || len(f.payload) == 0 {
 		return f.err
 	}
@@ -169,10 +176,10 @@ func (f *activityFuture) Get(ctx context.Context, valuePtr any) error {
 	if value.Kind() != reflect.Pointer || value.IsNil() {
 		return errors.New("valuePtr parameter is not a non-nil pointer")
 	}
-	if isProtoValue(valuePtr) || isProtoValue(value.Elem().Interface()) {
-		return errors.New("workflow: protobuf values are outside the isolate POC subset")
+	if isUnsupportedProtoValue(valuePtr) || isUnsupportedProtoValue(value.Elem().Interface()) {
+		return errors.New("workflow: only generated Google protobuf messages without extensions are supported")
 	}
-	payloads, err := decodePayloads(f.payload)
+	payloads, err := decodePayloads(f.payload, futureDataConverter(f))
 	if err != nil {
 		return err
 	}
@@ -182,10 +189,7 @@ func (f *activityFuture) Get(ctx context.Context, valuePtr any) error {
 	if len(payloads.Payloads) != 1 {
 		return fmt.Errorf("workflow: operation returned %d payloads, want 1", len(payloads.Payloads))
 	}
-	dc := f.dataConverter
-	if dc == nil {
-		dc = currentDataConverter()
-	}
+	dc := futureDataConverter(f)
 	return dc.FromPayloads(payloads, valuePtr)
 }
 
@@ -245,7 +249,9 @@ func executeActivity(ctx context.Context, activity any, args ...any) Future {
 	if options.StartToCloseTimeout == 0 && options.ScheduleToCloseTimeout == 0 {
 		return fail(errors.New("workflow: activity requires StartToCloseTimeout or ScheduleToCloseTimeout"))
 	}
-	payloads, err := encodeActivityArgs(args)
+	f.converterContext = ctx
+	f.dataConverter = GetDataConverter(ctx)
+	payloads, err := encodeArgsWithConverter(args, f.dataConverter)
 	if err != nil {
 		panic(err)
 	} // SDK serialization errors fail the task.
@@ -275,7 +281,7 @@ func executeActivity(ctx context.Context, activity any, args ...any) Future {
 				f.payload = outcome.Payloads
 				if len(outcome.Failure) != 0 {
 					var transportErr error
-					f.err, transportErr = failurecodec.Decode(outcome.Failure, currentDataConverter())
+					f.err, transportErr = decodeFailure(outcome.Failure, f.dataConverter)
 					if transportErr != nil {
 						f.err = fmt.Errorf("workflow: decode activity failure: %w", transportErr)
 					} else if outcome.Canceled {
@@ -306,4 +312,14 @@ type ActivityOutcome struct {
 	Payloads  []byte `json:"payloads"`
 	Error     string `json:"error,omitempty"`
 	Canceled  bool   `json:"canceled,omitempty"`
+}
+
+func futureDataConverter(f *activityFuture) converter.DataConverter {
+	if isolate.IsReadOnly() && f.converterContext != nil {
+		return GetDataConverter(f.converterContext)
+	}
+	if f.dataConverter != nil {
+		return f.dataConverter
+	}
+	return rootDataConverter()
 }

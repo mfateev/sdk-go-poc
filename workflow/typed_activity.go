@@ -79,8 +79,8 @@ func executeActivity[R any](ctx context.Context, name string, function bool, tim
 	if name == "" || timeout <= 0 {
 		return zero, errors.New("workflow: activity name and timeout are required")
 	}
-	if isProtoValue(zero) || isProtoValue(&zero) {
-		return zero, errors.New("workflow: protobuf values are outside the isolate POC subset")
+	if isUnsupportedProtoValue(zero) || isUnsupportedProtoValue(&zero) {
+		return zero, errors.New("workflow: only generated Google protobuf messages without extensions are supported")
 	}
 	payloads, err := encodeActivityArgs(args)
 	if err != nil {

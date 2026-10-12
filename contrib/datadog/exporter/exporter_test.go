@@ -60,3 +60,43 @@ func TestPropagatedDatadogMetadata(t *testing.T) {
 		t.Fatalf("tags lost: %v", carrier)
 	}
 }
+
+func TestUpstreamOnFinishOption(t *testing.T) {
+	host := mocktracer.Start()
+	defer host.Stop()
+	for _, description := range []string{"ignore me", "unexpected"} {
+		tid, _ := trace.TraceIDFromHex("12345678901234560000000000000099")
+		sid, _ := trace.SpanIDFromHex("0000000000000088")
+		sc := trace.NewSpanContext(trace.SpanContextConfig{TraceID: tid, SpanID: sid})
+		record := otelwire.Span{Version: 1, Name: "temporal.RunWorkflow", Context: otelwire.FromContext(sc), Start: 100, End: 200, Status: int(codes.Error), StatusDescription: description}
+		raw, err := json.Marshal(record)
+		if err != nil {
+			t.Fatal(err)
+		}
+		calls := 0
+		handler := NewSinkHandler(Options{OnFinish: func(cause error) []tracer.FinishOption {
+			calls++
+			if cause == nil || cause.Error() != description {
+				t.Fatalf("finish cause=%v", cause)
+			}
+			if strings.Contains(cause.Error(), "ignore me") {
+				return nil
+			}
+			return []tracer.FinishOption{tracer.WithError(cause)}
+		}})
+		handler(worker.SinkEvent{Payload: raw})
+		spans := host.FinishedSpans()
+		if calls != 1 || len(spans) != 1 || spans[0].FinishTime().UnixNano() != 200 {
+			t.Fatalf("calls=%d spans=%v", calls, spans)
+		}
+		message, _ := spans[0].Tag("error.message").(string)
+		expected := ""
+		if description == "unexpected" {
+			expected = description
+		}
+		if message != expected {
+			t.Fatalf("custom finish error message=%q", message)
+		}
+		host.Reset()
+	}
+}

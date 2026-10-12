@@ -13,8 +13,10 @@ import (
 	"github.com/mfateev/sdk-go-poc/temporalbridge"
 	"github.com/mfateev/sdk-go-poc/worker"
 	commonpb "go.temporal.io/api/common/v1"
+	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/converter"
 	bindings "go.temporal.io/sdk/internalbindings"
+	"go.temporal.io/sdk/log"
 	sdkworker "go.temporal.io/sdk/worker"
 	sdkwf "go.temporal.io/sdk/workflow"
 )
@@ -30,13 +32,15 @@ func (r *registration) RegisterWorkflowWithOptions(fn any, _ sdkwf.RegisterOptio
 
 type environment struct {
 	bindings.WorkflowEnvironment
-	dc        converter.DataConverter
-	signal    func(string, *commonpb.Payloads, *commonpb.Header) error
-	cancel    func()
-	result    *commonpb.Payloads
-	err       error
-	completed bool
-	timer     bindings.ResultHandler
+	dc          converter.DataConverter
+	signal      func(string, *commonpb.Payloads, *commonpb.Header) error
+	cancel      func()
+	result      *commonpb.Payloads
+	err         error
+	completed   bool
+	timer       bindings.ResultHandler
+	replay      bool
+	diagnostics *diagnostics
 }
 
 func (*environment) WorkflowInfo() *sdkwf.Info {
@@ -44,7 +48,9 @@ func (*environment) WorkflowInfo() *sdkwf.Info {
 }
 func (*environment) Now() time.Time                              { return time.Unix(1700000000, 0) }
 func (e *environment) GetDataConverter() converter.DataConverter { return e.dc }
-func (*environment) IsReplaying() bool                           { return false }
+func (e *environment) IsReplaying() bool                         { return e.replay }
+func (e *environment) GetLogger() log.Logger                     { return e.diagnostics }
+func (e *environment) GetMetricsHandler() client.MetricsHandler  { return e.diagnostics }
 func (e *environment) RegisterCancelHandler(fn func())           { e.cancel = fn }
 func (*environment) RegisterQueryHandler(func(string, *commonpb.Payloads, *commonpb.Header) (*commonpb.Payloads, error)) {
 }
@@ -81,7 +87,7 @@ func check(mode string, configured bool, intercepted bool) {
 		must(err)
 		must(worker.SetIsolateDataConverter(w, worker.DataConverterOptions{Factory: custom.New, Config: []byte("typed-signals")}))
 	}
-	e := &environment{dc: dc}
+	e := &environment{dc: dc, diagnostics: new(diagnostics)}
 	d := r.factory.NewWorkflowDefinition()
 	defer d.Close()
 	input, err := dc.ToPayloads(mode)
@@ -108,26 +114,24 @@ func check(mode string, configured bool, intercepted bool) {
 			for _, value := range want {
 				var payloads *commonpb.Payloads
 				if mode == "malformed" {
-					payloads, err = dc.ToPayloads("wrong signal type")
-				} else {
-					payloads, err = dc.ToPayloads(value)
+					bad, err := dc.ToPayloads("wrong signal type")
+					must(err)
+					must(e.signal("message", bad, nil))
 				}
+				payloads, err = dc.ToPayloads(value)
 				must(err)
 				must(e.signal("message", payloads, nil))
 			}
 		}
 		d.OnWorkflowTaskStarted(5 * time.Second)
 	}()
-	if mode == "conflict" || mode == "malformed" {
+	if mode == "conflict" {
 		task, ok := fault.(*temporalbridge.WorkflowTaskError)
 		var failure *isolate.PanicError
 		if !ok || !errors.As(task, &failure) || e.completed {
 			panic(fmt.Sprintf("invalid signal should fail task: fault=%v completed=%t", fault, e.completed))
 		}
-		text := "decode signal"
-		if mode == "conflict" {
-			text = "already registered"
-		}
+		text := "already registered"
 		if !strings.Contains(failure.Message, text) {
 			panic(failure)
 		}
@@ -135,6 +139,9 @@ func check(mode string, configured bool, intercepted bool) {
 	}
 	if fault != nil || !e.completed || e.err != nil {
 		panic(fmt.Sprintf("typed signal completion: fault=%v completed=%t err=%v", fault, e.completed, e.err))
+	}
+	if mode == "malformed" {
+		e.diagnostics.check(3, false)
 	}
 	var got []signals.Message
 	must(dc.FromPayloads(e.result, &got))
@@ -162,7 +169,7 @@ func checkDrain(mode string, intercepted bool) {
 		must(worker.SetIsolateInterceptors(w, worker.InterceptorOptions{Factory: signals.NewInterceptors}))
 	}
 	dc := converter.GetDefaultDataConverter()
-	e := &environment{dc: dc}
+	e := &environment{dc: dc, diagnostics: new(diagnostics)}
 	d := r.factory.NewWorkflowDefinition()
 	defer d.Close()
 	input, err := dc.ToPayloads(mode)
@@ -221,8 +228,18 @@ func checkDrain(mode string, intercepted bool) {
 }
 
 func main() {
+	corruptMode := flag.String("corrupt-mode", "", "run a corrupt-signal port")
 	live := flag.Bool("live", false, "check a local Temporal dev server and replay its signal histories")
 	flag.Parse()
+	if *corruptMode != "" {
+		for _, configured := range []bool{false, true} {
+			for _, intercepted := range []bool{false, true} {
+				checkCorrupt(*corruptMode, configured, intercepted, false)
+			}
+		}
+		checkCorrupt(*corruptMode, false, false, true)
+		return
+	}
 	if *live {
 		checkLive()
 		return
