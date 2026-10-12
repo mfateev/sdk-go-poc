@@ -28,6 +28,7 @@ const (
 )
 
 type UpdateRegistration struct {
+	Dynamic          bool                    `json:"dynamic,omitempty"`
 	Name             string                  `json:"name"`
 	UnfinishedPolicy HandlerUnfinishedPolicy `json:"unfinished_policy"`
 	Description      string                  `json:"description,omitempty"`
@@ -47,6 +48,7 @@ type UpdateCompletion struct {
 }
 
 type updateHandler struct {
+	dynamic            bool
 	handler, validator any
 	ctx                context.Context
 }
@@ -103,12 +105,16 @@ func setUpdateHandlerWithOptions(ctx context.Context, name string, handler any, 
 		return err
 	}
 	updateHandlers[name] = updateHandler{handler: handler, validator: options.Validator, ctx: ctx}
+	return registerUpdate(UpdateRegistration{Name: name, UnfinishedPolicy: options.UnfinishedPolicy, Description: options.Description})
+}
+
+func registerUpdate(registration UpdateRegistration) error {
 	startReadOnlyService()
 	if !updateServiceStarted {
 		updateServiceStarted = true
 		isolate.GoWithPriority(isolate.PriorityHigh, serveUpdates)
 	}
-	raw, err := json.Marshal(UpdateRegistration{Name: name, UnfinishedPolicy: options.UnfinishedPolicy, Description: options.Description})
+	raw, err := json.Marshal(registration)
 	if err != nil {
 		return err
 	}
@@ -217,7 +223,7 @@ func validateUpdate(request QueryRequest) (failure []byte, err error) {
 			})
 		}
 	}()
-	h := updateHandlers[request.Name]
+	h := resolveUpdateHandler(request.Name)
 	if h.handler == nil {
 		return nil, errors.New("workflow: update handler not registered")
 	}
@@ -239,7 +245,7 @@ func validateUpdate(request QueryRequest) (failure []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
-	args, cause := updateArguments(h.handler, ctxWithInfo, request.Payloads)
+	args, cause := updateHandlerArguments(h, h.handler, ctxWithInfo, request.Name, request.Payloads)
 	if cause == nil && instanceInterceptorFactory.Name() != "" {
 		ctxWithInfo = context.WithValue(ctxWithInfo, updateSkipValidatorKey{}, request.SkipValidator)
 		ctxWithInfo, chain, chainErr := scratchInterceptors(ctxWithInfo)
@@ -253,7 +259,7 @@ func validateUpdate(request QueryRequest) (failure []byte, err error) {
 		cause = chain.inbound.ValidateUpdate(ctxWithInfo, input)
 	} else if cause == nil && !request.SkipValidator && h.validator != nil {
 		var args []reflect.Value
-		args, cause = updateArguments(h.validator, ctxWithInfo, request.Payloads)
+		args, cause = updateHandlerArguments(h, h.validator, ctxWithInfo, request.Name, request.Payloads)
 		if cause == nil {
 			result := reflect.ValueOf(h.validator).Call(args)[0].Interface()
 			if result != nil {
@@ -289,7 +295,7 @@ func serveUpdates() {
 
 func executeUpdate(request UpdateRequest) {
 	info := &UpdateInfo{ID: request.ID, Name: request.Name}
-	h := updateHandlers[request.Name]
+	h := resolveUpdateHandler(request.Name)
 	base := h.ctx
 	if base == nil {
 		base = rootContext
@@ -299,7 +305,7 @@ func executeUpdate(request UpdateRequest) {
 	if headerErr != nil {
 		panic(headerErr)
 	}
-	args, cause := updateArguments(h.handler, ctx, request.Payloads)
+	args, cause := updateHandlerArguments(h, h.handler, ctx, request.Name, request.Payloads)
 	var value any
 	if cause == nil {
 		// Handler panics follow the normal SDK Workflow Task failure policy.

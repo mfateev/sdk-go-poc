@@ -251,6 +251,29 @@ func (w *registrationWorker) RegisterActivityWithOptions(fn any, options activit
 	w.env.TestWorkflowEnvironment.RegisterActivityWithOptions(fn, options)
 }
 
+func (e *TestWorkflowEnvironment) RegisterDynamicWorkflow(fn any, options goWorkflow.DynamicRegisterOptions) {
+	e.ensureOpen()
+	if _, marked := isolate.LookupFunction(fn); !marked {
+		if t := reflect.TypeOf(fn); t != nil && t.Kind() == reflect.Func && t.NumIn() > 0 && t.In(0) == reflect.TypeFor[context.Context]() {
+			panic("testsuite: native dynamic workflows must be top-level //go:isolate functions built with the isolate-aware go test toolchain")
+		}
+	}
+	e.worker.RegisterDynamicWorkflow(fn, options)
+}
+
+func (w *registrationWorker) RegisterDynamicWorkflow(fn any, options goWorkflow.DynamicRegisterOptions) {
+	if f, ok := fn.(temporalbridge.Factory); ok {
+		f.TestRefHandler = w.env.refs.Handle
+		f.ResolveLocalActivity = func(name string) any { return w.env.activities[name] }
+		fn = testFactory{env: w.env, factory: f}
+	}
+	w.env.TestWorkflowEnvironment.RegisterDynamicWorkflow(fn, options)
+}
+
+func (w *registrationWorker) RegisterDynamicActivity(fn any, options activity.DynamicRegisterOptions) {
+	w.env.TestWorkflowEnvironment.RegisterDynamicActivity(fn, options)
+}
+
 type testFactory struct {
 	env     *TestWorkflowEnvironment
 	factory temporalbridge.Factory
@@ -287,6 +310,9 @@ type testDefinition struct {
 
 func (d *testDefinition) Execute(env bindings.WorkflowEnvironment, header *commonpb.Header, input *commonpb.Payloads) {
 	d.host, d.header, d.input = testHost{WorkflowEnvironment: env, owner: d.owner}, header, input
+	if d.factory.Dynamic {
+		d.name = env.WorkflowInfo().WorkflowType.Name
+	}
 }
 
 func (d *testDefinition) OnWorkflowTaskStarted(timeout time.Duration) {

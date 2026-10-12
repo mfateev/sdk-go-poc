@@ -556,6 +556,76 @@ Run the local-server update and recorded-history replay checks with:
 UPDATES_DEV_SERVER=1 ../golang-go/bin/go test -count=1 ./example/update/check
 ```
 
+### Dynamic workflows and handlers
+
+`worker.RegisterDynamicWorkflow` and the replayer's matching method accept a
+marked native function taking `(context.Context, converter.EncodedValues)` and
+returning `error` or `(result, error)`. The fallback runs when the requested
+workflow type has no named registration. Read the requested type through
+`workflow.GetInfo(ctx).WorkflowType.Name`; `args.Get` decodes arbitrary arguments
+inside the isolate. Register only one dynamic workflow per worker or replayer.
+The host SDK still loads `DynamicRegisterOptions.LoadDynamicRuntimeOptions`.
+The native test environment also supports `RegisterDynamicWorkflow`.
+
+```go
+//go:isolate
+func DynamicWorkflow(ctx context.Context, args converter.EncodedValues) (string, error) {
+    var first, second string
+    if err := args.Get(&first, &second); err != nil { return "", err }
+    return workflow.GetInfo(ctx).WorkflowType.Name + ":" + first + ":" + second, nil
+}
+
+w.RegisterDynamicWorkflow(DynamicWorkflow, workflow.DynamicRegisterOptions{})
+```
+
+Within any native workflow, register fallbacks with:
+
+```go
+workflow.SetDynamicQueryHandler(ctx,
+    func(name string, args converter.EncodedValues) (string, error) {
+        return name, nil
+    }, workflow.QueryHandlerOptions{Description: "Fallback queries"})
+
+workflow.SetDynamicUpdateHandler(ctx,
+    func(ctx context.Context, name string, args converter.EncodedValues) (string, error) {
+        return name, nil
+    }, workflow.UpdateHandlerOptions{
+        Validator: func(name string, args converter.EncodedValues) error { return nil },
+        Description: "Fallback updates",
+    })
+```
+
+Query handlers return `(result, error)`. Update handlers may return only `error`;
+validators return `error` and may additionally take `context.Context` first.
+Named query/update registrations take precedence, including an explicitly empty
+name. Registering a fallback again replaces it. Names beginning with `__` remain
+reserved and never reach a fallback. Query metadata describes fallback handlers
+with an empty name. Update metadata uses the same convention.
+
+Queries and validators retain the existing read-only ownership checks, scratch
+converters and interceptor chains. Handler interceptor arguments contain the
+requested name and `converter.EncodedValues`; workflow interceptor arguments
+contain the encoded values. Payloads are copied into the isolate after host
+codecs are removed. `Get` uses the registration context's converter, and rejects
+unsupported protobuf values. Encoded values are local to the handler's owner;
+queries and validators cannot save them into captured workflow state. Accepted
+updates run with native priority and expose the actual name and ID through
+`GetCurrentUpdateInfo`. Registration yields to matching queued updates within the
+current task. Unregistered updates are rejected when that task reaches idle.
+Completed workflows retain dynamic query state until eviction or test cleanup.
+
+The adapted application sample lives in the sibling
+`samples-go-poc/dynamic-workflows` checkout. `example/dynamic` contains SDK
+regression fixtures; its checker covers custom
+serialization, compression codecs, inbound interceptors, cache eviction and saved
+history replay at GOMAXPROCS 1/2/8:
+
+```sh
+../golang-go/bin/go test ./example/dynamic/check -run 'TestDynamic|TestNativeDynamic'
+../golang-go/bin/go test ./example/dynamic/check
+DYNAMIC_DEV_SERVER=1 ../golang-go/bin/go test -count=1 ./example/dynamic/check
+```
+
 ### Continue-as-new and workflow versioning
 
 Use the SDK names and error type with a native context:

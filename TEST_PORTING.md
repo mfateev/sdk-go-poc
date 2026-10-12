@@ -17,9 +17,9 @@ Statuses:
 
 | Disposition | Source tests |
 | --- | ---: |
-| covered | 205 |
+| covered | 206 |
 | retained | 857 |
-| blocked | 38 |
+| blocked | 37 |
 | obsolete | 39 |
 | out_of_scope | 332 |
 | suite | 26 |
@@ -28,7 +28,7 @@ Statuses:
 
 ## Feature decisions
 
-The initial feature group was deferred by the user on 2026-10-11. Subsequently selected context propagation, data converters, custom failure conversion, generated protobuf values, corrupt-signal handling, stack-trace queries and the isolate test environment are implemented. Other questions remain marked `awaiting_user` until answered; deferred tests stay blocked. No missing feature is implicitly treated as a completed port.
+The initial feature group was deferred by the user on 2026-10-11. Subsequently selected context propagation, data converters, custom failure conversion, generated protobuf values, corrupt-signal handling, stack-trace queries, native dynamic workflow/query/update handlers and the isolate test environment are implemented. Other questions remain marked `awaiting_user` until answered; deferred tests stay blocked. No missing feature is implicitly treated as a completed port.
 
 The isolate test facade reuses the host SDK test engine. Its original activity, timeout, retry, child scheduling and tracing assertion suites remain retained; linked native tests supplement those assertions. Direct ports cover the facade's native mock, listener, registration, ordering and completed-query behavior. Retained entries do not claim exhaustive duplication of every original assertion inside an isolate.
 
@@ -36,7 +36,7 @@ The isolate test facade reuses the host SDK test engine. Its original activity, 
 | --- | --- | ---: |
 | Workflow context propagators and native context-aware/per-context data converters. | implemented | 0 |
 | Custom failure conversion at the isolate workflow boundary. | implemented | 0 |
-| Native dynamic workflow/query/update handlers. | user_deferred | 1 |
+| Native dynamic workflow/query/update handlers. | implemented | 0 |
 | External-storage payload references at the isolate boundary (host middleware remains unchanged). | awaiting_user | 0 |
 | Skip corrupt signals and log/metric them instead of failing a task. | implemented | 0 |
 | Named independent workflow random streams with upstream golden sequence semantics. | user_deferred | 9 |
@@ -2300,7 +2300,7 @@ PATH="$(cd ../../../../golang-go/bin && pwd):$PATH" ../../../../golang-go/bin/go
 | `TestMockCallWrapperInOrder` | covered | `test_environment`: Ports a local activity mock called before its prerequisite, including InOrder and the PanicError assertion. [TestMockCallWrapperOrderFailures](testsuite/upstream_test.go) |
 | `TestMockCallWrapperNotBefore` | covered | `test_environment`: Ports a local activity mock called before its prerequisite, including NotBefore and the PanicError assertion. [TestMockCallWrapperOrderFailures](testsuite/upstream_test.go) |
 | `TestCustomFailureConverter` | covered | `custom_failure_converter`: The compiled native port reconstructs the custom error type and asserts that its NonRetryable flag limits activity execution to one attempt. Additional checks cover workflow/local/child/update failures, read-only validators/previous-run queries, precise details, per-context data converters, factory validation and compressed saved-history replay. [TestUpstreamCustomFailureConverter](example/failureconversion/check/main_test.go) [TestCustomFailureHistoryReplay](example/failureconversion/check/main_test.go) [TestCustomFailureRoundTripAndCancellation](internal/failurecodec/failurecodec_test.go) |
-| `TestDynamicWorkflows` | blocked | `dynamic_handlers`: Native dynamic workflow registration is absent; ordinary host registrations remain unchanged. |
+| `TestDynamicWorkflows` | covered | `dynamic_handlers`: Native dynamic workflow dispatch and host dynamic activities are exercised through the exported test environment. Additional coverage verifies dynamic children, named precedence, arbitrary query/update names, converter/interceptor ownership, read-only validators, replacement, precise results, live cache eviction and recorded history replay. [TestDynamicWorkflows](example/dynamic/check/native_test.go) [TestNativeDynamicQueryAndUpdateHandlers](example/dynamic/check/native_test.go) [TestDynamicHistoryReplay](example/dynamic/check/main_test.go) |
 | `TestRequestCancelExternalWorkflowInSelector` | covered | Source behavior exercised through native SDK APIs or the copied-byte host bridge. [TestCompiledAPICoverageAndReplay](example/apicoverage/check/main_test.go) [TestUpstreamNativeSDKPorts](example/upstream/check/main_test.go) |
 | `TestExecuteActivitiesInWorkflow` | covered | Source behavior exercised through native SDK APIs or the copied-byte host bridge. [TestCompiledAPICoverageAndReplay](example/apicoverage/check/main_test.go) [TestUpstreamNativeSDKPorts](example/upstream/check/main_test.go) |
 

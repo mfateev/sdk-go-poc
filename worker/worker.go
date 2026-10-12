@@ -37,7 +37,7 @@ func New(c client.Client, taskQueue string, options Options) Worker {
 }
 
 // Wrap adds isolate registration to an existing worker. All lifecycle,
-// activity, dynamic workflow, and service methods retain their SDK behavior.
+// activity and service methods retain their SDK behavior.
 // Pass the options used to construct the worker if they differ from defaults.
 // Isolate workflows require BlockWorkflow panic policy. Ordinary registrations
 // keep the underlying worker's policy and converter.
@@ -67,6 +67,8 @@ type isolateWorker struct {
 	propagators         propagatorConfiguration
 	failures            failureConverterConfiguration
 	failWorkflowOnPanic bool
+	dynamicRegistered   bool
+	dynamicMu           sync.Mutex
 }
 
 // Match Temporal's short-name alias rules. This table stays on the host, and
@@ -167,6 +169,8 @@ func registration(fn any, options goWorkflow.RegisterOptions, resolve func(strin
 }
 
 type isolateReplayer struct {
+	dynamicRegistered bool
+	dynamicMu         sync.Mutex
 	goWorker.WorkflowReplayer
 	workflows    activityAliases
 	activities   activityAliases

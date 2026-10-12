@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"isolate"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/mfateev/sdk-go-poc/internal/headerwire"
@@ -50,7 +51,11 @@ func (d *definition) handleQuery(command *isolate.Command) error {
 	if d.queryHandlers == nil {
 		d.queryHandlers = make(map[string]workflow.QueryHandlerOptions)
 	}
-	d.queryHandlers[r.Name] = r.Options
+	if r.Dynamic {
+		d.dynamicQuery = &r.Options
+	} else {
+		d.queryHandlers[r.Name] = r.Options
+	}
 	d.replyWhenSuspended(command, nil, nil)
 	return nil
 }
@@ -68,7 +73,7 @@ func (d *definition) query(name string, input *commonpb.Payloads, header *common
 	if name == client.QueryTypeStackTrace {
 		return d.env.GetDataConverter().ToPayloads(d.StackTrace())
 	}
-	if _, ok := d.queryHandlers[name]; !ok {
+	if _, ok := d.queryHandlers[name]; !ok && (d.dynamicQuery == nil || strings.HasPrefix(name, "__")) {
 		keys := make([]string, 0, len(d.queryHandlers)+1)
 		keys = append(keys, client.QueryTypeStackTrace)
 		for key := range d.queryHandlers {

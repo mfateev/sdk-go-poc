@@ -47,9 +47,11 @@ type Factory struct {
 	ReplayOnly bool
 	// ResolveLocalActivity is an optional host function lookup for custom hosts.
 	ResolveLocalActivity func(string) any
-	Program              isolate.Program
-	EntryName            string
-	Function             isolate.Handle
+	// Dynamic invokes Function with isolate-owned converter.EncodedValues.
+	Dynamic   bool
+	Program   isolate.Program
+	EntryName string
+	Function  isolate.Handle
 	// ResolveActivity maps function references to host registration aliases.
 	// It runs only on the host and is never passed into an isolate.
 	ResolveActivity func(string) string
@@ -144,7 +146,7 @@ func (f Factory) NewWorkflowDefinition() bindings.WorkflowDefinition {
 	if err := resources.Validate(); err != nil {
 		panic(err)
 	}
-	return &definition{testRefHandler: f.TestRefHandler, replayOnly: f.ReplayOnly, resolveLocalActivity: f.ResolveLocalActivity, converters: converters, failures: failures, propagators: propagators, interceptors: interceptors, resources: resources, program: f.Program, entryName: f.EntryName, resolveWorkflow: f.ResolveWorkflow, resolveActivity: f.ResolveActivity, resolveLogHandler: f.ResolveLogHandler, resolveSink: f.ResolveSink}
+	return &definition{testRefHandler: f.TestRefHandler, replayOnly: f.ReplayOnly, resolveLocalActivity: f.ResolveLocalActivity, converters: converters, failures: failures, propagators: propagators, interceptors: interceptors, resources: resources, program: f.Program, dynamic: f.Dynamic, entryName: f.EntryName, resolveWorkflow: f.ResolveWorkflow, resolveActivity: f.ResolveActivity, resolveLogHandler: f.ResolveLogHandler, resolveSink: f.ResolveSink}
 }
 
 type reply struct {
@@ -166,6 +168,9 @@ type callState struct {
 }
 
 type definition struct {
+	dynamic              bool
+	dynamicQuery         *workflow.QueryHandlerOptions
+	dynamicUpdate        *workflow.UpdateRegistration
 	testRefHandler       func([]byte, bool) ([]byte, error)
 	replayOnly           bool
 	resolveLocalActivity func(string) any
@@ -543,7 +548,7 @@ func (d *definition) finishWorkflow(result *commonpb.Payloads, err error) {
 	d.completed = true
 	d.warnUnfinishedUpdates(err)
 	d.rejectUnhandledUpdates()
-	if len(d.queryHandlers) != 0 && instance != nil {
+	if (len(d.queryHandlers) != 0 || d.dynamicQuery != nil) && instance != nil {
 		d.retainedCompletion = &workflowCompletion{result: result, err: err}
 		d.retireOperations()
 		instance.FreezeWorkflow()
@@ -719,7 +724,7 @@ func (d *definition) handle(command *isolate.Command) error {
 				return err
 			}
 		}
-		payload, err := json.Marshal(workflow.PayloadStart{FailureConverterFactory: d.failures.Factory.Name(), FailureConverterConfig: d.failures.Config, PropagatorFactory: d.propagators.Factory.Name(), PropagatorConfig: d.propagators.Config, ConverterFactory: d.converters.Factory.Name(), InterceptorFactory: d.interceptors.Factory.Name(), InterceptorConfig: d.interceptors.Config, Header: d.header, ConverterConfig: d.converters.Config, Name: d.entryName, Payloads: input, Canceled: d.canceled, TaskQueue: d.env.WorkflowInfo().TaskQueueName, Options: workflow.RunOptions{Namespace: d.env.WorkflowInfo().Namespace, TaskQueue: d.env.WorkflowInfo().TaskQueueName, WorkflowExecutionTimeout: d.env.WorkflowInfo().WorkflowExecutionTimeout, WorkflowRunTimeout: d.env.WorkflowInfo().WorkflowRunTimeout, WorkflowTaskTimeout: d.env.WorkflowInfo().WorkflowTaskTimeout}})
+		payload, err := json.Marshal(workflow.PayloadStart{Dynamic: d.dynamic, FailureConverterFactory: d.failures.Factory.Name(), FailureConverterConfig: d.failures.Config, PropagatorFactory: d.propagators.Factory.Name(), PropagatorConfig: d.propagators.Config, ConverterFactory: d.converters.Factory.Name(), InterceptorFactory: d.interceptors.Factory.Name(), InterceptorConfig: d.interceptors.Config, Header: d.header, ConverterConfig: d.converters.Config, Name: d.entryName, Payloads: input, Canceled: d.canceled, TaskQueue: d.env.WorkflowInfo().TaskQueueName, Options: workflow.RunOptions{Namespace: d.env.WorkflowInfo().Namespace, TaskQueue: d.env.WorkflowInfo().TaskQueueName, WorkflowExecutionTimeout: d.env.WorkflowInfo().WorkflowExecutionTimeout, WorkflowRunTimeout: d.env.WorkflowInfo().WorkflowRunTimeout, WorkflowTaskTimeout: d.env.WorkflowInfo().WorkflowTaskTimeout}})
 		if err != nil {
 			return err
 		}
@@ -1058,7 +1063,7 @@ func (d *definition) Close() {
 		d.closed = true
 		d.retireOperations()
 		d.queryWaiter, d.queryHandlers, d.retainedCompletion = nil, nil, nil
-		d.signalChannels = nil
+		d.signalChannels, d.dynamicQuery = nil, nil
 		d.testRefHandler = nil
 	}
 	if d.instance == nil {
@@ -1111,7 +1116,7 @@ func (d *definition) retireOperations() {
 	for _, state := range d.updates {
 		state.callbacks, state.payload = nil, nil
 	}
-	d.updates, d.queuedUpdates, d.updateHandlers = nil, nil, nil
+	d.updates, d.queuedUpdates, d.updateHandlers, d.dynamicUpdate = nil, nil, nil, nil
 	d.updateWaiter, d.updateRegistrations = nil, nil
 	for _, state := range d.activities {
 		state.waiter, state.cancel, state.payload = nil, nil, nil

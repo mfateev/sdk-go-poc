@@ -113,6 +113,12 @@ func (d *definition) workflowMetadata() (*commonpb.Payloads, error) {
 	for name, options := range d.queryHandlers {
 		definition.QueryDefinitions = append(definition.QueryDefinitions, &sdkpb.WorkflowInteractionDefinition{Name: name, Description: options.Description})
 	}
+	if d.dynamicQuery != nil {
+		definition.QueryDefinitions = append(definition.QueryDefinitions, &sdkpb.WorkflowInteractionDefinition{Description: d.dynamicQuery.Description})
+	}
+	if d.dynamicUpdate != nil {
+		definition.UpdateDefinitions = append(definition.UpdateDefinitions, &sdkpb.WorkflowInteractionDefinition{Description: d.dynamicUpdate.Description})
+	}
 	for name, options := range d.signalChannels {
 		definition.SignalDefinitions = append(definition.SignalDefinitions, &sdkpb.WorkflowInteractionDefinition{Name: name, Description: options.Description})
 	}

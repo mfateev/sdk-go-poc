@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"isolate"
 	"slices"
+	"strings"
 
 	"github.com/mfateev/sdk-go-poc/internal/headerwire"
 	"github.com/mfateev/sdk-go-poc/workflow"
@@ -63,7 +64,11 @@ func (d *definition) handleUpdate(command *isolate.Command) error {
 		if d.updateHandlers == nil {
 			d.updateHandlers = make(map[string]workflow.UpdateRegistration)
 		}
-		d.updateHandlers[r.Name] = r
+		if r.Dynamic {
+			d.dynamicUpdate = &r
+		} else {
+			d.updateHandlers[r.Name] = r
+		}
 		// SDK registration yields to updates awaiting this handler. Keep the
 		// registering goroutine parked until admitted handlers reach idle.
 		d.updateRegistrations = append(d.updateRegistrations, command)
@@ -117,7 +122,7 @@ func (d *definition) admitUpdate() bool {
 	}
 	index := -1
 	for i, state := range d.queuedUpdates {
-		if _, ok := d.updateHandlers[state.name]; ok {
+		if _, ok := d.updateHandlers[state.name]; ok || (d.dynamicUpdate != nil && !strings.HasPrefix(state.name, "__")) {
 			index = i
 			break
 		}
@@ -177,7 +182,7 @@ func (d *definition) warnUnfinishedUpdates(cause error) {
 	}
 	var unfinished []workflow.UpdateInfo
 	for _, state := range d.updates {
-		if state.accepted && d.updateHandlers[state.name].UnfinishedPolicy == workflow.HandlerUnfinishedPolicyWarnAndAbandon {
+		if state.accepted && d.updateRegistration(state.name).UnfinishedPolicy == workflow.HandlerUnfinishedPolicyWarnAndAbandon {
 			unfinished = append(unfinished, workflow.UpdateInfo{ID: state.id, Name: state.name})
 		}
 	}
@@ -195,4 +200,14 @@ func (d *definition) warnUnfinishedUpdates(cause error) {
 			logger.Warn("Workflow finished with unfinished update handlers", "Updates", unfinished)
 		}
 	}
+}
+
+func (d *definition) updateRegistration(name string) workflow.UpdateRegistration {
+	if registration, ok := d.updateHandlers[name]; ok {
+		return registration
+	}
+	if d.dynamicUpdate != nil && !strings.HasPrefix(name, "__") {
+		return *d.dynamicUpdate
+	}
+	return workflow.UpdateRegistration{}
 }

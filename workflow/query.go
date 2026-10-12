@@ -17,6 +17,7 @@ import (
 type QueryHandlerOptions = goWorkflow.QueryHandlerOptions
 
 type QueryRegistration struct {
+	Dynamic bool                `json:"dynamic,omitempty"`
 	Name    string              `json:"name"`
 	Options QueryHandlerOptions `json:"options"`
 }
@@ -69,8 +70,12 @@ func setQueryHandlerWithOptions(ctx context.Context, queryType string, handler a
 	}
 	queryHandlers[queryType] = handler // The SDK permits replacing a handler.
 	queryContexts[queryType] = ctx
+	return registerQuery(QueryRegistration{Name: queryType, Options: options})
+}
+
+func registerQuery(registration QueryRegistration) error {
 	startReadOnlyService()
-	raw, err := json.Marshal(QueryRegistration{Name: queryType, Options: options})
+	raw, err := json.Marshal(registration)
 	if err != nil {
 		return err
 	}
@@ -166,11 +171,17 @@ func invokeQueryWithHeader(name string, handler any, raw []byte, header map[stri
 			err = fmt.Errorf("query handler panic: %v", p)
 		}
 	}()
+	registeredHandler, registered, dynamic := resolveQueryHandler(name)
+	if handler == nil {
+		handler = registeredHandler
+	} else {
+		dynamic = false
+	}
 	if handler == nil {
 		return nil, errors.New("workflow: query handler not registered")
 	}
 	base := context.Background()
-	if registered := queryContexts[name]; registered != nil {
+	if registered != nil {
 		base = context.WithoutCancel(registered)
 	} else if rootContext != nil {
 		base = context.WithoutCancel(rootContext)
@@ -190,20 +201,25 @@ func invokeQueryWithHeader(name string, handler any, raw []byte, header map[stri
 	if err != nil {
 		return nil, err
 	}
-	if err := checkArgumentCount(payloads, t.NumIn()); err != nil {
-		return nil, err
-	}
-	args := make([]reflect.Value, t.NumIn())
-	pointers := make([]any, len(args))
-	for i := range args {
-		p := reflect.New(t.In(i))
-		if isUnsupportedProtoValue(p.Interface()) {
-			return nil, errors.New("workflow: only generated Google protobuf messages without extensions are supported")
+	var args []reflect.Value
+	if dynamic {
+		args = []reflect.Value{reflect.ValueOf(name), reflect.ValueOf(encodedArguments{payloads, dc})}
+	} else {
+		if err := checkArgumentCount(payloads, t.NumIn()); err != nil {
+			return nil, err
 		}
-		pointers[i], args[i] = p.Interface(), p.Elem()
-	}
-	if err := dc.FromPayloads(payloads, pointers...); err != nil {
-		return nil, err
+		args = make([]reflect.Value, t.NumIn())
+		pointers := make([]any, len(args))
+		for i := range args {
+			p := reflect.New(t.In(i))
+			if isUnsupportedProtoValue(p.Interface()) {
+				return nil, errors.New("workflow: only generated Google protobuf messages without extensions are supported")
+			}
+			pointers[i], args[i] = p.Interface(), p.Elem()
+		}
+		if err := dc.FromPayloads(payloads, pointers...); err != nil {
+			return nil, err
+		}
 	}
 	var value any
 	if instanceInterceptorFactory.Name() != "" {

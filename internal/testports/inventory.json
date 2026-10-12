@@ -187,8 +187,8 @@
     },
     "dynamic_handlers": {
       "description": "Native dynamic workflow/query/update handlers.",
-      "decision": "user_deferred",
-      "request": "User answered: Keep these blocked for now; finish supported-feature tests (2026-10-11)."
+      "decision": "implemented",
+      "request": "User requested implementation on 2026-10-12. Native fallback workflows and query/update handlers use isolate-owned encoded values, the existing read-only service, and host SDK registration/replay."
     },
     "protobuf_values": {
       "description": "Generated Google protobuf values inside isolate workflow APIs (binary/JSON, private caches and read-only conversion).",
@@ -10146,9 +10146,14 @@
     {
       "source": "internal/workflow_testsuite_test.go",
       "name": "TestDynamicWorkflows",
-      "status": "blocked",
-      "reason": "Native dynamic workflow registration is absent; ordinary host registrations remain unchanged.",
-      "feature": "dynamic_handlers"
+      "status": "covered",
+      "reason": "Native dynamic workflow dispatch and host dynamic activities are exercised through the exported test environment. Additional coverage verifies dynamic children, named precedence, arbitrary query/update names, converter/interceptor ownership, read-only validators, replacement, precise results, live cache eviction and recorded history replay.",
+      "feature": "dynamic_handlers",
+      "targets": [
+        "example/dynamic/check/native_test.go::TestDynamicWorkflows",
+        "example/dynamic/check/native_test.go::TestNativeDynamicQueryAndUpdateHandlers",
+        "example/dynamic/check/main_test.go::TestDynamicHistoryReplay"
+      ]
     },
     {
       "source": "internal/workflow_testsuite_test.go",

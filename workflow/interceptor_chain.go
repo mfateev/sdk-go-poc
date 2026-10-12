@@ -148,13 +148,14 @@ func (t *interceptorTerminal) HandleSignal(ctx context.Context, in *HandleSignal
 	return deliver(in)
 }
 func (t *interceptorTerminal) HandleQuery(_ context.Context, in *HandleQueryInput) (any, error) {
-	return invokeHandler(queryHandlers[in.QueryType], nil, in.Args)
+	handler, _, _ := resolveQueryHandler(in.QueryType)
+	return invokeHandler(handler, nil, in.Args)
 }
 func (t *interceptorTerminal) ValidateUpdate(ctx context.Context, in *UpdateInput) error {
 	if skip, _ := ctx.Value(updateSkipValidatorKey{}).(bool); skip {
 		return nil
 	}
-	validator := updateHandlers[in.Name].validator
+	validator := resolveUpdateHandler(in.Name).validator
 	if validator == nil {
 		return nil
 	}
@@ -162,7 +163,7 @@ func (t *interceptorTerminal) ValidateUpdate(ctx context.Context, in *UpdateInpu
 	return err
 }
 func (t *interceptorTerminal) ExecuteUpdate(ctx context.Context, in *UpdateInput) (any, error) {
-	return invokeHandler(updateHandlers[in.Name].handler, ctx, in.Args)
+	return invokeHandler(resolveUpdateHandler(in.Name).handler, ctx, in.Args)
 }
 
 type updateSkipValidatorKey struct{}

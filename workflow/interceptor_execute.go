@@ -8,29 +8,40 @@ import (
 	"reflect"
 
 	commonpb "go.temporal.io/api/common/v1"
+	"go.temporal.io/sdk/converter"
 )
 
-func runInterceptedFunction(handle isolate.Handle, ctx context.Context, payloads *commonpb.Payloads) error {
+func runInterceptedFunction(handle isolate.Handle, ctx context.Context, payloads *commonpb.Payloads, dynamic bool) error {
 	signature := handle.Signature()
 	if signature.NumIn() == 0 || signature.In(0) != reflect.TypeFor[context.Context]() {
 		return completePayloads(nil, errors.New("workflow: isolate workflow must take context.Context first"))
 	}
-	if err := checkArgumentCount(payloads, signature.NumIn()-1); err != nil {
-		return completePayloads(nil, err)
-	}
-	pointers := make([]any, signature.NumIn()-1)
-	for i := range pointers {
-		pointers[i] = reflect.New(signature.In(i + 1)).Interface()
-		if isUnsupportedProtoValue(pointers[i]) {
-			return completePayloads(nil, errors.New("workflow: only generated Google protobuf messages without extensions are supported"))
+	var pointers []any
+	if !dynamic {
+		if err := checkArgumentCount(payloads, signature.NumIn()-1); err != nil {
+			return completePayloads(nil, err)
+		}
+		pointers = make([]any, signature.NumIn()-1)
+		for i := range pointers {
+			pointers[i] = reflect.New(signature.In(i + 1)).Interface()
+			if isUnsupportedProtoValue(pointers[i]) {
+				return completePayloads(nil, errors.New("workflow: only generated Google protobuf messages without extensions are supported"))
+			}
+		}
+		if err := GetDataConverter(ctx).FromPayloads(payloads, pointers...); err != nil {
+			return completePayloads(nil, fmt.Errorf("workflow: decode arguments: %w", err))
 		}
 	}
-	if err := GetDataConverter(ctx).FromPayloads(payloads, pointers...); err != nil {
-		return completePayloads(nil, fmt.Errorf("workflow: decode arguments: %w", err))
-	}
-	input := &ExecuteWorkflowInput{Args: make([]any, len(pointers))}
-	for i, pointer := range pointers {
-		input.Args[i] = reflect.ValueOf(pointer).Elem().Interface()
+	input := &ExecuteWorkflowInput{Args: make([]any, signature.NumIn()-1)}
+	if dynamic {
+		if signature.NumIn() != 2 || signature.In(1) != reflect.TypeFor[converter.EncodedValues]() {
+			return completePayloads(nil, errors.New("workflow: invalid dynamic workflow signature"))
+		}
+		input.Args[0] = encodedArguments{payloads, GetDataConverter(ctx)}
+	} else {
+		for i, pointer := range pointers {
+			input.Args[i] = reflect.ValueOf(pointer).Elem().Interface()
+		}
 	}
 	chain, err := buildInterceptors(ctx, func(ctx context.Context, input *ExecuteWorkflowInput) (any, error) {
 		rootContext = ctx

@@ -116,3 +116,13 @@ valid value. All five upstream receive/select/nonblocking/closed-channel tests
 are covered in `example/signals/check`, including converter/interceptor adapters,
 late registration, malformed envelopes and replay metric suppression. The live
 server check verifies skipping and replays the recorded histories.
+
+Native dynamic workflow/query/update handlers are implemented. Workers, replayers
+and the native test facade register marked fallback workflows with
+`converter.EncodedValues`. Named registrations take precedence; queries and
+validators use the existing scratch owner, converters and inbound interceptor
+chain. Dynamic updates retain acceptance ordering, failure conversion and
+unfinished-handler policies. `example/dynamic/check/native_test.go` ports `TestDynamicWorkflows`
+and covers arbitrary handler names, replacement and completed queries.
+`example/dynamic/check` verifies compressed live histories and saved replay with
+workflow cache sizes 1000 and 0. See [dynamic workflows and handlers](README.md#dynamic-workflows-and-handlers).

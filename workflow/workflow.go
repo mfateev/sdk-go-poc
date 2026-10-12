@@ -247,6 +247,7 @@ type Start struct {
 // PayloadStart carries the entry name and serialized Temporal Payloads. The
 // bytes cross the isolate boundary; Go argument values do not.
 type PayloadStart struct {
+	Dynamic                 bool              `json:"dynamic,omitempty"`
 	FailureConverterFactory string            `json:"failure_converter_factory,omitempty"`
 	FailureConverterConfig  []byte            `json:"failure_converter_config,omitempty"`
 	PropagatorFactory       string            `json:"propagator_factory,omitempty"`
@@ -425,7 +426,7 @@ func runFunction(handle, factory isolate.Handle, supports []isolate.Handle) erro
 	}
 	configureInterceptors(interceptorFactory, start.InterceptorConfig)
 	if interceptorFactory.Name() != "" {
-		return runInterceptedFunction(handle, ctx, payloads)
+		return runInterceptedFunction(handle, ctx, payloads, start.Dynamic)
 	}
 	var result *commonpb.Payloads
 	err = handle.Invoke(func(args ...isolate.Value) error {
@@ -437,6 +438,17 @@ func runFunction(handle, factory isolate.Handle, supports []isolate.Handle) erro
 			return errors.New("workflow: isolate workflow must take context.Context first")
 		}
 		*slot = ctx
+		if start.Dynamic {
+			if len(args) != 2 {
+				return errors.New("workflow: invalid dynamic workflow signature")
+			}
+			slot, ok := args[1].Pointer.(*converter.EncodedValues)
+			if !ok {
+				return errors.New("workflow: dynamic workflow must take converter.EncodedValues second")
+			}
+			*slot = encodedArguments{payloads, GetDataConverter(ctx)}
+			return nil
+		}
 		args = args[1:]
 		if err := checkArgumentCount(payloads, len(args)); err != nil {
 			return err
