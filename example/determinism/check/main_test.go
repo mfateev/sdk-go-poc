@@ -18,13 +18,6 @@ func TestSavedHistoryChecksComputedTrace(t *testing.T) {
 	if output, err := checktest.Command(t, binary, "-history", filename).CombinedOutput(); err != nil {
 		t.Fatalf("saved history: %v\n%s", err, output)
 	}
-	// Retain the pre-change fixture and make this deliberate POC compatibility
-	// break visible. Replacing it would hide changed random/select observations.
-	if output, err := checktest.Command(t, binary, "-history", "../testdata/history.json").CombinedOutput(); err == nil {
-		t.Fatalf("legacy independent-stream history unexpectedly passed:\n%s", output)
-	} else if !bytes.Contains(output, []byte("determinism trace changed")) {
-		t.Fatalf("legacy replay failed without identifying the sequence change: %v\n%s", err, output)
-	}
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		t.Fatal(err)

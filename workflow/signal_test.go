@@ -41,13 +41,12 @@ func TestDecodeTypedSignal(t *testing.T) {
 	if err != nil || null != nil {
 		t.Fatalf("null signal = %+v, %v", null, err)
 	}
-	legacy, err := decodeSignal[[]byte](Signal{Input: []byte("legacy")})
-	if err != nil || string(legacy) != "legacy" {
-		t.Fatalf("legacy signal = %q, %v", legacy, err)
-	}
 }
 
 func TestDecodeTypedSignalRejectsInvalidPayload(t *testing.T) {
+	if _, err := decodeSignal[[]byte](Signal{Input: []byte("raw")}); err == nil {
+		t.Fatal("signal without serialized payload accepted")
+	}
 	for _, signal := range []Signal{
 		signalPayload(t, "json/plain", `{"ID":1,"Tags":false}`),
 		signalPayload(t, "json/plain", `"wrong type"`),

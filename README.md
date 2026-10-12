@@ -94,11 +94,9 @@ are copied too. A name first used by a read-only request does not register norma
 workflow state. Accepted updates advance the normal source. Draws into captured
 workflow buffers remain prohibited by read-only ownership checks.
 
-The initial POC seed encoding is superseded by the upstream contract. Its four
-saved histories remain under `example/random/testdata/pre-upstream` and are tested
-as incompatible, rather than being discarded. Ten current saved histories pin
-normal draws, distributions, reset transitions and child results across replay
-at GOMAXPROCS 1/2/8. All nine upstream unit cases are mapped in TEST_PORTING.md.
+Ten current saved histories pin normal draws, distributions, reset transitions
+and child results across replay at GOMAXPROCS 1/2/8. All nine upstream unit cases
+are mapped in TEST_PORTING.md.
 
 These generators are predictable; do not use them for cryptographic secrets.
 The runnable application sample is `samples-go-poc/random-streams` in the sibling
@@ -137,13 +135,11 @@ result; the checker also compares every completion observation against history.
 This is necessary because Temporal's SDK replay checks do not compare activity
 input payloads. A negative test corrupts both recorded results and verifies that
 replay still rejects the changed trace.
-The current shared-stream baseline is `history-shared-random.json`. The earlier
-`history.json` is retained, and a negative test confirms its independent-stream
-observations are incompatible with this deliberate POC change.
+The current shared-stream baseline is `history-shared-random.json`.
 The compiler repository's `isolate-determinism.yml` runs the
 same fixture on native Linux and macOS arm64/amd64, alongside runtime/compiler,
-SDK/sample, and repeated race tests. A fixture must be kept when runtime behavior
-changes; replacing it would hide an incompatible replay change.
+SDK/sample, and repeated race tests. During POC development, fixtures track the
+current implementation and can be regenerated when intended behavior changes.
 
 This module adapts statically linked Go isolates to the Temporal Go SDK's
 `WorkflowDefinitionFactory` boundary, the same level used by the Go bridge for
@@ -1474,41 +1470,17 @@ race and ownership instrumentation in CI. Dedicated resource-limit checks retain
 their short enforcement deadlines. Worker task and cleanup policies are separate
 from these fixture budgets. Native CI saves full command output as artifacts.
 
-### Upgrade and rollback validation
+### POC development and release policy
 
-Keep supported histories when changing the compiler, runtime or SDK. Replay with
-the candidate binary before deploying, and replay candidate histories with the
-rollback binary before declaring rollback supported. Workflow versioning still
-controls application command changes. Increment determinism versions when
-observable execution behavior changes; never replace a failing fixture to hide
-a compatibility break. Determinism 1 is the current shared random/select stream,
-not the earlier independent-stream POC behavior.
+Backward compatibility with earlier POC versions is not required. Maintain one
+current implementation, update replay fixtures when intended behavior changes,
+and validate replay determinism with the current compiler, runtime and SDK.
+Protocol and runtime markers check that current components agree; they do not
+select implementations for older POC versions.
 
-From this repo, with the custom compiler built:
-
-```sh
-export GOCACHE="$(cd .. && pwd)/go-build-cache"
-./example/compatibility/check.sh
-```
-
-The script builds the previous immutable SDK revision and current source, then
-replays histories recorded before and after the protocol change at GOMAXPROCS
-1/8. It compares the complete workflow trace, including recorded activity input
-and completion. Logs and binaries remain in a printed temporary directory; set
-`COMPATIBILITY_LOG_DIR` to choose it. This verifies SDK upgrade/rollback within
-determinism 1 using the current compiler. It does not promise arbitrary old
-toolchain or workflow-code compatibility. Native CI runs the same check on
-Linux/macOS arm64/amd64.
-
-To record an additional candidate history against a local Temporal server:
-
-```sh
-../golang-go/bin/go build -o /tmp/isolate-compatibility-record ./example/compatibility/record
-/tmp/isolate-compatibility-record -history /tmp/isolate-candidate-history.json
-```
-
-The recorder prints and validates the binary's integration identity. Keep the
-committed baseline unchanged when recording additional histories.
+Backward compatibility starts with the first release. After that release, retain
+supported histories and validate upgrade and rollback replay before claiming
+compatibility. Workflow versioning still controls application command changes.
 
 The Temporal SDK fork's canonical quality checks use standard Go 1.26.7:
 `cd internal/cmd/build && go run . check`. Isolate builds and replay tests use

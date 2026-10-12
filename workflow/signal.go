@@ -177,10 +177,6 @@ func decodeSignal[T any](signal Signal, contexts ...context.Context) (T, error) 
 		return value, errors.New("workflow: only generated Google protobuf messages without extensions are supported")
 	}
 	if len(signal.Payloads) == 0 {
-		// Legacy byte-input hosts may omit the serialized envelope.
-		if input, ok := any(signal.Input).(T); ok {
-			return input, nil
-		}
 		return value, errors.New("signal has no serialized payload")
 	}
 	dc := rootDataConverter()

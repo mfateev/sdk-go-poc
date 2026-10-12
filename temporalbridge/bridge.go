@@ -633,7 +633,7 @@ func (d *definition) handle(command *isolate.Command) error {
 			return errors.New("duplicate workflow cancellation listener")
 		}
 		if d.completed {
-			d.replyWhenSuspended(command, nil, nil)
+			d.replyWhenSuspended(command, nil, context.Canceled)
 		} else if d.canceled && !d.cancelDelivered {
 			d.cancelDelivered = true
 			d.replyWhenSuspended(command, d.controlBytes(), nil)

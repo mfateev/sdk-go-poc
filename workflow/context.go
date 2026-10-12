@@ -47,11 +47,6 @@ func executionContext(canceled bool, taskQueue string, options ...RunOptions) (c
 			if err != nil {
 				return
 			}
-			// Legacy custom hosts reply with an empty cancellation message.
-			if len(raw) == 0 {
-				cancel()
-				return
-			}
 			var control WorkflowControl
 			if err := json.Unmarshal(raw, &control); err != nil {
 				panic(err)

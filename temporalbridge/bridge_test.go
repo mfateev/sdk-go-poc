@@ -152,4 +152,7 @@ func TestCancelListenerRegisteredAfterCompletionIsReleased(t *testing.T) {
 	if d.cancelWaiter != nil || len(d.immediate) != 1 || d.immediate[0].command != command {
 		t.Fatal("completed workflow retained a late cancellation listener")
 	}
+	if !errors.Is(d.immediate[0].err, context.Canceled) {
+		t.Fatal("completed workflow did not stop its late control listener")
+	}
 }
