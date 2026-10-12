@@ -227,8 +227,8 @@
     },
     "workflow_streams": {
       "description": "Native workflow stream handler namespace and subscription APIs.",
-      "decision": "awaiting_user",
-      "request": "A second pass found more blocked test groups: workflow context propagators and context-aware/per-context converters, custom failure converters, external payload storage, preferred-version providers, workflow streams, and legacy workflow stack-trace queries. Should these also remain blocked, or should any be implemented?"
+      "decision": "implemented",
+      "request": "User requested implementation on 2026-10-12. Native handler namespace, workflow stream state/polling, publisher/client subscriptions, direct upstream ports and compiled live/replay coverage are implemented."
     },
     "stack_trace_query": {
       "description": "Workflow-instance stack-trace query API using native goroutine stacks.",
@@ -2318,177 +2318,252 @@
     {
       "source": "contrib/workflowstreams/client_test.go",
       "name": "TestFlushSendsBufferedItems",
-      "status": "blocked",
-      "reason": "Native workflow stream APIs/handler namespace exception are absent. The user was asked whether to implement this feature.",
-      "feature": "workflow_streams"
+      "status": "covered",
+      "reason": "Direct upstream host publisher/subscription port against the native stream package; fake clients preserve batching, error, cancellation and rollover assertions.",
+      "feature": "workflow_streams",
+      "targets": [
+        "contrib/workflowstreams/client_test.go::TestFlushSendsBufferedItems"
+      ]
     },
     {
       "source": "contrib/workflowstreams/client_test.go",
       "name": "TestPayloadConvertersDriveItemConversion",
-      "status": "blocked",
-      "reason": "Native workflow stream APIs/handler namespace exception are absent. The user was asked whether to implement this feature.",
-      "feature": "workflow_streams"
+      "status": "covered",
+      "reason": "Direct upstream host publisher/subscription port against the native stream package; fake clients preserve batching, error, cancellation and rollover assertions.",
+      "feature": "workflow_streams",
+      "targets": [
+        "contrib/workflowstreams/client_test.go::TestPayloadConvertersDriveItemConversion"
+      ]
     },
     {
       "source": "contrib/workflowstreams/client_test.go",
       "name": "TestFlushNoopWhenEmpty",
-      "status": "blocked",
-      "reason": "Native workflow stream APIs/handler namespace exception are absent. The user was asked whether to implement this feature.",
-      "feature": "workflow_streams"
+      "status": "covered",
+      "reason": "Direct upstream host publisher/subscription port against the native stream package; fake clients preserve batching, error, cancellation and rollover assertions.",
+      "feature": "workflow_streams",
+      "targets": [
+        "contrib/workflowstreams/client_test.go::TestFlushNoopWhenEmpty"
+      ]
     },
     {
       "source": "contrib/workflowstreams/client_test.go",
       "name": "TestSequenceAdvancesAcrossFlushes",
-      "status": "blocked",
-      "reason": "Native workflow stream APIs/handler namespace exception are absent. The user was asked whether to implement this feature.",
-      "feature": "workflow_streams"
+      "status": "covered",
+      "reason": "Direct upstream host publisher/subscription port against the native stream package; fake clients preserve batching, error, cancellation and rollover assertions.",
+      "feature": "workflow_streams",
+      "targets": [
+        "contrib/workflowstreams/client_test.go::TestSequenceAdvancesAcrossFlushes"
+      ]
     },
     {
       "source": "contrib/workflowstreams/client_test.go",
       "name": "TestMaxBatchSizeTriggersFlush",
-      "status": "blocked",
-      "reason": "Native workflow stream APIs/handler namespace exception are absent. The user was asked whether to implement this feature.",
-      "feature": "workflow_streams"
+      "status": "covered",
+      "reason": "Direct upstream host publisher/subscription port against the native stream package; fake clients preserve batching, error, cancellation and rollover assertions.",
+      "feature": "workflow_streams",
+      "targets": [
+        "contrib/workflowstreams/client_test.go::TestMaxBatchSizeTriggersFlush"
+      ]
     },
     {
       "source": "contrib/workflowstreams/client_test.go",
       "name": "TestCloseDrainsBuffer",
-      "status": "blocked",
-      "reason": "Native workflow stream APIs/handler namespace exception are absent. The user was asked whether to implement this feature.",
-      "feature": "workflow_streams"
+      "status": "covered",
+      "reason": "Direct upstream host publisher/subscription port against the native stream package; fake clients preserve batching, error, cancellation and rollover assertions.",
+      "feature": "workflow_streams",
+      "targets": [
+        "contrib/workflowstreams/client_test.go::TestCloseDrainsBuffer"
+      ]
     },
     {
       "source": "contrib/workflowstreams/client_test.go",
       "name": "TestForceFlush",
-      "status": "blocked",
-      "reason": "Native workflow stream APIs/handler namespace exception are absent. The user was asked whether to implement this feature.",
-      "feature": "workflow_streams"
+      "status": "covered",
+      "reason": "Direct upstream host publisher/subscription port against the native stream package; fake clients preserve batching, error, cancellation and rollover assertions.",
+      "feature": "workflow_streams",
+      "targets": [
+        "contrib/workflowstreams/client_test.go::TestForceFlush"
+      ]
     },
     {
       "source": "contrib/workflowstreams/client_test.go",
       "name": "TestFlushTimeoutAfterMaxRetryDuration",
-      "status": "blocked",
-      "reason": "Native workflow stream APIs/handler namespace exception are absent. The user was asked whether to implement this feature.",
-      "feature": "workflow_streams"
+      "status": "covered",
+      "reason": "Direct upstream host publisher/subscription port against the native stream package; fake clients preserve batching, error, cancellation and rollover assertions.",
+      "feature": "workflow_streams",
+      "targets": [
+        "contrib/workflowstreams/client_test.go::TestFlushTimeoutAfterMaxRetryDuration"
+      ]
     },
     {
       "source": "contrib/workflowstreams/codec_test.go",
       "name": "TestPayloadWireRoundTrip",
-      "status": "blocked",
-      "reason": "Native workflow stream APIs/handler namespace exception are absent. The user was asked whether to implement this feature.",
-      "feature": "workflow_streams"
+      "status": "covered",
+      "reason": "Direct upstream wire-codec port preserving base64 protobuf interoperability and payload encoding assertions.",
+      "feature": "workflow_streams",
+      "targets": [
+        "contrib/workflowstreams/codec_test.go::TestPayloadWireRoundTrip"
+      ]
     },
     {
       "source": "contrib/workflowstreams/codec_test.go",
       "name": "TestPayloadWireFormatIsBase64OfProto",
-      "status": "blocked",
-      "reason": "Native workflow stream APIs/handler namespace exception are absent. The user was asked whether to implement this feature.",
-      "feature": "workflow_streams"
+      "status": "covered",
+      "reason": "Direct upstream wire-codec port preserving base64 protobuf interoperability and payload encoding assertions.",
+      "feature": "workflow_streams",
+      "targets": [
+        "contrib/workflowstreams/codec_test.go::TestPayloadWireFormatIsBase64OfProto"
+      ]
     },
     {
       "source": "contrib/workflowstreams/codec_test.go",
       "name": "TestDecodePayloadWireRejectsBadBase64",
-      "status": "blocked",
-      "reason": "Native workflow stream APIs/handler namespace exception are absent. The user was asked whether to implement this feature.",
-      "feature": "workflow_streams"
+      "status": "covered",
+      "reason": "Direct upstream wire-codec port preserving base64 protobuf interoperability and payload encoding assertions.",
+      "feature": "workflow_streams",
+      "targets": [
+        "contrib/workflowstreams/codec_test.go::TestDecodePayloadWireRejectsBadBase64"
+      ]
     },
     {
       "source": "contrib/workflowstreams/codec_test.go",
       "name": "TestBinaryPayloadRoundTrip",
-      "status": "blocked",
-      "reason": "Native workflow stream APIs/handler namespace exception are absent. The user was asked whether to implement this feature.",
-      "feature": "workflow_streams"
+      "status": "covered",
+      "reason": "Direct upstream wire-codec port preserving base64 protobuf interoperability and payload encoding assertions.",
+      "feature": "workflow_streams",
+      "targets": [
+        "contrib/workflowstreams/codec_test.go::TestBinaryPayloadRoundTrip"
+      ]
     },
     {
       "source": "contrib/workflowstreams/subscribe_test.go",
       "name": "TestSubscribeDeliversItemsAndAdvancesOffset",
-      "status": "blocked",
-      "reason": "Native workflow stream APIs/handler namespace exception are absent. The user was asked whether to implement this feature.",
-      "feature": "workflow_streams"
+      "status": "covered",
+      "reason": "Direct upstream host publisher/subscription port against the native stream package; fake clients preserve batching, error, cancellation and rollover assertions.",
+      "feature": "workflow_streams",
+      "targets": [
+        "contrib/workflowstreams/subscribe_test.go::TestSubscribeDeliversItemsAndAdvancesOffset"
+      ]
     },
     {
       "source": "contrib/workflowstreams/subscribe_test.go",
       "name": "TestSubscribeTruncationResetsOffset",
-      "status": "blocked",
-      "reason": "Native workflow stream APIs/handler namespace exception are absent. The user was asked whether to implement this feature.",
-      "feature": "workflow_streams"
+      "status": "covered",
+      "reason": "Direct upstream host publisher/subscription port against the native stream package; fake clients preserve batching, error, cancellation and rollover assertions.",
+      "feature": "workflow_streams",
+      "targets": [
+        "contrib/workflowstreams/subscribe_test.go::TestSubscribeTruncationResetsOffset"
+      ]
     },
     {
       "source": "contrib/workflowstreams/subscribe_test.go",
       "name": "TestSubscribeTerminalEndsCleanly",
-      "status": "blocked",
-      "reason": "Native workflow stream APIs/handler namespace exception are absent. The user was asked whether to implement this feature.",
-      "feature": "workflow_streams"
+      "status": "covered",
+      "reason": "Direct upstream host publisher/subscription port against the native stream package; fake clients preserve batching, error, cancellation and rollover assertions.",
+      "feature": "workflow_streams",
+      "targets": [
+        "contrib/workflowstreams/subscribe_test.go::TestSubscribeTerminalEndsCleanly"
+      ]
     },
     {
       "source": "contrib/workflowstreams/subscribe_test.go",
       "name": "TestSubscribeContinueAsNewRetries",
-      "status": "blocked",
-      "reason": "Native workflow stream APIs/handler namespace exception are absent. The user was asked whether to implement this feature.",
-      "feature": "workflow_streams"
+      "status": "covered",
+      "reason": "Direct upstream host publisher/subscription port against the native stream package; fake clients preserve batching, error, cancellation and rollover assertions.",
+      "feature": "workflow_streams",
+      "targets": [
+        "contrib/workflowstreams/subscribe_test.go::TestSubscribeContinueAsNewRetries"
+      ]
     },
     {
       "source": "contrib/workflowstreams/subscribe_test.go",
       "name": "TestSubscribeRetriesWhileDraining",
-      "status": "blocked",
-      "reason": "Native workflow stream APIs/handler namespace exception are absent. The user was asked whether to implement this feature.",
-      "feature": "workflow_streams"
+      "status": "covered",
+      "reason": "Direct upstream host publisher/subscription port against the native stream package; fake clients preserve batching, error, cancellation and rollover assertions.",
+      "feature": "workflow_streams",
+      "targets": [
+        "contrib/workflowstreams/subscribe_test.go::TestSubscribeRetriesWhileDraining"
+      ]
     },
     {
       "source": "contrib/workflowstreams/subscribe_test.go",
       "name": "TestSubscribeSurfacesNonTerminalError",
-      "status": "blocked",
-      "reason": "Native workflow stream APIs/handler namespace exception are absent. The user was asked whether to implement this feature.",
-      "feature": "workflow_streams"
+      "status": "covered",
+      "reason": "Direct upstream host publisher/subscription port against the native stream package; fake clients preserve batching, error, cancellation and rollover assertions.",
+      "feature": "workflow_streams",
+      "targets": [
+        "contrib/workflowstreams/subscribe_test.go::TestSubscribeSurfacesNonTerminalError"
+      ]
     },
     {
       "source": "contrib/workflowstreams/subscribe_test.go",
       "name": "TestSubscribeContextCanceledBeforePolling",
-      "status": "blocked",
-      "reason": "Native workflow stream APIs/handler namespace exception are absent. The user was asked whether to implement this feature.",
-      "feature": "workflow_streams"
+      "status": "covered",
+      "reason": "Direct upstream host publisher/subscription port against the native stream package; fake clients preserve batching, error, cancellation and rollover assertions.",
+      "feature": "workflow_streams",
+      "targets": [
+        "contrib/workflowstreams/subscribe_test.go::TestSubscribeContextCanceledBeforePolling"
+      ]
     },
     {
       "source": "contrib/workflowstreams/subscribe_test.go",
       "name": "TestSubscribeCooldownCanceledByContext",
-      "status": "blocked",
-      "reason": "Native workflow stream APIs/handler namespace exception are absent. The user was asked whether to implement this feature.",
-      "feature": "workflow_streams"
+      "status": "covered",
+      "reason": "Direct upstream host publisher/subscription port against the native stream package; fake clients preserve batching, error, cancellation and rollover assertions.",
+      "feature": "workflow_streams",
+      "targets": [
+        "contrib/workflowstreams/subscribe_test.go::TestSubscribeCooldownCanceledByContext"
+      ]
     },
     {
       "source": "contrib/workflowstreams/subscribe_test.go",
       "name": "TestSubscribeCooldownAppliedWhenNotMoreReady",
-      "status": "blocked",
-      "reason": "Native workflow stream APIs/handler namespace exception are absent. The user was asked whether to implement this feature.",
-      "feature": "workflow_streams"
+      "status": "covered",
+      "reason": "Direct upstream host publisher/subscription port against the native stream package; fake clients preserve batching, error, cancellation and rollover assertions.",
+      "feature": "workflow_streams",
+      "targets": [
+        "contrib/workflowstreams/subscribe_test.go::TestSubscribeCooldownAppliedWhenNotMoreReady"
+      ]
     },
     {
       "source": "contrib/workflowstreams/workflow_test.go",
       "name": "TestWorkflowPublishUsesConfiguredConverters",
-      "status": "blocked",
-      "reason": "Native workflow stream APIs/handler namespace exception are absent. The user was asked whether to implement this feature.",
-      "feature": "workflow_streams"
+      "status": "covered",
+      "reason": "Direct upstream port using the native stream package; workflow handlers execute in compiled isolates with context.Context and native channels.",
+      "feature": "workflow_streams",
+      "targets": [
+        "contrib/workflowstreams/workflow_test.go::TestWorkflowPublishUsesConfiguredConverters"
+      ]
     },
     {
       "source": "contrib/workflowstreams/workflow_test.go",
       "name": "TestExternalPublishAndOffsetQuery",
-      "status": "blocked",
-      "reason": "Native workflow stream APIs/handler namespace exception are absent. The user was asked whether to implement this feature.",
-      "feature": "workflow_streams"
+      "status": "covered",
+      "reason": "Direct upstream port using the native stream package; workflow handlers execute in compiled isolates with context.Context and native channels.",
+      "feature": "workflow_streams",
+      "targets": [
+        "contrib/workflowstreams/workflow_test.go::TestExternalPublishAndOffsetQuery"
+      ]
     },
     {
       "source": "contrib/workflowstreams/workflow_test.go",
       "name": "TestPublisherDedup",
-      "status": "blocked",
-      "reason": "Native workflow stream APIs/handler namespace exception are absent. The user was asked whether to implement this feature.",
-      "feature": "workflow_streams"
+      "status": "covered",
+      "reason": "Direct upstream port using the native stream package; workflow handlers execute in compiled isolates with context.Context and native channels.",
+      "feature": "workflow_streams",
+      "targets": [
+        "contrib/workflowstreams/workflow_test.go::TestPublisherDedup"
+      ]
     },
     {
       "source": "contrib/workflowstreams/workflow_test.go",
       "name": "TestPollReturnsItemsWithTopicFilter",
-      "status": "blocked",
-      "reason": "Native workflow stream APIs/handler namespace exception are absent. The user was asked whether to implement this feature.",
-      "feature": "workflow_streams"
+      "status": "covered",
+      "reason": "Direct upstream port using the native stream package; workflow handlers execute in compiled isolates with context.Context and native channels.",
+      "feature": "workflow_streams",
+      "targets": [
+        "contrib/workflowstreams/workflow_test.go::TestPollReturnsItemsWithTopicFilter"
+      ]
     },
     {
       "source": "converter/byte_slice_payload_converter_test.go",
@@ -9759,23 +9834,32 @@
     {
       "source": "internal/workflow_stream_reserved_name_test.go",
       "name": "TestIsWorkflowStreamReservedName",
-      "status": "blocked",
-      "reason": "Native workflow stream APIs/handler namespace exception are absent. The user was asked whether to implement this feature.",
-      "feature": "workflow_streams"
+      "status": "covered",
+      "reason": "Direct upstream port using the native stream package; workflow handlers execute in compiled isolates with context.Context and native channels.",
+      "feature": "workflow_streams",
+      "targets": [
+        "workflow/stream_namespace_test.go::TestIsWorkflowStreamReservedName"
+      ]
     },
     {
       "source": "internal/workflow_stream_reserved_name_test.go",
       "name": "TestIsWorkflowStreamReservedNameAllowsHandlers",
-      "status": "blocked",
-      "reason": "Native workflow stream APIs/handler namespace exception are absent. The user was asked whether to implement this feature.",
-      "feature": "workflow_streams"
+      "status": "covered",
+      "reason": "Direct upstream port using the native stream package; workflow handlers execute in compiled isolates with context.Context and native channels.",
+      "feature": "workflow_streams",
+      "targets": [
+        "contrib/workflowstreams/native_test.go::TestIsWorkflowStreamReservedNameAllowsHandlers"
+      ]
     },
     {
       "source": "internal/workflow_stream_reserved_name_test.go",
       "name": "TestIsWorkflowStreamReservedNameStillRejectsOtherNames",
-      "status": "blocked",
-      "reason": "Native workflow stream APIs/handler namespace exception are absent. The user was asked whether to implement this feature.",
-      "feature": "workflow_streams"
+      "status": "covered",
+      "reason": "Direct upstream port using the native stream package; workflow handlers execute in compiled isolates with context.Context and native channels.",
+      "feature": "workflow_streams",
+      "targets": [
+        "contrib/workflowstreams/native_test.go::TestIsWorkflowStreamReservedNameStillRejectsOtherNames"
+      ]
     },
     {
       "source": "internal/workflow_test.go",

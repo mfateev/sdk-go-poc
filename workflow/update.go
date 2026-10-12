@@ -98,7 +98,7 @@ func setUpdateHandlerWithOptions(ctx context.Context, name string, handler any, 
 	if ctx == nil {
 		return errors.New("workflow: nil context")
 	}
-	if strings.HasPrefix(name, "__") {
+	if strings.HasPrefix(name, "__") && !isWorkflowStreamName(name) {
 		return errors.New("update names starting with '__' are reserved for internal use")
 	}
 	if err := validateUpdateFunctions(handler, options.Validator); err != nil {

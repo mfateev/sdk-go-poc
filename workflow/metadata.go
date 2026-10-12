@@ -254,7 +254,7 @@ func getSignalChannel(ctx context.Context, name string) <-chan SignalResult {
 // registration chooses its description. Host metadata contains copied options.
 func getSignalChannelWithOptions(ctx context.Context, name string, options SignalChannelOptions) <-chan SignalResult {
 	assertWritable()
-	if strings.HasPrefix(name, "__temporal_") && !strings.HasPrefix(name, "__temporal_workflow_stream_") {
+	if strings.HasPrefix(name, "__temporal_") && !isWorkflowStreamName(name) {
 		panic("__temporal_ is a reserved prefix")
 	}
 	if ctx == nil {

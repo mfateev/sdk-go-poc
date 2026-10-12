@@ -1524,3 +1524,18 @@ original two activity-environment cases retain host coverage in
 [upstream_test.go](example/protobufvalues/check/upstream_test.go), with native
 counterparts and compressed live histories for replay. Build host and workflow
 binaries together with the current development toolchain.
+
+### Native workflow streams
+
+`contrib/workflowstreams` hosts the upstream durable publish/subscribe protocol
+inside native workflows. Construct `NewWorkflowStream(ctx, state)` in a marked
+workflow; native channels deliver publish signals and wake long-poll updates.
+Host clients and activities publish batches and subscribe using range-over-func
+iterators, with topic filters, global offsets, truncation recovery and automatic
+continue-as-new following. `stream.NewContinueAsNewError` captures state after
+pollers and accepted handlers drain. Payload codecs apply once to the envelope.
+
+The `__temporal_workflow_stream_` namespace is allowed for signal, query and
+update registration. Other reserved names retain their existing rejection.
+See [native workflow streams](contrib/workflowstreams/README.md) for usage,
+options and validation. The implementation is included in this module.

@@ -139,3 +139,12 @@ demonstrates the Source/Reader API and rand.New facade. The math/rand/v2 library
 is unchanged.
 The isolate runtime adds ControlCall for input-service bookkeeping without
 consuming default randomness; the compiler pins the additional host binding.
+
+Native workflow streams are implemented in `contrib/workflowstreams`, including
+its reserved handler namespace, batching, publisher deduplication, subscription
+iterators, topic filtering, offset queries, response paging, truncation recovery
+and continue-as-new state capture. All 28 associated upstream cases are mapped
+to direct host ports and compiled native workflow tests. The live checker covers
+compressed envelopes and subscriptions through rollover at cache sizes 1000/0;
+saved histories replay at GOMAXPROCS 1/2/8. See
+[workflow streams](contrib/workflowstreams/README.md).

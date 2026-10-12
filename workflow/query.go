@@ -63,7 +63,7 @@ func setQueryHandlerWithOptions(ctx context.Context, queryType string, handler a
 	if ctx == nil {
 		return errors.New("workflow: nil context")
 	}
-	if strings.HasPrefix(queryType, "__") {
+	if strings.HasPrefix(queryType, "__") && !isWorkflowStreamName(queryType) {
 		return errors.New("queryType starts with '__' is reserved for internal use")
 	}
 	if err := validateQueryHandler(handler); err != nil {
