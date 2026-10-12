@@ -6,6 +6,7 @@ import (
 
 	commonpb "go.temporal.io/api/common/v1"
 	bindings "go.temporal.io/sdk/internalbindings"
+	goWorkflow "go.temporal.io/sdk/workflow"
 )
 
 // A factory starts before its native mock has run. Hold the parent start
@@ -59,6 +60,16 @@ func (e *TestWorkflowEnvironment) admitChild(id string, err error) {
 type testHost struct {
 	bindings.WorkflowEnvironment
 	owner *TestWorkflowEnvironment
+}
+
+// Unit environments omit OriginalRunID. Native session identity and random
+// seeding use the stable run ID supplied by the host test engine instead.
+func (h testHost) WorkflowInfo() *goWorkflow.Info {
+	info := *h.WorkflowEnvironment.WorkflowInfo()
+	if info.OriginalRunID == "" {
+		info.OriginalRunID = info.WorkflowExecution.RunID
+	}
+	return &info
 }
 
 func (h testHost) ExecuteChildWorkflow(params bindings.ExecuteWorkflowParams, callback bindings.ResultHandler, started func(bindings.WorkflowExecution, error)) {

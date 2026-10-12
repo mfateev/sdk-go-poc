@@ -34,6 +34,11 @@ type WorkflowTestSuite struct{ goSuite.WorkflowTestSuite }
 type TestActivityEnvironment = goSuite.TestActivityEnvironment
 type TestUpdateCallback = goSuite.TestUpdateCallback
 type TestRef[T any] = testref.Ref[T]
+type DevServer = goSuite.DevServer
+type DevServerOptions = goSuite.DevServerOptions
+type CachedDownload = goSuite.CachedDownload
+
+var StartDevServer = goSuite.StartDevServer
 
 var ErrMockStartChildWorkflowFailed = goSuite.ErrMockStartChildWorkflowFailed
 
@@ -285,6 +290,11 @@ func (d *testDefinition) Execute(env bindings.WorkflowEnvironment, header *commo
 }
 
 func (d *testDefinition) OnWorkflowTaskStarted(timeout time.Duration) {
+	// The host test engine passes zero when no worker deadline was configured.
+	// Leave room for instrumented package initialization in native test builds.
+	if timeout <= 0 {
+		timeout = 15 * time.Second
+	}
 	defer func() {
 		if p := recover(); p != nil {
 			if d.WorkflowDefinition != nil {

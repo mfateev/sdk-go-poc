@@ -1125,8 +1125,9 @@ Passing `t` registers automatic cleanup. Otherwise call `env.Close()` explicitly
 Completed workflows retain queries until cleanup. Cleanup drains root and child
 isolates and invalidates references. Register children with the familiar
 `RegisterWorkflow` APIs. Activity mocks/listeners and virtual time use the host
-test engine. Set an appropriate `worker.Options.DeadlockDetectionTimeout` for
-instrumented/race builds; that deadline is independent of virtual workflow time.
+test engine. Native tests default to a 15-second task deadline to accommodate
+instrumented package initialization; `worker.Options.DeadlockDetectionTimeout`
+overrides it. That deadline is independent of virtual workflow time.
 
 `OnWorkflow(...).Return(values...)` and function-valued returns execute on the
 host, where callbacks may capture test assertions and variables. A replacement
@@ -1142,6 +1143,13 @@ ordering and expectation assertions remain available. Child-start listeners
 receive copied workflow metadata, host `context.Context` and encoded arguments.
 Native converter, failure-converter, propagator and interceptor factories use
 the environment's `SetIsolate...` methods.
+
+Update callbacks receive copied payloads for native results. Use
+`testsuite.DecodeResult[T](value)` to recover the expected result type on the
+host; pass the configured data converter as a second argument when customized.
+Ordinary SDK callback values are returned directly. Development-server helpers
+such as `StartDevServer`, `DevServerOptions` and `CachedDownload` retain their
+host SDK behavior.
 
 `testref.Ref[T]`, also `testsuite.TestRef[T]`, is a typed handle to environment-owned
 JSON storage. Each side holds its own copy of the handle. `Load` returns an
