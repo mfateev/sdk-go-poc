@@ -23,7 +23,7 @@ func RenderChecklist(m Manifest) string {
 		fmt.Fprintf(&out, "| %s | %d |\n", status, counts[status])
 	}
 	fmt.Fprintf(&out, "| Total | %d |\n\n", len(m.Tests))
-	out.WriteString("## Feature decisions\n\nThe initial feature group was deferred by the user on 2026-10-11. The subsequently selected context propagation, data converters, custom failure conversion, generated protobuf values and corrupt-signal handling features are implemented. Other questions remain marked `awaiting_user` until answered; deferred tests stay blocked. No missing feature is implicitly treated as a completed port.\n\n| Feature | Decision | Blocked tests |\n| --- | --- | ---: |\n")
+	out.WriteString("## Feature decisions\n\nThe initial feature group was deferred by the user on 2026-10-11. Subsequently selected context propagation, data converters, custom failure conversion, generated protobuf values, corrupt-signal handling, stack-trace queries and the isolate test environment are implemented. Other questions remain marked `awaiting_user` until answered; deferred tests stay blocked. No missing feature is implicitly treated as a completed port.\n\nThe isolate test facade reuses the host SDK test engine. Its original activity, timeout, retry, child scheduling and tracing assertion suites remain retained; linked native tests supplement those assertions. Direct ports cover the facade's native mock, listener, registration, ordering and completed-query behavior. Retained entries do not claim exhaustive duplication of every original assertion inside an isolate.\n\n| Feature | Decision | Blocked tests |\n| --- | --- | ---: |\n")
 	keys := make([]string, 0, len(m.Features))
 	for key := range m.Features {
 		keys = append(keys, key)

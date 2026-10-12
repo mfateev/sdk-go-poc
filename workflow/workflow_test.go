@@ -9,7 +9,17 @@ import (
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/converter"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
+
+// This user-defined message has no generated descriptor/coder metadata. Real
+// generated messages can be supported when another package enables metadata
+// services in a multi-package test build.
+type unsupportedTestProto struct{}
+
+func (*unsupportedTestProto) ProtoReflect() protoreflect.Message {
+	panic("unsupported message reflection must not run")
+}
 
 func TestTypedHandlerUsesDefaultTemporalConverter(t *testing.T) {
 	type input struct{ Name string }
@@ -48,16 +58,16 @@ func TestTypedHandlerUsesDefaultTemporalConverter(t *testing.T) {
 }
 
 func TestTypedHandlerRejectsProtoResult(t *testing.T) {
-	if _, err := encodeTypedResult(&commonpb.Payload{}, nil); err == nil {
+	if _, err := encodeTypedResult(&unsupportedTestProto{}, nil); err == nil {
 		t.Fatal("protobuf result should be rejected")
 	}
-	if _, err := encodeTypedResult(commonpb.Payload{}, nil); err == nil {
+	if _, err := encodeTypedResult(unsupportedTestProto{}, nil); err == nil {
 		t.Fatal("protobuf value result should be rejected")
 	}
 }
 
 func TestTypedHandlerRejectsProtoArgumentBeforeConversion(t *testing.T) {
-	RegisterTyped("test-proto-argument", func(context.Context, *commonpb.Payload) (string, error) {
+	RegisterTyped("test-proto-argument", func(context.Context, *unsupportedTestProto) (string, error) {
 		t.Fatal("protobuf handler must not run")
 		return "", nil
 	})
@@ -144,14 +154,14 @@ func TestTypedActivityFailuresReturnZero(t *testing.T) {
 	if _, err := decodeActivityResult[string](raw); err == nil {
 		t.Fatal("multiple result payloads accepted")
 	}
-	for _, value := range []any{&commonpb.Payload{}, commonpb.Payload{}} {
+	for _, value := range []any{&unsupportedTestProto{}, unsupportedTestProto{}} {
 		if _, err := encodeActivityArgs([]any{value}); err == nil {
 			t.Fatal("protobuf activity argument accepted")
 		}
 	}
 	f := &activityFuture{done: make(chan struct{}), payload: []byte{1}}
 	close(f.done)
-	if err := f.Get(context.Background(), new(*commonpb.Payload)); err == nil || !strings.Contains(err.Error(), "generated Google protobuf") {
+	if err := f.Get(context.Background(), new(*unsupportedTestProto)); err == nil || !strings.Contains(err.Error(), "generated Google protobuf") {
 		t.Fatalf("protobuf activity result: %v", err)
 	}
 	if _, err := encodeActivityArgs([]any{make(chan int)}); err == nil {

@@ -181,9 +181,9 @@
   },
   "features": {
     "test_environment": {
-      "description": "Remaining native testing facade, workflow mock callbacks, child-start listeners, completed-workflow queries, and full harness assertion parity (basic activity mocks/listeners and virtual time work through host factories).",
-      "decision": "user_deferred",
-      "request": "User answered: Keep these blocked for now; finish supported-feature tests (2026-10-11)."
+      "description": "Isolate-aware TestWorkflowEnvironment, native workflow mocks and replacements, child-start listeners, completed root/child queries, virtual time, and typed host-backed test references.",
+      "decision": "implemented",
+      "request": "User requested implementing the recommended isolate testing design on 2026-10-12. The facade reuses the existing host test engine; direct native ports cover the boundary behavior it changes. Retained entries keep their original host-engine assertions and identify supplemental native checks without claiming exhaustive native assertion duplication."
     },
     "dynamic_handlers": {
       "description": "Native dynamic workflow/query/update handlers.",
@@ -786,8 +786,8 @@
     {
       "source": "contrib/datadog/tracing/interceptor_test.go",
       "name": "TestSpanPropagation",
-      "status": "blocked",
-      "reason": "Full nested workflow/activity/local-activity/child/update/Nexus span-tree assertion needs the deferred native test environment. Existing compiled tracing checks provide partial boundary coverage, not a claimed full port.",
+      "status": "retained",
+      "reason": "Tracing implementation and its full original span/log assertion suite remain in the delegated contrib SDK. The native test environment is now available; the linked native tracing tests are supplemental transport coverage and do not duplicate this full span-tree assertion.",
       "targets": [
         "example/tracing/check/main_test.go::TestNativeTracingInterceptors",
         "example/apicoverage/check/main_test.go::TestCompiledAPICoverageAndReplay"
@@ -825,8 +825,8 @@
     {
       "source": "contrib/datadog/tracing/interceptor_test.go",
       "name": "Test_SpanFromWorkflowContext",
-      "status": "blocked",
-      "reason": "Full Datadog workflow span tag assertion requires the deferred native unit environment. Compiled tracing transport is separately covered.",
+      "status": "retained",
+      "reason": "Tracing implementation and its full original span/log assertion suite remain in the delegated contrib SDK. The native test environment is now available; the linked native tracing tests are supplemental transport coverage and do not duplicate this full span-tree assertion.",
       "targets": [
         "example/tracing/check/main_test.go::TestNativeTracingInterceptors"
       ],
@@ -1948,8 +1948,8 @@
     {
       "source": "contrib/opentelemetry/tracing_interceptor_test.go",
       "name": "TestSpanPropagation",
-      "status": "blocked",
-      "reason": "Full nested workflow/activity/local-activity/child/update/Nexus span-tree assertion needs the deferred native test environment. Existing compiled tracing checks provide partial boundary coverage, not a claimed full port.",
+      "status": "retained",
+      "reason": "Tracing implementation and its full original span/log assertion suite remain in the delegated contrib SDK. The native test environment is now available; the linked native tracing tests are supplemental transport coverage and do not duplicate this full span-tree assertion.",
       "targets": [
         "example/tracing/check/main_test.go::TestNativeTracingInterceptors",
         "example/apicoverage/check/main_test.go::TestCompiledAPICoverageAndReplay"
@@ -2179,8 +2179,8 @@
     {
       "source": "contrib/opentelemetry-v2/logger_test.go",
       "name": "loggerTestSuite.TestGetLoggerTraceFields",
-      "status": "blocked",
-      "reason": "Full workflow/activity/custom-span log correlation requires the deferred native workflow test environment; direct logger cases are ported.",
+      "status": "retained",
+      "reason": "Tracing implementation and its full original span/log assertion suite remain in the delegated contrib SDK. The native test environment is now available; the linked native tracing tests are supplemental transport coverage and do not duplicate this full span-tree assertion.",
       "targets": [
         "contrib/opentelemetry-v2/upstream_test.go::TestUpstreamGetLogger"
       ],
@@ -2265,8 +2265,8 @@
     {
       "source": "contrib/opentracing/interceptor_test.go",
       "name": "TestSpanPropagation",
-      "status": "blocked",
-      "reason": "Full nested workflow/activity/local-activity/child/update/Nexus span-tree assertion needs the deferred native test environment. Existing compiled tracing checks provide partial boundary coverage, not a claimed full port.",
+      "status": "retained",
+      "reason": "Tracing implementation and its full original span/log assertion suite remain in the delegated contrib SDK. The native test environment is now available; the linked native tracing tests are supplemental transport coverage and do not duplicate this full span-tree assertion.",
       "targets": [
         "example/tracing/check/main_test.go::TestNativeTracingInterceptors",
         "example/apicoverage/check/main_test.go::TestCompiledAPICoverageAndReplay"
@@ -7798,9 +7798,12 @@
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_TimerWorkflow_ClockAutoFastForward",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The original harness assertions and their implementation remain in the delegated host SDK test engine. The isolate facade now reuses that engine with generated native entries. Linked compiled environment checks are supplemental boundary coverage, not an exhaustive native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
@@ -7814,16 +7817,23 @@
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_WorkflowMixedClock",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The original harness assertions and their implementation remain in the delegated host SDK test engine. The isolate facade now reuses that engine with generated native entries. Linked compiled environment checks are supplemental boundary coverage, not an exhaustive native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_WorkflowActivityCancellation",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns activity execution, retries, heartbeat/deadline handling and activity mocks/listeners, together with this original test. The isolate facade delegates those controls. Linked native harness checks supplement the retained assertions; they do not repeat every timeout/retry scenario.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases",
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
@@ -7842,16 +7852,24 @@
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_CompleteActivity",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns activity execution, retries, heartbeat/deadline handling and activity mocks/listeners, together with this original test. The isolate facade delegates those controls. Linked native harness checks supplement the retained assertions; they do not repeat every timeout/retry scenario.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases",
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ActivityReturnsErrActivityResultPending",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns activity execution, retries, heartbeat/deadline handling and activity mocks/listeners, together with this original test. The isolate facade delegates those controls. Linked native harness checks supplement the retained assertions; they do not repeat every timeout/retry scenario.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases",
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
@@ -7863,9 +7881,13 @@
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_WorkflowHeartbeatMock",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns activity execution, retries, heartbeat/deadline handling and activity mocks/listeners, together with this original test. The isolate facade delegates those controls. Linked native harness checks supplement the retained assertions; they do not repeat every timeout/retry scenario.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases",
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
@@ -7879,9 +7901,13 @@
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ChildWorkflowCancellation",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns child scheduling, IDs, retries and cancellation, together with this original test. The isolate facade supplies native definitions and child-start admission. Linked child and mock checks supplement the retained assertions without claiming a full native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/child/check/main_test.go::TestCompiledChildWorkflows",
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
@@ -7949,9 +7975,13 @@
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ChildWorkflow_ContinueAsNew",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns child scheduling, IDs, retries and cancellation, together with this original test. The isolate facade supplies native definitions and child-start admission. Linked child and mock checks supplement the retained assertions without claiming a full native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/child/check/main_test.go::TestCompiledChildWorkflows",
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
@@ -7974,23 +8004,34 @@
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ChildWorkflow_Mock",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns child scheduling, IDs, retries and cancellation, together with this original test. The isolate facade supplies native definitions and child-start admission. Linked child and mock checks supplement the retained assertions without claiming a full native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/child/check/main_test.go::TestCompiledChildWorkflows",
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ChildWorkflow_Mock_Panic_GetChildWorkflowExecution",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "covered",
+      "reason": "Ports invalid mock return handling, child-start progress and the workflow/child/panic error chain.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/upstream_test.go::TestChildWorkflowMockPanicGetExecution"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_NestedChildWorkflow_RootWorkflowExecution",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns child scheduling, IDs, retries and cancellation, together with this original test. The isolate facade supplies native definitions and child-start admission. Linked child and mock checks supplement the retained assertions without claiming a full native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/child/check/main_test.go::TestCompiledChildWorkflows",
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
@@ -8004,19 +8045,23 @@
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ChildWorkflow_Listener",
-      "status": "blocked",
-      "reason": "The host factory path delivers child completion listeners (supplemental port) but does not invoke the child-start listener. Full native listener support remains deferred.",
+      "status": "covered",
+      "reason": "Ports child-start metadata, child-completion result and parent result assertions with host context.Context listeners.",
       "feature": "test_environment",
       "targets": [
-        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+        "testsuite/upstream_test.go::TestChildWorkflowListener"
       ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ChildWorkflow_Clock",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns child scheduling, IDs, retries and cancellation, together with this original test. The isolate facade supplies native definitions and child-start admission. Linked child and mock checks supplement the retained assertions without claiming a full native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/child/check/main_test.go::TestCompiledChildWorkflows",
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
@@ -8030,16 +8075,24 @@
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ChildWorkflow_RequestCancel",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns child scheduling, IDs, retries and cancellation, together with this original test. The isolate facade supplies native definitions and child-start admission. Linked child and mock checks supplement the retained assertions without claiming a full native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/child/check/main_test.go::TestCompiledChildWorkflows",
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ChildWorkflow_Terminated",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns child scheduling, IDs, retries and cancellation, together with this original test. The isolate facade supplies native definitions and child-start admission. Linked child and mock checks supplement the retained assertions without claiming a full native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/child/check/main_test.go::TestCompiledChildWorkflows",
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
@@ -8062,30 +8115,45 @@
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_MockWorkflowWait",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "covered",
+      "reason": "Ports immediate, ten-minute and two-hour child mock delays against a one-hour parent timer.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/upstream_test.go::TestMockWorkflowWait"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_MockPanic",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The host SDK retains the original activity-mock panic assertions. The isolate facade wraps its mock controls; linked tests additionally check native workflow callback and Run panics without claiming to duplicate this activity case.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestMockPanicAndUnexpectedCallsBecomeWorkflowFailures",
+        "testsuite/upstream_test.go::TestMockPanicThroughRun"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_MockPanicThoughRun",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The host SDK retains the original activity-mock panic assertions. The isolate facade wraps its mock controls; linked tests additionally check native workflow callback and Run panics without claiming to duplicate this activity case.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestMockPanicAndUnexpectedCallsBecomeWorkflowFailures",
+        "testsuite/upstream_test.go::TestMockPanicThroughRun"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ChildWithChild",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns child scheduling, IDs, retries and cancellation, together with this original test. The isolate facade supplies native definitions and child-start admission. Linked child and mock checks supplement the retained assertions without claiming a full native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/child/check/main_test.go::TestCompiledChildWorkflows",
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
@@ -8108,37 +8176,52 @@
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_MockGetVersion",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The original harness assertions and their implementation remain in the delegated host SDK test engine. The isolate facade now reuses that engine with generated native entries. Linked compiled environment checks are supplemental boundary coverage, not an exhaustive native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_UpsertSearchAttributes_ReservedKey",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The original harness assertions and their implementation remain in the delegated host SDK test engine. The isolate facade now reuses that engine with generated native entries. Linked compiled environment checks are supplemental boundary coverage, not an exhaustive native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_MockUpsertSearchAttributes",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The original harness assertions and their implementation remain in the delegated host SDK test engine. The isolate facade now reuses that engine with generated native entries. Linked compiled environment checks are supplemental boundary coverage, not an exhaustive native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_MockUpsertTypedSearchAttributes",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The original harness assertions and their implementation remain in the delegated host SDK test engine. The isolate facade now reuses that engine with generated native entries. Linked compiled environment checks are supplemental boundary coverage, not an exhaustive native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_MockUpsertMemo",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The original harness assertions and their implementation remain in the delegated host SDK test engine. The isolate facade now reuses that engine with generated native entries. Linked compiled environment checks are supplemental boundary coverage, not an exhaustive native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
@@ -8245,9 +8328,12 @@
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_WorkflowUnknownName",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The original harness assertions and their implementation remain in the delegated host SDK test engine. The isolate facade now reuses that engine with generated native entries. Linked compiled environment checks are supplemental boundary coverage, not an exhaustive native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
@@ -8261,19 +8347,22 @@
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_QueryWorkflow_NilArgsAndResult",
-      "status": "blocked",
-      "reason": "Nil query arguments/results work during native execution (supplemental port), but the source queries after completion; native completion revokes the query closure. Completed-workflow query support remains deferred.",
+      "status": "covered",
+      "reason": "Ports nil query input/result after actual workflow completion with retained native state.",
       "feature": "test_environment",
       "targets": [
-        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+        "testsuite/upstream_test.go::TestQueryNilArgsAndResult"
       ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_QueryChildWorkflow",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "covered",
+      "reason": "Ports child queries by workflow ID while waiting for a signal, waiting for an activity, and after completion.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/upstream_test.go::TestQueryChildWorkflow"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
@@ -8370,9 +8459,12 @@
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_WorkflowIDReusePolicy",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The original harness assertions and their implementation remain in the delegated host SDK test engine. The isolate facade now reuses that engine with generated native entries. Linked compiled environment checks are supplemental boundary coverage, not an exhaustive native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
@@ -8404,37 +8496,57 @@
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ActivityRetry",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns activity execution, retries, heartbeat/deadline handling and activity mocks/listeners, together with this original test. The isolate facade delegates those controls. Linked native harness checks supplement the retained assertions; they do not repeat every timeout/retry scenario.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases",
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ActivityRetry_DefaultRetry",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns activity execution, retries, heartbeat/deadline handling and activity mocks/listeners, together with this original test. The isolate facade delegates those controls. Linked native harness checks supplement the retained assertions; they do not repeat every timeout/retry scenario.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases",
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ActivityRetry_NoInitialInterval",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns activity execution, retries, heartbeat/deadline handling and activity mocks/listeners, together with this original test. The isolate facade delegates those controls. Linked native harness checks supplement the retained assertions; they do not repeat every timeout/retry scenario.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases",
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ActivityRetry_NoRetries",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns activity execution, retries, heartbeat/deadline handling and activity mocks/listeners, together with this original test. The isolate facade delegates those controls. Linked native harness checks supplement the retained assertions; they do not repeat every timeout/retry scenario.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases",
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ActivityHeartbeatRetry",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns activity execution, retries, heartbeat/deadline handling and activity mocks/listeners, together with this original test. The isolate facade delegates those controls. Linked native harness checks supplement the retained assertions; they do not repeat every timeout/retry scenario.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases",
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
@@ -8448,9 +8560,13 @@
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_LocalActivityRetry_MaxAttempts_Respected",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns activity execution, retries, heartbeat/deadline handling and activity mocks/listeners, together with this original test. The isolate facade delegates those controls. Linked native harness checks supplement the retained assertions; they do not repeat every timeout/retry scenario.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases",
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
@@ -8464,16 +8580,24 @@
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ActivityRetryOnCancel",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns activity execution, retries, heartbeat/deadline handling and activity mocks/listeners, together with this original test. The isolate facade delegates those controls. Linked native harness checks supplement the retained assertions; they do not repeat every timeout/retry scenario.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases",
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ChildWorkflowRetry",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns child scheduling, IDs, retries and cancellation, together with this original test. The isolate facade supplies native definitions and child-start admission. Linked child and mock checks supplement the retained assertions without claiming a full native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/child/check/main_test.go::TestCompiledChildWorkflows",
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
@@ -8487,37 +8611,56 @@
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_SignalChildWorkflowRetry",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns child scheduling, IDs, retries and cancellation, together with this original test. The isolate facade supplies native definitions and child-start admission. Linked child and mock checks supplement the retained assertions without claiming a full native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/child/check/main_test.go::TestCompiledChildWorkflows",
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_TestWorkflowTimeoutInBusyLoop",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The original harness assertions and their implementation remain in the delegated host SDK test engine. The isolate facade now reuses that engine with generated native entries. Linked compiled environment checks are supplemental boundary coverage, not an exhaustive native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_TestChildWorkflowTimeout",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns child scheduling, IDs, retries and cancellation, together with this original test. The isolate facade supplies native definitions and child-start admission. Linked child and mock checks supplement the retained assertions without claiming a full native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/child/check/main_test.go::TestCompiledChildWorkflows",
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_SameActivityIDFromDifferentChildWorkflow",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns activity execution, retries, heartbeat/deadline handling and activity mocks/listeners, together with this original test. The isolate facade delegates those controls. Linked native harness checks supplement the retained assertions; they do not repeat every timeout/retry scenario.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases",
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_MockChildWorkflowAlreadyRunning",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns child scheduling, IDs, retries and cancellation, together with this original test. The isolate facade supplies native definitions and child-start admission. Linked child and mock checks supplement the retained assertions without claiming a full native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/child/check/main_test.go::TestCompiledChildWorkflows",
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
@@ -8531,9 +8674,12 @@
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_CronWorkflow",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The original harness assertions and their implementation remain in the delegated host SDK test engine. The isolate facade now reuses that engine with generated native entries. Linked compiled environment checks are supplemental boundary coverage, not an exhaustive native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
@@ -8570,9 +8716,13 @@
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ActivityGoexit",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns activity execution, retries, heartbeat/deadline handling and activity mocks/listeners, together with this original test. The isolate facade delegates those controls. Linked native harness checks supplement the retained assertions; they do not repeat every timeout/retry scenario.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases",
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
@@ -8591,72 +8741,112 @@
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ActivityTimeoutWithDetails",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns activity execution, retries, heartbeat/deadline handling and activity mocks/listeners, together with this original test. The isolate facade delegates those controls. Linked native harness checks supplement the retained assertions; they do not repeat every timeout/retry scenario.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases",
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ActivityDeadlineExceeded",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns activity execution, retries, heartbeat/deadline handling and activity mocks/listeners, together with this original test. The isolate facade delegates those controls. Linked native harness checks supplement the retained assertions; they do not repeat every timeout/retry scenario.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases",
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ActivityHeartbeatTimeout",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns activity execution, retries, heartbeat/deadline handling and activity mocks/listeners, together with this original test. The isolate facade delegates those controls. Linked native harness checks supplement the retained assertions; they do not repeat every timeout/retry scenario.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases",
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ActivityHeartbeatTimeout_WithHeartbeat",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns activity execution, retries, heartbeat/deadline handling and activity mocks/listeners, together with this original test. The isolate facade delegates those controls. Linked native harness checks supplement the retained assertions; they do not repeat every timeout/retry scenario.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases",
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ActivityHeartbeatTimeout_WithDetails",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns activity execution, retries, heartbeat/deadline handling and activity mocks/listeners, together with this original test. The isolate facade delegates those controls. Linked native harness checks supplement the retained assertions; they do not repeat every timeout/retry scenario.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases",
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ActivityStartToCloseTimeout",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns activity execution, retries, heartbeat/deadline handling and activity mocks/listeners, together with this original test. The isolate facade delegates those controls. Linked native harness checks supplement the retained assertions; they do not repeat every timeout/retry scenario.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases",
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ActivityStartToCloseTimeout_Respects",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns activity execution, retries, heartbeat/deadline handling and activity mocks/listeners, together with this original test. The isolate facade delegates those controls. Linked native harness checks supplement the retained assertions; they do not repeat every timeout/retry scenario.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases",
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ActivityStartToCloseTimeout_HeartbeatPriority",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns activity execution, retries, heartbeat/deadline handling and activity mocks/listeners, together with this original test. The isolate facade delegates those controls. Linked native harness checks supplement the retained assertions; they do not repeat every timeout/retry scenario.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases",
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ActivityStartToCloseTimeout_GracePeriod",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns activity execution, retries, heartbeat/deadline handling and activity mocks/listeners, together with this original test. The isolate facade delegates those controls. Linked native harness checks supplement the retained assertions; they do not repeat every timeout/retry scenario.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases",
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ActivityStartToCloseTimeout_GracePeriodExceeded",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns activity execution, retries, heartbeat/deadline handling and activity mocks/listeners, together with this original test. The isolate facade delegates those controls. Linked native harness checks supplement the retained assertions; they do not repeat every timeout/retry scenario.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases",
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
@@ -8697,16 +8887,24 @@
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ChildWorkflowActivityInfo",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns activity execution, retries, heartbeat/deadline handling and activity mocks/listeners, together with this original test. The isolate facade delegates those controls. Linked native harness checks supplement the retained assertions; they do not repeat every timeout/retry scenario.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases",
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_ActivityHeartbeatCancel",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns activity execution, retries, heartbeat/deadline handling and activity mocks/listeners, together with this original test. The isolate facade delegates those controls. Linked native harness checks supplement the retained assertions; they do not repeat every timeout/retry scenario.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases",
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
@@ -8729,9 +8927,13 @@
     {
       "source": "internal/internal_workflow_testsuite_test.go",
       "name": "WorkflowTestSuiteUnitTest.Test_SameWorkflowAndActivityNames",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns activity execution, retries, heartbeat/deadline handling and activity mocks/listeners, together with this original test. The isolate facade delegates those controls. Linked native harness checks supplement the retained assertions; they do not repeat every timeout/retry scenario.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases",
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/internal_workflow_testsuite_test.go",
@@ -9630,30 +9832,43 @@
     {
       "source": "internal/workflow_testsuite_test.go",
       "name": "TestNoExplicitRegistrationRequired",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The original harness assertions and their implementation remain in the delegated host SDK test engine. The isolate facade now reuses that engine with generated native entries. Linked compiled environment checks are supplemental boundary coverage, not an exhaustive native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/workflow_testsuite_test.go",
       "name": "TestUnregisteredActivity",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns activity execution, retries, heartbeat/deadline handling and activity mocks/listeners, together with this original test. The isolate facade delegates those controls. Linked native harness checks supplement the retained assertions; they do not repeat every timeout/retry scenario.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases",
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/workflow_testsuite_test.go",
       "name": "TestLocalActivityExecutionByActivityName",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "covered",
+      "reason": "Ports local activity execution and result decoding by registered function name.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/upstream_test.go::TestLocalActivityExecutionByNameAndAlias"
+      ]
     },
     {
       "source": "internal/workflow_testsuite_test.go",
       "name": "TestLocalActivityExecutionByActivityNameAlias",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "covered",
+      "reason": "Ports local activity execution and result decoding by registered alias.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/upstream_test.go::TestLocalActivityExecutionByNameAndAlias"
+      ]
     },
     {
       "source": "internal/workflow_testsuite_test.go",
@@ -9676,23 +9891,33 @@
     {
       "source": "internal/workflow_testsuite_test.go",
       "name": "TestWorkflowIDSignalWorkflowByID",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The original harness assertions and their implementation remain in the delegated host SDK test engine. The isolate facade now reuses that engine with generated native entries. Linked compiled environment checks are supplemental boundary coverage, not an exhaustive native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/workflow_testsuite_test.go",
       "name": "TestWorkflowIDUpdateWorkflowByID",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The original harness assertions and their implementation remain in the delegated host SDK test engine. The isolate facade now reuses that engine with generated native entries. Linked compiled environment checks are supplemental boundary coverage, not an exhaustive native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/workflow_testsuite_test.go",
       "name": "TestChildWorkflowUpdate",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns child scheduling, IDs, retries and cancellation, together with this original test. The isolate facade supplies native definitions and child-start admission. Linked child and mock checks supplement the retained assertions without claiming a full native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/child/check/main_test.go::TestCompiledChildWorkflows",
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases"
+      ]
     },
     {
       "source": "internal/workflow_testsuite_test.go",
@@ -9715,23 +9940,32 @@
     {
       "source": "internal/workflow_testsuite_test.go",
       "name": "TestWorkflowUpdateOrderWithMultiArgs",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The original harness assertions and their implementation remain in the delegated host SDK test engine. The isolate facade now reuses that engine with generated native entries. Linked compiled environment checks are supplemental boundary coverage, not an exhaustive native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/workflow_testsuite_test.go",
       "name": "TestWorkflowUpdateIdGeneration",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The original harness assertions and their implementation remain in the delegated host SDK test engine. The isolate facade now reuses that engine with generated native entries. Linked compiled environment checks are supplemental boundary coverage, not an exhaustive native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/workflow_testsuite_test.go",
       "name": "TestWorkflowNotRegisteredRejected",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The original harness assertions and their implementation remain in the delegated host SDK test engine. The isolate facade now reuses that engine with generated native entries. Linked compiled environment checks are supplemental boundary coverage, not an exhaustive native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/workflow_testsuite_test.go",
@@ -9745,44 +9979,62 @@
     {
       "source": "internal/workflow_testsuite_test.go",
       "name": "TestWorkflowDuplicateIDDedup",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The original harness assertions and their implementation remain in the delegated host SDK test engine. The isolate facade now reuses that engine with generated native entries. Linked compiled environment checks are supplemental boundary coverage, not an exhaustive native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/workflow_testsuite_test.go",
       "name": "TestWorkflowDuplicateIDDedupInterweave",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The original harness assertions and their implementation remain in the delegated host SDK test engine. The isolate facade now reuses that engine with generated native entries. Linked compiled environment checks are supplemental boundary coverage, not an exhaustive native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/workflow_testsuite_test.go",
       "name": "TestWorkflowDuplicateIDDedupWithSleep",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The original harness assertions and their implementation remain in the delegated host SDK test engine. The isolate facade now reuses that engine with generated native entries. Linked compiled environment checks are supplemental boundary coverage, not an exhaustive native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/workflow_testsuite_test.go",
       "name": "TestWorkflowDuplicateIDDedupMore",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The original harness assertions and their implementation remain in the delegated host SDK test engine. The isolate facade now reuses that engine with generated native entries. Linked compiled environment checks are supplemental boundary coverage, not an exhaustive native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/workflow_testsuite_test.go",
       "name": "TestWorkflowDuplicateIDDedupDelayAndSleep",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The original harness assertions and their implementation remain in the delegated host SDK test engine. The isolate facade now reuses that engine with generated native entries. Linked compiled environment checks are supplemental boundary coverage, not an exhaustive native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/workflow_testsuite_test.go",
       "name": "TestWorkflowUpdateMissingCallbackFields",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The original harness assertions and their implementation remain in the delegated host SDK test engine. The isolate facade now reuses that engine with generated native entries. Linked compiled environment checks are supplemental boundary coverage, not an exhaustive native duplication of this source case.",
+      "feature": "test_environment",
+      "targets": [
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/workflow_testsuite_test.go",
@@ -9841,30 +10093,43 @@
     {
       "source": "internal/workflow_testsuite_test.go",
       "name": "TestWorkflowMockingWithoutRegistration",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "covered",
+      "reason": "Ports function-valued workflow mocking without explicit registration and root execution by name.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/upstream_test.go::TestWorkflowMockingWithoutRegistration"
+      ]
     },
     {
       "source": "internal/workflow_testsuite_test.go",
       "name": "TestActivityMockingByNameWithoutRegistrationFails",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "retained",
+      "reason": "The unchanged host SDK test engine still owns activity execution, retries, heartbeat/deadline handling and activity mocks/listeners, together with this original test. The isolate facade delegates those controls. Linked native harness checks supplement the retained assertions; they do not repeat every timeout/retry scenario.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/native_test.go::TestNativeWorkflowMocksListenersAndAliases",
+        "example/upstream/check/main_test.go::TestUpstreamEnvironmentSDKPorts"
+      ]
     },
     {
       "source": "internal/workflow_testsuite_test.go",
       "name": "TestMockCallWrapperInOrder",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "covered",
+      "reason": "Ports a local activity mock called before its prerequisite, including InOrder and the PanicError assertion.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/upstream_test.go::TestMockCallWrapperOrderFailures"
+      ]
     },
     {
       "source": "internal/workflow_testsuite_test.go",
       "name": "TestMockCallWrapperNotBefore",
-      "status": "blocked",
-      "reason": "Full native testing facade and harness assertion parity were deferred by the user. Basic factory-based activity mocks, listeners and virtual time now have supplemental compiled tests; this source case is not yet claimed as a full port.",
-      "feature": "test_environment"
+      "status": "covered",
+      "reason": "Ports a local activity mock called before its prerequisite, including NotBefore and the PanicError assertion.",
+      "feature": "test_environment",
+      "targets": [
+        "testsuite/upstream_test.go::TestMockCallWrapperOrderFailures"
+      ]
     },
     {
       "source": "internal/workflow_testsuite_test.go",

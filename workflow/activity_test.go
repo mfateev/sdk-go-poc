@@ -6,8 +6,6 @@ import (
 	"reflect"
 	"testing"
 	"time"
-
-	commonpb "go.temporal.io/api/common/v1"
 )
 
 func TestActivityOptionsCopiesPolicyAndPreservesTaskQueue(t *testing.T) {
@@ -167,7 +165,7 @@ func TestFutureToChannelWaitsAndSupportsIndependentTypedExtraction(t *testing.T)
 		if err := result.Value.Get(&wrong); err == nil {
 			t.Fatal("invalid extraction type accepted")
 		}
-		var protobuf *commonpb.Payload
+		var protobuf *unsupportedTestProto
 		if err := result.Value.Get(&protobuf); err == nil {
 			t.Fatal("channel bypassed protobuf subset checks")
 		}

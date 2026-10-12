@@ -237,7 +237,8 @@ Marked functions accept any number of ordinary Go arguments and return either
 nothing, `error`, or `(result, error)`. They do not take a host-owned Temporal
 `workflow.Context`. Generic or variadic functions, methods, cgo source, and dot
 imports are rejected. Automatic entry generation currently applies to a
-single executable `go build`; `go run`, `go install`, and test binaries remain
+single executable `go build` and `go test` binaries, including entries declared
+in internal or external `_test.go` files. `go run` and `go install` remain
 future work. Initialization and state selection still operate at package level,
 so selected package initializers run for every instance. Finer function-level
 dependency selection remains TODO. The older directory-program and explicit
@@ -1089,6 +1090,69 @@ replay at GOMAXPROCS 1/2/8:
 ```
 
 ## Additional workflow APIs
+
+### Native workflow tests
+
+Import `github.com/mfateev/sdk-go-poc/testsuite` and use the custom toolchain's
+`go test`. Marked functions in ordinary source and internal/external `_test.go`
+files receive generated entries before `TestMain`. Ordinary SDK workflows retain
+their existing path. Marked tests currently require the default gc mode without
+`-cover`.
+
+```go
+//go:isolate
+func TestedWorkflow(ctx context.Context, observed testref.Ref[int]) (int, error) {
+    if err := observed.Store(42); err != nil {
+        return 0, err
+    }
+    return observed.Load()
+}
+
+func TestWorkflow(t *testing.T) {
+    var suite testsuite.WorkflowTestSuite
+    env := suite.NewTestWorkflowEnvironment(t)
+    observed, err := testsuite.NewRef(env, 0)
+    require.NoError(t, err)
+    env.ExecuteWorkflow(TestedWorkflow, observed)
+    require.NoError(t, env.GetWorkflowError())
+    value, err := observed.Load()
+    require.NoError(t, err)
+    require.Equal(t, 42, value)
+}
+```
+
+Passing `t` registers automatic cleanup. Otherwise call `env.Close()` explicitly.
+Completed workflows retain queries until cleanup. Cleanup drains root and child
+isolates and invalidates references. Register children with the familiar
+`RegisterWorkflow` APIs. Activity mocks/listeners and virtual time use the host
+test engine. Set an appropriate `worker.Options.DeadlockDetectionTimeout` for
+instrumented/race builds; that deadline is independent of virtual workflow time.
+
+`OnWorkflow(...).Return(values...)` and function-valued returns execute on the
+host, where callbacks may capture test assertions and variables. A replacement
+that uses workflow APIs must be a marked function with the original signature:
+
+```go
+env.OnWorkflow(MyChild, mock.Anything, "input").
+    ReturnIsolate(MyReplacementChild).Once().After(time.Minute)
+```
+
+Mock delays use virtual time. Mock call counts, `Run`, `Never`, `Maybe`, `Panic`,
+ordering and expectation assertions remain available. Child-start listeners
+receive copied workflow metadata, host `context.Context` and encoded arguments.
+Native converter, failure-converter, propagator and interceptor factories use
+the environment's `SetIsolate...` methods.
+
+`testref.Ref[T]`, also `testsuite.TestRef[T]`, is a typed handle to environment-owned
+JSON storage. Each side holds its own copy of the handle. `Load` returns an
+independent snapshot; `Store`, `Swap` and `CompareAndSwap` publish changes through
+the copied-byte host transport. Comparison uses canonical JSON value equality,
+rather than pointer identity. Children in the same environment can use a handle;
+other environments are rejected. Queries/validators may load references but
+cannot write them, including through raw transport requests. Handles contain no
+host pointers. Workflow-local goroutines and query closures may capture handles;
+workflow entry definitions remain top-level marked functions receiving them as
+arguments. References are test inputs outside Temporal history.
 
 ### Stack trace queries
 

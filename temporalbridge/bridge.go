@@ -13,6 +13,7 @@ import (
 
 	"github.com/mfateev/sdk-go-poc/internal/headerwire"
 	"github.com/mfateev/sdk-go-poc/internal/integrationcontract"
+	"github.com/mfateev/sdk-go-poc/internal/testrefwire"
 	"github.com/mfateev/sdk-go-poc/workflow"
 	commonpb "go.temporal.io/api/common/v1"
 	bindings "go.temporal.io/sdk/internalbindings"
@@ -40,6 +41,8 @@ func RegisterEntry(w worker.Worker, name string, program isolate.Program, entryN
 
 // Factory creates one definition, and therefore one isolate, per execution.
 type Factory struct {
+	// TestRefHandler enables host-backed references only in a test environment.
+	TestRefHandler func([]byte, bool) ([]byte, error)
 	// ReplayOnly allows missing local activity implementations during offline replay.
 	ReplayOnly bool
 	// ResolveLocalActivity is an optional host function lookup for custom hosts.
@@ -141,7 +144,7 @@ func (f Factory) NewWorkflowDefinition() bindings.WorkflowDefinition {
 	if err := resources.Validate(); err != nil {
 		panic(err)
 	}
-	return &definition{replayOnly: f.ReplayOnly, resolveLocalActivity: f.ResolveLocalActivity, converters: converters, failures: failures, propagators: propagators, interceptors: interceptors, resources: resources, program: f.Program, entryName: f.EntryName, resolveWorkflow: f.ResolveWorkflow, resolveActivity: f.ResolveActivity, resolveLogHandler: f.ResolveLogHandler, resolveSink: f.ResolveSink}
+	return &definition{testRefHandler: f.TestRefHandler, replayOnly: f.ReplayOnly, resolveLocalActivity: f.ResolveLocalActivity, converters: converters, failures: failures, propagators: propagators, interceptors: interceptors, resources: resources, program: f.Program, entryName: f.EntryName, resolveWorkflow: f.ResolveWorkflow, resolveActivity: f.ResolveActivity, resolveLogHandler: f.ResolveLogHandler, resolveSink: f.ResolveSink}
 }
 
 type reply struct {
@@ -163,6 +166,7 @@ type callState struct {
 }
 
 type definition struct {
+	testRefHandler       func([]byte, bool) ([]byte, error)
 	replayOnly           bool
 	resolveLocalActivity func(string) any
 	external             map[uint64]*activityState
@@ -571,6 +575,17 @@ func completionError(message string, canceled, failed bool) error {
 
 // handle emits or answers one host command. Replies are held until suspension.
 func (d *definition) handle(command *isolate.Command) error {
+	if command.Op == testrefwire.Operation {
+		var raw []byte
+		var err error
+		if d.testRefHandler == nil {
+			err = errors.New("host-backed references require an isolate test environment")
+		} else {
+			raw, err = d.testRefHandler(command.Payload, false)
+		}
+		d.replyWhenSuspended(command, raw, err)
+		return nil
+	}
 	if d.completed && d.instance != nil && command.Op != workflow.OpQuery {
 		return nil
 	}
@@ -1044,6 +1059,7 @@ func (d *definition) Close() {
 		d.retireOperations()
 		d.queryWaiter, d.queryHandlers, d.retainedCompletion = nil, nil, nil
 		d.signalChannels = nil
+		d.testRefHandler = nil
 	}
 	if d.instance == nil {
 		d.resolveLogHandler = nil

@@ -64,7 +64,7 @@ func TestDecodeTypedSignalRejectsInvalidPayload(t *testing.T) {
 			t.Fatalf("invalid signal returned partial value %+v, %v", value, err)
 		}
 	}
-	if _, err := decodeSignal[*commonpb.Payload](signalPayload(t, "binary/null", "")); err == nil {
+	if _, err := decodeSignal[*unsupportedTestProto](signalPayload(t, "binary/null", "")); err == nil {
 		t.Fatal("protobuf signal accepted")
 	}
 }

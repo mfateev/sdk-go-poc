@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/mfateev/sdk-go-poc/internal/headerwire"
+	"github.com/mfateev/sdk-go-poc/internal/testrefwire"
 	"github.com/mfateev/sdk-go-poc/workflow"
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/client"
@@ -150,7 +151,10 @@ func (d *definition) runReadOnly(input workflow.QueryRequest) (*workflow.QueryRe
 			}
 			// Do not send any workflow command to the SDK from a read-only
 			// handler, including calls made directly through isolate.Call/time.
-			if command.Op == workflow.OpInfo {
+			if command.Op == testrefwire.Operation && d.testRefHandler != nil {
+				raw, err := d.testRefHandler(command.Payload, true)
+				command.Reply(raw, err)
+			} else if command.Op == workflow.OpInfo {
 				raw, err := d.infoBytes()
 				command.Reply(raw, err)
 			} else if command.Op == workflow.OpGetTypedSearchAttributes || command.Op == workflow.OpHasLastCompletionResult || command.Op == workflow.OpLastCompletionResult || command.Op == workflow.OpLastError {
