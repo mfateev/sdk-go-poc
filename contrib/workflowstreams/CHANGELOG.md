@@ -8,3 +8,8 @@
   channels, the reserved cross-language handler namespace, publisher batching
   and deduplication, subscription iterators, topic filters, response paging,
   truncation recovery and continue-as-new state capture.
+
+### Fixed
+
+- Stream query snapshots serialize scratch-owned protobuf copies, preserving
+  read-only execution for running and completed workflows.

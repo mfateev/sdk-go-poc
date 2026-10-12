@@ -3,6 +3,7 @@ package workflowstreams
 import (
 	"encoding/base64"
 	"fmt"
+	"isolate"
 
 	commonpb "go.temporal.io/api/common/v1"
 	"google.golang.org/protobuf/proto"
@@ -11,6 +12,11 @@ import (
 // encodePayloadWire encodes a Payload to the base64-of-proto wire format shared
 // across the Go, Python, and TypeScript packages.
 func encodePayloadWire(payload *commonpb.Payload) (string, error) {
+	// Protobuf marshaling writes message caches. Queries serialize a scratch
+	// copy so they can inspect the frozen stream without changing its payloads.
+	if payload != nil && isolate.IsReadOnly() {
+		payload = proto.Clone(payload).(*commonpb.Payload)
+	}
 	b, err := proto.Marshal(payload)
 	if err != nil {
 		return "", fmt.Errorf("workflowstreams: marshal payload: %w", err)

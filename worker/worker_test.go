@@ -58,6 +58,8 @@ func (*testActivities) Method(_ context.Context, input int) (string, error) {
 func TestActivityAliasesAndOrdinaryActivities(t *testing.T) {
 	var suite testsuite.WorkflowTestSuite
 	env := suite.NewTestWorkflowEnvironment()
+	// Allow cold SDK conversion initialization during parallel fixture builds.
+	env.SetWorkerOptions(goWorker.Options{DeadlockDetectionTimeout: 10 * time.Second})
 	w := Wrap(&testWorker{env: env}).(*isolateWorker)
 	// The resolver is captured before registration and must observe later aliases.
 	resolve := w.activities.resolve

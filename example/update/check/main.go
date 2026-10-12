@@ -285,7 +285,9 @@ func runWait() {
 				panic("workflow stack included SDK services: " + stack)
 			}
 		}
-		check(e.signal("finish", nil, nil))
+		finish, err := e.GetDataConverter().ToPayloads(nil)
+		check(err)
+		check(e.signal("finish", finish, nil))
 		d.OnWorkflowTaskStarted(5 * time.Second)
 		if mode != "empty" {
 			if e.completes != 0 || pending.completed != 0 {

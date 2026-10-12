@@ -56,7 +56,8 @@ func (*environment) WorkflowInfo() *sdkwf.Info {
 }
 func (*environment) Now() time.Time { return time.Date(2025, 1, 2, 0, 0, 0, 0, time.UTC) }
 func (*environment) GetDataConverter() converter.DataConverter {
-	return converter.GetDefaultDataConverter()
+	// Match the JSON-only converter configured inside the workflow.
+	return converter.NewCompositeDataConverter(converter.NewJSONPayloadConverter())
 }
 func (e *environment) IsReplaying() bool { return e.replay }
 func (e *environment) Complete(result *commonpb.Payloads, err error) {
@@ -192,7 +193,7 @@ func check(replay bool, taskTimeout time.Duration) {
 			}
 			checkQuery("state", 8)
 		}
-		must(env.signal("renamed", nil, header("signal")))
+		must(env.signal("renamed", signalInput, header("signal")))
 		d.OnWorkflowTaskStarted(taskTimeout)
 		if env.completes != 1 || env.err != nil {
 			panic(fmt.Sprintf("complete=%d error=%v", env.completes, env.err))

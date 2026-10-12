@@ -132,6 +132,13 @@ func TestNativePollWakeupTruncationAndDrain(t *testing.T) {
 			}, 2*time.Second)
 			env.RegisterDelayedCallback(func() {
 				require.True(t, completed["wake"])
+				query, err := env.QueryWorkflow("snapshot")
+				require.NoError(t, err)
+				var snapshot WorkflowStreamState
+				require.NoError(t, query.Get(&snapshot))
+				require.Len(t, snapshot.Log, 3)
+				require.EqualValues(t, 0, snapshot.BaseOffset)
+				require.EqualValues(t, 1, snapshot.PublisherSeqs["pub"])
 				control("truncate", int64(2))
 			}, 3*time.Second)
 			env.RegisterDelayedCallback(func() {

@@ -178,7 +178,9 @@ func check(previous string, e *environment, taskTimeout time.Duration) {
 	if !validation.accepted || !validation.completed || validation.err != nil {
 		panic(fmt.Sprintf("metadata validator: %+v", validation))
 	}
-	must(e.signal("finish", nil, nil))
+	finish, err := e.GetDataConverter().ToPayloads([]byte(nil))
+	must(err)
+	must(e.signal("finish", finish, nil))
 	d.OnWorkflowTaskStarted(taskTimeout)
 	if e.completes != 1 || e.err != nil {
 		panic(fmt.Sprintf("completion: %d %v", e.completes, e.err))

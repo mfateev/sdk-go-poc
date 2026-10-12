@@ -270,7 +270,11 @@ func checkReadOnlyLogging() {
 	checkQuery(1)
 	before = len(logs)
 	beforeSinks = len(sinks)
-	if err := env.signal("finish", nil, nil); err != nil {
+	finish, err := env.GetDataConverter().ToPayloads([]byte(nil))
+	if err != nil {
+		panic(err)
+	}
+	if err := env.signal("finish", finish, nil); err != nil {
 		panic(err)
 	}
 	d.OnWorkflowTaskStarted(5 * time.Second)
