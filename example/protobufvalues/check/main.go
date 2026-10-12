@@ -86,7 +86,24 @@ func run(mode, scenario string) {
 	}
 	queries, updates := 0, 0
 	if scenario == "values" {
-		env.RegisterDelayedCallback(func() {
+		deadline := time.Now().Add(30 * time.Second)
+		var verify func()
+		verify = func() {
+			// Child startup is asynchronous in the host test environment. Wait
+			// for registration instead of assuming a virtual timer implies it.
+			readyValue, err := env.QueryWorkflow("ready")
+			if err != nil {
+				if strings.Contains(err.Error(), "unknown queryType ready") && time.Now().Before(deadline) {
+					env.RegisterDelayedCallback(verify, time.Millisecond)
+					return
+				}
+				check(err)
+			}
+			var ready bool
+			check(readyValue.Get(&ready))
+			if !ready {
+				panic("protobuf handlers not ready")
+			}
 			for i := range 2 {
 				checkValue, err := env.QueryWorkflow("conversions")
 				check(err)
@@ -130,7 +147,8 @@ func run(mode, scenario string) {
 					}
 				}}, example.Record())
 			}
-		}, 100*time.Millisecond)
+		}
+		env.RegisterDelayedCallback(verify, time.Millisecond)
 	}
 	env.ExecuteWorkflow("Workflow", example.Record(), scenario)
 	err := env.GetWorkflowError()
