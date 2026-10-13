@@ -326,6 +326,23 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 	instance := d.instance
 	defer d.drainWrites(instance)
 	budget.progress, budget.lastProgress, budget.monitoring = instance.Resources().Progress, time.Now(), true
+	type dispatchPhase uint8
+	const (
+		normalDispatch dispatchPhase = iota
+		inboundDispatch
+		priorityDispatch
+	)
+	phase := inboundDispatch
+	if newInstance {
+		// The root must run once to install its delivery services and handlers.
+		phase = normalDispatch
+	}
+	passes, commands := 0, 0
+	var lastOperation uint32
+	deadlineError := func() error {
+		return fmt.Errorf("isolate did not suspend before the workflow task deadline (phase=%s, passes=%d, commands=%d, last_operation=%d, pending_calls=%d, resources=%+v)",
+			[...]string{"normal", "inbound", "priority"}[phase], passes, commands, lastOperation, instance.PendingCalls(), instance.Resources())
+	}
 	var ticks <-chan time.Time
 	if limit := d.resources.MaxNoProgressDuration; limit > 0 {
 		interval := min(limit, 10*time.Millisecond)
@@ -338,7 +355,7 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 			d.failTask(err)
 		}
 		if taskContext.Err() != nil {
-			d.failTask(errors.New("isolate did not suspend before the workflow task deadline"))
+			d.failTask(deadlineError())
 		}
 	}
 	checkBudget()
@@ -360,6 +377,10 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 	// pending sends, then resume their transport handshakes. Return only after
 	// a pass reaches idle without producing another command.
 	handleCommand := func(command *isolate.Command) bool {
+		if command != nil {
+			commands++
+			lastOperation = command.Op
+		}
 		checkBudget()
 		if command == nil {
 			d.fail(errors.New("isolate command stream closed"))
@@ -373,18 +394,8 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 		}
 		return (!d.completed || d.retainedCompletion != nil) && !d.closed
 	}
-	type dispatchPhase uint8
-	const (
-		normalDispatch dispatchPhase = iota
-		inboundDispatch
-		priorityDispatch
-	)
-	phase := inboundDispatch
-	if newInstance {
-		// The root must run once to install its delivery services and handlers.
-		phase = normalDispatch
-	}
 	for {
+		passes++
 		checkBudget()
 		resume := instance.Resume
 		if phase == inboundDispatch {
@@ -435,7 +446,7 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 				checkBudget()
 			case <-taskContext.Done():
 				checkBudget()
-				d.failTask(errors.New("isolate did not suspend before the workflow task deadline"))
+				d.failTask(deadlineError())
 				return
 			}
 		}
