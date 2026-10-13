@@ -926,6 +926,13 @@ low-level hosts can inspect `CloseError()` and `StackTrace()`. A deadline never
 undoes revocation. CPU loops without a supported execution fence and unsupported
 native waits do not have an in-process hard-kill guarantee.
 
+Workflow-task timeouts capture diagnostics before closing the isolate: every
+isolate goroutine (including SDK services), the host task/command handler and
+its suspension helper, plus the dispatcher token, queues, phase and waiter.
+The full focused snapshot is preserved in the task error and CI artifacts.
+Unrelated workflows and host goroutines are excluded; identifying an external
+GC worker or shared runtime lock owner would need additional dependency tracking.
+
 Run compiled lifecycle and replay conformance, optionally against a development
 server (the checker terminates its own negative-test executions):
 

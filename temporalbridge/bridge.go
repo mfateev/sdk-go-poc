@@ -340,8 +340,12 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 	passes, commands := 0, 0
 	var lastOperation uint32
 	deadlineError := func() error {
-		return fmt.Errorf("isolate did not suspend before the workflow task deadline (phase=%s, passes=%d, commands=%d, last_operation=%d, pending_calls=%d, resources=%+v)",
-			[...]string{"normal", "inbound", "priority"}[phase], passes, commands, lastOperation, instance.PendingCalls(), instance.Resources())
+		// Kill/Close removes the goroutines that explain a missed wakeup.
+		// Preserve the complete task scope first, including SDK services and
+		// host suspension, without dumping unrelated workers or workflows.
+		d.failureStack = instance.TaskDiagnostics()
+		return fmt.Errorf("isolate did not suspend before the workflow task deadline (phase=%s, passes=%d, commands=%d, last_operation=%d, pending_calls=%d, resources=%+v)\n%s",
+			[...]string{"normal", "inbound", "priority"}[phase], passes, commands, lastOperation, instance.PendingCalls(), instance.Resources(), d.failureStack)
 	}
 	var ticks <-chan time.Time
 	if limit := d.resources.MaxNoProgressDuration; limit > 0 {
