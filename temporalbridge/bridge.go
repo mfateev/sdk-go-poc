@@ -197,6 +197,8 @@ type definition struct {
 	retainedCompletion   *workflowCompletion
 	activities           map[uint64]*activityState
 	resources            ResourceOptions
+	taskTimeout          time.Duration
+	activeTaskContext    context.Context
 	lastResources        isolate.ResourceStats
 	resourceIdentity     ResourceEvent
 	canceled             bool
@@ -295,8 +297,13 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 	if d.resources.MaxTaskDuration > 0 && d.resources.MaxTaskDuration < deadline {
 		deadline = d.resources.MaxTaskDuration
 	}
+	d.taskTimeout = deadline
 	taskContext, cancelTask := context.WithTimeout(context.Background(), deadline)
-	defer cancelTask()
+	d.activeTaskContext = taskContext
+	defer func() {
+		d.activeTaskContext = nil
+		cancelTask()
+	}()
 	defer func() { d.observeResources("task", nil) }()
 	clock, ok := d.env.(interface{ Now() time.Time })
 	if !ok {

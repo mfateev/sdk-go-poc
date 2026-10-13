@@ -992,6 +992,11 @@ watchdog starts after startup and detects absence of supported park/yield
 progress; asynchronous preemption does not count as progress. Cached idle time
 uses neither budget, and cached instances have no watchdog timers. These are
 host monotonic watchdogs, not workflow clocks or exact CPU quotas.
+Queries use the worker's latest `DeadlockDetectionTimeout`, capped by
+`MaxTaskDuration`. Update validators and queries executed during a workflow task
+also share that task's remaining budget and cancellation. Queries on cached or
+completed workflows start a fresh budget; idle time is excluded. Deadline
+failures capture the read-only service and host suspension stacks before cleanup.
 `RunningNanoseconds` counts completed scheduled intervals, including metadata
 work and syscalls. Uninterrupted loops or native execution can leave termination
 pending; diagnostics and a later `Close()` report/retry cleanup, without forcibly
@@ -1258,6 +1263,7 @@ isolates and invalidates references. Register children with the familiar
 test engine. Native tests default to a 15-second task deadline to accommodate
 instrumented package initialization; `worker.Options.DeadlockDetectionTimeout`
 overrides it. That deadline is independent of virtual workflow time.
+The same configured budget applies to native queries and update validators.
 
 `OnWorkflow(...).Return(values...)` and function-valued returns execute on the
 host, where callbacks may capture test assertions and variables. A replacement

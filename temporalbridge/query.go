@@ -104,6 +104,24 @@ func (d *definition) query(name string, input *commonpb.Payloads, header *common
 	return encodeTransport(result, d.env.GetDataConverter())
 }
 
+// readOnlyContext preserves the worker budget across cached task boundaries.
+func (d *definition) readOnlyContext() (context.Context, context.CancelFunc) {
+	deadline := d.taskTimeout
+	if deadline <= 0 {
+		deadline = time.Second
+	}
+	if limit := d.resources.MaxTaskDuration; limit > 0 && limit < deadline {
+		deadline = limit
+	}
+	parent := d.activeTaskContext
+	if parent == nil {
+		parent = context.Background()
+	}
+	// Standalone queries use the worker's latest task budget. Validators and
+	// queries within a task also inherit its remaining time and cancellation.
+	return context.WithTimeout(parent, deadline)
+}
+
 // runReadOnly admits the shared query/validation service at an exact fence.
 func (d *definition) runReadOnly(input workflow.QueryRequest) (*workflow.QueryResponse, error) {
 	if d.queryWaiter == nil {
@@ -122,16 +140,28 @@ func (d *definition) runReadOnly(input workflow.QueryRequest) (*workflow.QueryRe
 	}
 	d.queryWaiter.Reply(request, nil)
 	d.queryWaiter = nil
-	deadline := time.Second
-	if d.resources.MaxTaskDuration > 0 {
-		deadline = d.resources.MaxTaskDuration
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), deadline)
+	ctx, cancel := d.readOnlyContext()
 	defer cancel()
 	instance := d.instance
 	defer d.drainWrites(instance)
 	var response *workflow.QueryResponse
+	started := time.Now()
+	deadline, _ := ctx.Deadline()
+	budget := deadline.Sub(started)
+	passes, commands := 0, 0
+	var lastOperation uint32
+	checkDeadline := func() {
+		if err := ctx.Err(); err != nil {
+			// Capture the query service and suspension helper before Close
+			// destroys the goroutines that explain a stalled read-only request.
+			d.failureStack = instance.TaskDiagnostics()
+			d.failTask(fmt.Errorf("read-only handler deadline exceeded (kind=%q, name=%q, id=%d, budget=%s, elapsed=%s, passes=%d, commands=%d, last_operation=%d, resources=%+v): %w\n%s",
+				input.Kind, input.Name, input.ID, budget, time.Since(started), passes, commands, lastOperation, instance.Resources(), err, d.failureStack))
+		}
+	}
 	for {
+		passes++
+		checkDeadline()
 		if err := instance.ResumeReadOnly(); err != nil {
 			d.failTask(err)
 		}
@@ -140,6 +170,11 @@ func (d *definition) runReadOnly(input workflow.QueryRequest) (*workflow.QueryRe
 		handled := false
 		handle := func(command *isolate.Command) {
 			handled = true
+			commands++
+			if command != nil {
+				lastOperation = command.Op
+			}
+			checkDeadline()
 			if command == nil {
 				d.failTask(errors.New("query command stream closed"))
 			}
@@ -183,9 +218,10 @@ func (d *definition) runReadOnly(input workflow.QueryRequest) (*workflow.QueryRe
 				if err != nil {
 					d.failTask(err)
 				}
+				checkDeadline()
 				waiting = false
 			case <-ctx.Done():
-				d.failTask(errors.New("read-only handler did not finish before its deadline"))
+				checkDeadline()
 			case <-instance.Done():
 				d.failTask(instance.Wait())
 			}
@@ -202,6 +238,7 @@ func (d *definition) runReadOnly(input workflow.QueryRequest) (*workflow.QueryRe
 			}
 		}
 		if !handled {
+			checkDeadline()
 			if response == nil {
 				d.failTask(errors.New("read-only handler blocked without a result"))
 			}
