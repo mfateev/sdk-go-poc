@@ -339,13 +339,15 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 	}
 	passes, commands := 0, 0
 	var lastOperation uint32
+	var lastHandledOperation uint32
+	var lastHandlerDuration time.Duration
 	deadlineError := func() error {
 		// Kill/Close removes the goroutines that explain a missed wakeup.
 		// Preserve the complete task scope first, including SDK services and
 		// host suspension, without dumping unrelated workers or workflows.
 		d.failureStack = instance.TaskDiagnostics()
-		return fmt.Errorf("isolate did not suspend before the workflow task deadline (phase=%s, passes=%d, commands=%d, last_operation=%d, pending_calls=%d, resources=%+v)\n%s",
-			[...]string{"normal", "inbound", "priority"}[phase], passes, commands, lastOperation, instance.PendingCalls(), instance.Resources(), d.failureStack)
+		return fmt.Errorf("isolate workflow task deadline exceeded (phase=%s, passes=%d, commands=%d, last_operation=%d, last_handled_operation=%d, last_handler_duration=%s, pending_calls=%d, resources=%+v)\n%s",
+			[...]string{"normal", "inbound", "priority"}[phase], passes, commands, lastOperation, lastHandledOperation, lastHandlerDuration, instance.PendingCalls(), instance.Resources(), d.failureStack)
 	}
 	var ticks <-chan time.Time
 	if limit := d.resources.MaxNoProgressDuration; limit > 0 {
@@ -390,7 +392,12 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 			d.fail(errors.New("isolate command stream closed"))
 			return false
 		}
+		// Host command processing consumes the task budget too. A slow handler
+		// can exceed it after Suspend has already finished; preserve that cause
+		// rather than reporting a missing suspension wakeup.
+		operation, started := command.Op, time.Now()
 		err := d.handle(command)
+		lastHandledOperation, lastHandlerDuration = operation, time.Since(started)
 		if err != nil {
 			command.Reply(nil, err)
 			d.fail(err)

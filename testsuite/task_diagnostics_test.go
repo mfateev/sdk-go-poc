@@ -32,7 +32,7 @@ func TestTaskTimeoutCapturesDiagnosticsBeforeCleanup(t *testing.T) {
 	if err == nil {
 		t.Fatal("stalled workflow unexpectedly completed")
 	}
-	for _, want := range []string{"did not suspend", "isolate dispatch:", "normal_queue=", "priority_queue=", "taskDiagnosticStall", "workflow.executionContext", "workflow.serveQueries", "isolate.(*Isolate).Suspend", "temporalbridge.(*definition).OnWorkflowTaskStarted"} {
+	for _, want := range []string{"workflow task deadline exceeded", "last_handled_operation=", "last_handler_duration=", "isolate dispatch:", "normal_queue=", "priority_queue=", "taskDiagnosticStall", "workflow.executionContext", "workflow.serveQueries", "isolate.(*Isolate).Suspend", "temporalbridge.(*definition).OnWorkflowTaskStarted"} {
 		if !strings.Contains(err.Error(), want) {
 			t.Fatalf("timeout lost %q before cleanup: %s", want, err)
 		}
