@@ -759,6 +759,14 @@ productization gates.
 
 ### Memory ownership failures
 
+Unicode, regexp syntax, and strconv table backing data is initialized once in a
+frozen snapshot shared by isolates. Package-global bindings remain private:
+workflows can replace a binding such as `unicode.L` with their own table. Writes
+to the shared default maps, range structures, or backing slices are rejected.
+Host tables remain separate, and compiled application regexps remain writable.
+Rejected writes from queries and update validators panic in the handler without
+terminating the workflow isolate.
+
 A detected ownership violation permanently terminates the workflow's isolate.
 Workflow `recover` cannot handle it and application defers are discarded.
 The adapter preserves the host's `*isolate.OwnershipError` (inspect it with

@@ -3,6 +3,7 @@ package protobufvalues
 import (
 	"context"
 	"fmt"
+	"unicode"
 
 	"github.com/mfateev/sdk-go-poc/example/protobufvalues/model"
 	"github.com/mfateev/sdk-go-poc/workflow"
@@ -15,6 +16,18 @@ import (
 //
 //go:isolate
 func SharedMetadata(ctx context.Context) (string, error) {
+	if err := workflow.SetQueryHandler(ctx, "mutateLibrary", func() (string, error) {
+		unicode.L.R16[0].Lo++
+		return "mutation accepted", nil
+	}); err != nil {
+		return "", err
+	}
+	if err := workflow.SetQueryHandler(ctx, "mutateLibraryMap", func() (string, error) {
+		delete(unicode.Categories, "L")
+		return "mutation accepted", nil
+	}); err != nil {
+		return "", err
+	}
 	if err := workflow.SetQueryHandler(ctx, "mutateMetadata", func() (string, error) {
 		(&model.Record{}).ProtoReflect().ProtoMethods().Flags = 0
 		return "mutation accepted", nil

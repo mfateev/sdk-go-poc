@@ -29,6 +29,12 @@ func cacheReuse() error {
 		var queryError error
 		env.RegisterDelayedCallback(func() {
 			defer env.SignalWorkflow("finish", true)
+			for _, name := range []string{"mutateLibrary", "mutateLibraryMap"} {
+				if _, err := env.QueryWorkflow(name); err == nil || !strings.Contains(err.Error(), "read-only handler cannot mutate shared library") {
+					queryError = fmt.Errorf("library mutation query %s: %v", name, err)
+					return
+				}
+			}
 			if _, err := env.QueryWorkflow("mutateMetadata"); err == nil || !strings.Contains(err.Error(), "read-only handler cannot mutate shared protobuf metadata") {
 				queryError = fmt.Errorf("metadata mutation query: %v", err)
 				return
