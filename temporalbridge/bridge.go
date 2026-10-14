@@ -418,9 +418,8 @@ func (d *definition) OnWorkflowTaskStarted(deadlockTimeout time.Duration) {
 			d.fail(errors.New("isolate command stream closed"))
 			return false
 		}
-		// Host command processing consumes the task budget too. A slow handler
-		// can exceed it after Suspend has already finished; preserve that cause
-		// rather than reporting a missing suspension wakeup.
+		// Sending a command is a workflow yield. Host codec/interceptor work is
+		// outside the SDK deadlock interval, but still consumes MaxTaskDuration.
 		operation, started := command.Op, time.Now()
 		err := d.handle(command)
 		lastHandledOperation, lastHandlerDuration = operation, time.Since(started)
@@ -429,12 +428,16 @@ func (d *definition) OnWorkflowTaskStarted(deadlockTimeout time.Duration) {
 			d.fail(err)
 			return false
 		}
+		if err := budget.check(instance); err != nil {
+			d.failTask(err)
+		}
+		startPass()
 		return (!d.completed || d.retainedCompletion != nil) && !d.closed
 	}
 	for {
 		passes++
 		checkBudget()
-		passContext := startPass()
+		startPass()
 		resume := instance.Resume
 		if phase == inboundDispatch {
 			resume = instance.ResumeInbound
@@ -482,7 +485,7 @@ func (d *definition) OnWorkflowTaskStarted(deadlockTimeout time.Duration) {
 				return
 			case <-ticks:
 				checkBudget()
-			case <-passContext.Done():
+			case <-d.activeTaskContext.Done():
 				checkBudget()
 				d.failTask(deadlineError())
 				return

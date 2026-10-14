@@ -85,25 +85,36 @@ func runResourceTaskWithTimeout(d bindings.WorkflowDefinition, timeout time.Dura
 }
 
 func checkDispatchBudgets(t *check) {
-	for _, cap := range []time.Duration{0, time.Second} {
-		d, e := resourceDefinition(t, resources.Input{Mode: "host-roundtrips", Iterations: 3}, temporalbridge.ResourceOptions{MaxTaskDuration: cap})
-		// Every pass finishes inside the SDK's deadlock interval. Together the
-		// three acknowledged round trips exceed it; only an explicit task cap
-		// should reject that progress. Startup was warmed by earlier checks.
-		e.hostDelay = 600 * time.Millisecond
-		failure := runResourceTaskWithTimeout(d, time.Second)
-		if cap == 0 {
-			if failure != nil || e.completes != 1 || e.hostCalls != 3 {
-				t.Fatalf("successful passes inherited a cumulative deadlock deadline: failure=%v completes=%d calls=%d", failure, e.completes, e.hostCalls)
+	for _, test := range []struct {
+		name       string
+		calls      int
+		delay, cap time.Duration
+	}{
+		{"multiple-passes", 3, 600 * time.Millisecond, 0},
+		{"host-conversion", 1, 1200 * time.Millisecond, 0},
+		{"task-cap", 3, 600 * time.Millisecond, time.Second},
+		{"host-task-cap", 1, 1200 * time.Millisecond, time.Second},
+	} {
+		t.Run(test.name, func(t *check) {
+			d, e := resourceDefinition(t, resources.Input{Mode: "host-roundtrips", Iterations: test.calls}, temporalbridge.ResourceOptions{MaxTaskDuration: test.cap})
+			// Workflow execution yields promptly. Host work can exceed one deadlock
+			// interval either alone or across multiple round trips; an explicit
+			// task cap must still reject it. Earlier checks warmed startup.
+			e.hostDelay = test.delay
+			failure := runResourceTaskWithTimeout(d, time.Second)
+			if test.cap == 0 {
+				if failure != nil || e.completes != 1 || e.hostCalls != test.calls {
+					t.Fatalf("successful passes inherited a cumulative deadlock deadline: failure=%v completes=%d calls=%d", failure, e.completes, e.hostCalls)
+				}
+			} else {
+				err, ok := failure.(error)
+				var limit *isolate.ResourceLimitError
+				if !ok || !errors.As(err, &limit) || limit.Resource != "task duration" || e.completes != 0 {
+					t.Fatalf("dispatch progress extended the explicit task cap: %v", failure)
+				}
 			}
-		} else {
-			err, ok := failure.(error)
-			var limit *isolate.ResourceLimitError
-			if !ok || !errors.As(err, &limit) || limit.Resource != "task duration" || e.completes != 0 {
-				t.Fatalf("dispatch progress extended the explicit task cap: %v", failure)
-			}
-		}
-		d.Close()
+			d.Close()
+		})
 	}
 }
 

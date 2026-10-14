@@ -1009,9 +1009,10 @@ progress; asynchronous preemption does not count as progress. Cached idle time
 uses neither budget, and cached instances have no watchdog timers. These are
 host monotonic watchdogs, not workflow clocks or exact CPU quotas.
 The worker's `DeadlockDetectionTimeout` bounds initialization and each dispatch
-pass separately. Successful host round trips receive a fresh dispatch budget;
-their combined duration may exceed this interval. `MaxTaskDuration` remains a
-cumulative cap and is never renewed by dispatch progress.
+pass separately. A host call yields workflow execution; after the host handles
+it, dispatch receives a fresh budget. Host codec and interceptor processing do
+not consume the workflow deadlock interval. `MaxTaskDuration` remains a
+cumulative cap, includes host processing, and is never renewed by dispatch progress.
 Queries use the worker's latest `DeadlockDetectionTimeout`, capped by
 `MaxTaskDuration`. Update validators and queries executed during a workflow task
 also share the active pass and task's remaining budget and cancellation. Queries on cached or
