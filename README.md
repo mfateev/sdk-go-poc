@@ -1487,9 +1487,13 @@ export GOCACHE="$(cd .. && pwd)/go-build-cache"
 ../golang-go/bin/tgo test -timeout=20m ./...
 ```
 
-Compiled workflow fixtures use `internal/checktest`: each checker build has a
-10-minute budget, and each checker process gets a fresh 2-minute execution
-budget. Compilation cannot consume a subsequent replay's execution allowance.
+Compiled workflow fixtures use `internal/checktest.Main` from their `TestMain`.
+Each checker directory builds once per test package, with a 10-minute build
+budget. Scenario tests share the executable and launch fresh processes with
+separate 2-minute execution budgets. Executables survive subtest cleanup and
+are removed after the package finishes. Checker sources and the build
+environment remain fixed during that package's tests.
+Compilation cannot consume a subsequent replay's execution allowance.
 Build failures report elapsed time and context status. The outer 20-minute limit
 is per test package; GitHub's native platform jobs have a 90-minute limit.
 
