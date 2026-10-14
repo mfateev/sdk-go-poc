@@ -75,7 +75,7 @@ new SDK coverage, and missing-feature decisions. The normal test suite enforces
 that list. Compare it with the upstream checkout when changing SDK dependencies:
 
 ```sh
-../golang-go/bin/go run ./internal/cmd/testports -upstream ../temporal-go-sdk
+../golang-go/bin/tgo run ./internal/cmd/testports -upstream ../temporal-go-sdk
 ```
 
 The user-selected context propagation and converter feature is implemented.

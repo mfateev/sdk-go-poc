@@ -3,6 +3,14 @@
 See [workflow interceptors and observability](INTERCEPTORS.md) for native SDK-style
 interception, logging/metrics, OpenTelemetry v1/v2, Datadog and OpenTracing configuration.
 
+## Go commands
+
+Use standard `go` for ordinary tools such as linters and code generators.
+Use `tgo` to build, test, or run workflow and worker programs: their host code
+and workflows are linked with the same modified Go runtime. Tools that load
+workflow packages need support for the custom toolchain.
+The installed POC command is `bin/tgo`; it does not install a `go` alias.
+
 ## Determinism regression corpus
 
 `example/determinism.DeterminismWorkflow` records observable ordering for native
@@ -51,8 +59,8 @@ Its checker validates the recorded completion as well as query isolation,
 eviction and GOMAXPROCS 1/2/8 in fresh processes:
 
 ```sh
-../golang-go/bin/go test ./example/random/check
-../golang-go/bin/go build -o /tmp/isolate-random-check ./example/random/check
+../golang-go/bin/tgo test ./example/random/check
+../golang-go/bin/tgo build -o /tmp/isolate-random-check ./example/random/check
 /tmp/isolate-random-check -history example/random/testdata/history.json
 ```
 
@@ -105,8 +113,8 @@ deliver `WorkflowControl` through the existing `OpWorkflowCancel` service for
 reset transitions.
 
 ```sh
-../golang-go/bin/go test ./workflow ./example/random/check
-RANDOM_STREAMS_DEV_SERVER=1 ../golang-go/bin/go test -count=1 ./example/random/check -run TestLiveNamedRandomStreams
+../golang-go/bin/tgo test ./workflow ./example/random/check
+RANDOM_STREAMS_DEV_SERVER=1 ../golang-go/bin/tgo test -count=1 ./example/random/check -run TestLiveNamedRandomStreams
 ```
 
 ### Determinism history checks
@@ -115,7 +123,7 @@ Build the checker with the custom toolchain and replay the saved history in
 fresh processes from this repository:
 
 ```sh
-../golang-go/bin/go build -o /tmp/isolate-determinism-replay ./example/determinism/check
+../golang-go/bin/tgo build -o /tmp/isolate-determinism-replay ./example/determinism/check
 GOMAXPROCS=1 /tmp/isolate-determinism-replay
 GOMAXPROCS=2 /tmp/isolate-determinism-replay
 GOMAXPROCS=8 GODEBUG=cpu.all=off TZ=America/Los_Angeles /tmp/isolate-determinism-replay
@@ -146,7 +154,7 @@ This module adapts statically linked Go isolates to the Temporal Go SDK's
 Temporal's PHP SDK. It needs the compiler and runtime from the
 [`mfateev/golang-go` fork](https://github.com/mfateev/golang-go/tree/task/modify-go-runtime-for-isolates).
 Clone that fork and this repository as siblings, then build with the fork's
-`bin/go`:
+`bin/tgo`:
 
 ```sh
 git clone --branch task/modify-go-runtime-for-isolates https://github.com/mfateev/golang-go.git
@@ -165,7 +173,7 @@ separate from your usual Go cache for targeted cleanup.
 Build the example from this directory:
 
 ```sh
-../golang-go/bin/go build -o worker ./example/worker
+../golang-go/bin/tgo build -o worker ./example/worker
 ```
 
 Run `./worker` against a local Temporal server (or set `TEMPORAL_ADDRESS`). It
@@ -212,7 +220,7 @@ temporal workflow execute --workflow-id isolate-poc-concurrent --type IsolateCon
 Export and replay a completed history with a fresh isolate process:
 
 ```sh
-../golang-go/bin/go build -o replay ./example/replay
+../golang-go/bin/tgo build -o replay ./example/replay
 temporal workflow show --workflow-id isolate-poc-order --output json > /tmp/isolate-order-history.json
 ./replay IsolateOrder /tmp/isolate-order-history.json
 temporal workflow show --workflow-id isolate-poc-clock --output json > /tmp/isolate-clock-history.json
@@ -222,7 +230,7 @@ temporal workflow show --workflow-id isolate-poc-clock --output json > /tmp/isol
 Run the local bridge driver without a server:
 
 ```sh
-../golang-go/bin/go build -o /tmp/isolate-temporal-driver ./example/driver
+../golang-go/bin/tgo build -o /tmp/isolate-temporal-driver ./example/driver
 /tmp/isolate-temporal-driver
 ```
 
@@ -274,7 +282,7 @@ w.RegisterWorkflow(order.TypedEchoWorkflow)
 w.RegisterWorkflow(PlainEcho) // An ordinary Temporal workflow remains ordinary.
 ```
 
-`go build` discovers marked functions in the host's import graph, retains their
+`tgo build` discovers marked functions in the host's import graph, retains their
 original Go signatures, and generates direct typed invokers. No `isolate.json`,
 workflow `main`, or `-isolate-dir` is needed. A package can contain several
 marked functions and ordinary functions. Each execution gets fresh selected
@@ -290,8 +298,8 @@ Marked functions accept any number of ordinary Go arguments and return either
 nothing, `error`, or `(result, error)`. They do not take a host-owned Temporal
 `workflow.Context`. Generic or variadic functions, methods, cgo source, and dot
 imports are rejected. Automatic entry generation currently applies to a
-single executable `go build` and `go test` binaries, including entries declared
-in internal or external `_test.go` files. `go run` and `go install` remain
+single executable `tgo build` and `tgo test` binaries, including entries declared
+in internal or external `_test.go` files. `tgo run` and `tgo install` remain
 future work. Initialization and state selection still operate at package level,
 so selected package initializers run for every instance. Finer function-level
 dependency selection remains TODO. The older directory-program and explicit
@@ -358,7 +366,7 @@ ports cover blocking, select, nonblocking and closed-channel reads, late
 registration, `NextSignal`, malformed envelopes, and replay counter suppression:
 
 ```sh
-../golang-go/bin/go test ./example/signals/check
+../golang-go/bin/tgo test ./example/signals/check
 ```
 
 The local-server check also sends durable signal batches before worker polling,
@@ -366,7 +374,7 @@ verifies Continue-As-New carryover and corrupt-signal skipping, and replays the
 recorded histories:
 
 ```sh
-SIGNALS_DEV_SERVER=1 ../golang-go/bin/go test -count=1 ./example/signals/check
+SIGNALS_DEV_SERVER=1 ../golang-go/bin/tgo test -count=1 ./example/signals/check
 ```
 
 Activities use the current Go SDK API: `WithActivityOptions`,
@@ -519,8 +527,8 @@ cover ordinary and isolate children, structured failures, retries and
 continue-as-new. Build and run with the isolate toolchain:
 
 ```sh
-../golang-go/bin/go test ./example/child/check
-../golang-go/bin/go build -race -o /tmp/isolate-child-check ./example/child/check
+../golang-go/bin/tgo test ./example/child/check
+../golang-go/bin/tgo build -race -o /tmp/isolate-child-check ./example/child/check
 GOGC=1 /tmp/isolate-child-check -history-dir example/child/testdata
 # Optional: with a Temporal development server on localhost:7233
 /tmp/isolate-child-check -address localhost:7233
@@ -606,7 +614,7 @@ its checked-in live update history; `-address localhost:7233` records a fresh ru
 Run the local-server update and recorded-history replay checks with:
 
 ```sh
-UPDATES_DEV_SERVER=1 ../golang-go/bin/go test -count=1 ./example/update/check
+UPDATES_DEV_SERVER=1 ../golang-go/bin/tgo test -count=1 ./example/update/check
 ```
 
 ### Dynamic workflows and handlers
@@ -674,9 +682,9 @@ serialization, compression codecs, inbound interceptors, cache eviction and save
 history replay at GOMAXPROCS 1/2/8:
 
 ```sh
-../golang-go/bin/go test ./example/dynamic/check -run 'TestDynamic|TestNativeDynamic'
-../golang-go/bin/go test ./example/dynamic/check
-DYNAMIC_DEV_SERVER=1 ../golang-go/bin/go test -count=1 ./example/dynamic/check
+../golang-go/bin/tgo test ./example/dynamic/check -run 'TestDynamic|TestNativeDynamic'
+../golang-go/bin/tgo test ./example/dynamic/check
+DYNAMIC_DEV_SERVER=1 ../golang-go/bin/tgo test -count=1 ./example/dynamic/check
 ```
 
 ### Continue-as-new and workflow versioning
@@ -713,8 +721,8 @@ including its context-aware or per-context converter.
 histories, including the unsupported-version negative case:
 
 ```bash
-../golang-go/bin/go test ./example/continuation/check
-../golang-go/bin/go build -o /tmp/isolate-continuation-check ./example/continuation/check
+../golang-go/bin/tgo test ./example/continuation/check
+../golang-go/bin/tgo build -o /tmp/isolate-continuation-check ./example/continuation/check
 /tmp/isolate-continuation-check -history-dir example/continuation/testdata
 # Optional: record new fixtures against a local Temporal development server.
 /tmp/isolate-continuation-check -live 127.0.0.1:7233 -history-dir /tmp/continuation-histories
@@ -881,7 +889,7 @@ violations, and recorded-history replay. Run it from this repository with the
 fork's compiler:
 
 ```sh
-../golang-go/bin/go build -o /tmp/isolate-effects-check ./example/effects/check
+../golang-go/bin/tgo build -o /tmp/isolate-effects-check ./example/effects/check
 /tmp/isolate-effects-check
 ```
 
@@ -945,7 +953,7 @@ Run compiled lifecycle and replay conformance, optionally against a development
 server (the checker terminates its own negative-test executions):
 
 ```sh
-../golang-go/bin/go build -o /tmp/isolate-lifecycle-check ./example/lifecycle/check
+../golang-go/bin/tgo build -o /tmp/isolate-lifecycle-check ./example/lifecycle/check
 /tmp/isolate-lifecycle-check
 /tmp/isolate-lifecycle-check live 127.0.0.1:7242
 ```
@@ -1019,7 +1027,7 @@ panic path and disables that observer during cleanup.
 Run the compiled resource integration checks with the fork:
 
 ```bash
-../golang-go/bin/go test ./example/resources/check
+../golang-go/bin/tgo test ./example/resources/check
 ```
 
 ## Worker-configured isolate data converters
@@ -1109,7 +1117,7 @@ Current restrictions and follow-ups:
 Run the compiled converter checks, optionally with a Temporal development server:
 
 ```sh
-../golang-go/bin/go build -o /tmp/isolate-converter-check ./example/converter/check
+../golang-go/bin/tgo build -o /tmp/isolate-converter-check ./example/converter/check
 /tmp/isolate-converter-check -history-dir ./example/converter/testdata
 /tmp/isolate-converter-check -address 127.0.0.1:7233
 /tmp/isolate-converter-check -history /tmp/feature8-Workflow-history.json
@@ -1170,8 +1178,8 @@ child mocks, local activities, context-aware masking, per-context formats, repea
 queries/updates, and saved live-history replay at GOMAXPROCS 1/2/8:
 
 ```sh
-../golang-go/bin/go test ./example/contextpropagation/check ./workflow ./worker
-../golang-go/bin/go build -o /tmp/native-context-check ./example/contextpropagation/check
+../golang-go/bin/tgo test ./example/contextpropagation/check ./workflow ./worker
+../golang-go/bin/tgo build -o /tmp/native-context-check ./example/contextpropagation/check
 /tmp/native-context-check -address 127.0.0.1:7233 -cache-size 1000
 /tmp/native-context-check -address 127.0.0.1:7233 -cache-size 0
 ```
@@ -1226,8 +1234,8 @@ serializers, copied configuration, factory failures and saved compressed-history
 replay at GOMAXPROCS 1/2/8:
 
 ```sh
-../golang-go/bin/go test ./example/failureconversion/check
-../golang-go/bin/go build -o /tmp/custom-failure-check ./example/failureconversion/check
+../golang-go/bin/tgo test ./example/failureconversion/check
+../golang-go/bin/tgo build -o /tmp/custom-failure-check ./example/failureconversion/check
 /tmp/custom-failure-check -address 127.0.0.1:7233 -cache-size 1000
 /tmp/custom-failure-check -address 127.0.0.1:7233 -cache-size 0
 ```
@@ -1237,7 +1245,7 @@ replay at GOMAXPROCS 1/2/8:
 ### Native workflow tests
 
 Import `github.com/mfateev/sdk-go-poc/testsuite` and use the custom toolchain's
-`go test`. Marked functions in ordinary source and internal/external `_test.go`
+`tgo test`. Marked functions in ordinary source and internal/external `_test.go`
 files receive generated entries before `TestMain`. Ordinary SDK workflows retain
 their existing path. Marked tests currently require the default gc mode without
 `-cover`.
@@ -1401,7 +1409,7 @@ recreation/failure, Nexus execution/result separation, cancellation and late
 callbacks after eviction. Saved histories include ordinary SDK interoperability.
 
 ```sh
-../golang-go/bin/go build -o /tmp/isolate-api-check ./example/apicoverage/check
+../golang-go/bin/tgo build -o /tmp/isolate-api-check ./example/apicoverage/check
 /tmp/isolate-api-check -history-dir ./example/apicoverage/testdata
 # With a development server; creates/deletes a temporary Nexus endpoint.
 /tmp/isolate-api-check -address 127.0.0.1:7233 -history-dir /tmp/isolate-api-histories
@@ -1476,7 +1484,7 @@ Run the complete SDK suite with the custom toolchain:
 
 ```sh
 export GOCACHE="$(cd .. && pwd)/go-build-cache"
-../golang-go/bin/go test -timeout=20m ./...
+../golang-go/bin/tgo test -timeout=20m ./...
 ```
 
 Compiled workflow fixtures use `internal/checktest`: each checker build has a

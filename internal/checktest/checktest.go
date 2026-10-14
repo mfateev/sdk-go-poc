@@ -24,7 +24,7 @@ func Build(t *testing.T, name string) string {
 	ctx, cancel := context.WithTimeout(t.Context(), buildBudget)
 	defer cancel()
 	start := time.Now()
-	cmd := exec.CommandContext(ctx, filepath.Join(runtime.GOROOT(), "bin", "go"), "build", "-o", binary, ".")
+	cmd := exec.CommandContext(ctx, filepath.Join(runtime.GOROOT(), "bin", "tgo"), "build", "-o", binary, ".")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("checker build after %s (budget %s, context %v): %v\n%s", time.Since(start), buildBudget, ctx.Err(), err, output)
 	}

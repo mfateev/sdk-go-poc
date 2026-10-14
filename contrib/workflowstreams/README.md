@@ -85,8 +85,8 @@ signals, updates and queries; other reserved names remain rejected.
 Run with the custom toolchain:
 
 ```sh
-../golang-go/bin/go test ./contrib/workflowstreams ./workflow ./example/workflowstreams/check
-STREAMS_DEV_SERVER=1 ../golang-go/bin/go test -count=1 ./example/workflowstreams/check -run TestLiveWorkflowStreams
+../golang-go/bin/tgo test ./contrib/workflowstreams ./workflow ./example/workflowstreams/check
+STREAMS_DEV_SERVER=1 ../golang-go/bin/tgo test -count=1 ./example/workflowstreams/check -run TestLiveWorkflowStreams
 ```
 
 The live checker covers subscription through rollover, truncation recovery,

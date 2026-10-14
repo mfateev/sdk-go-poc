@@ -51,8 +51,8 @@ The isolate test facade reuses the host SDK test engine. Its original activity, 
 Run from this repository with the custom toolchain:
 
 ```sh
-../golang-go/bin/go test ./...
-../golang-go/bin/go run ./internal/cmd/testports -upstream ../temporal-go-sdk
+../golang-go/bin/tgo test ./...
+../golang-go/bin/tgo run ./internal/cmd/testports -upstream ../temporal-go-sdk
 ```
 
 The normal test suite rejects unfinished ports, missing reasons, duplicate entries, unpinned source files, missing runnable coverage targets, stale checklist text, and an SDK dependency version change. Comparing the source checkout also rejects new/unlisted tests, removed tests, and changed source test files. Run that comparison whenever upgrading or changing the upstream SDK.
@@ -60,20 +60,20 @@ The normal test suite rejects unfinished ports, missing reasons, duplicate entri
 Full feature parity remains incomplete while blockers exist. To require that stricter condition:
 
 ```sh
-../golang-go/bin/go run ./internal/cmd/testports -upstream ../temporal-go-sdk -require-no-blocked
+../golang-go/bin/tgo run ./internal/cmd/testports -upstream ../temporal-go-sdk -require-no-blocked
 ```
 
 Refresh this document after reviewing and updating the JSON inventory:
 
 ```sh
-../golang-go/bin/go run ./internal/cmd/testports -write-checklist
+../golang-go/bin/tgo run ./internal/cmd/testports -write-checklist
 ```
 
 Retained host tests can be run through the upstream repository's canonical runner:
 
 ```sh
 cd ../temporal-go-sdk/internal/cmd/build
-PATH="$(cd ../../../../golang-go/bin && pwd):$PATH" ../../../../golang-go/bin/go run . unit-test
+TEMPORAL_GO_COMMAND="$(cd ../../../../golang-go/bin && pwd)/tgo" go run . unit-test
 ```
 
 ## Source-test list
