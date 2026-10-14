@@ -1008,9 +1008,13 @@ watchdog starts after startup and detects absence of supported park/yield
 progress; asynchronous preemption does not count as progress. Cached idle time
 uses neither budget, and cached instances have no watchdog timers. These are
 host monotonic watchdogs, not workflow clocks or exact CPU quotas.
+The worker's `DeadlockDetectionTimeout` bounds initialization and each dispatch
+pass separately. Successful host round trips receive a fresh dispatch budget;
+their combined duration may exceed this interval. `MaxTaskDuration` remains a
+cumulative cap and is never renewed by dispatch progress.
 Queries use the worker's latest `DeadlockDetectionTimeout`, capped by
 `MaxTaskDuration`. Update validators and queries executed during a workflow task
-also share that task's remaining budget and cancellation. Queries on cached or
+also share the active pass and task's remaining budget and cancellation. Queries on cached or
 completed workflows start a fresh budget; idle time is excluded. Deadline
 failures capture the read-only service and host suspension stacks before cleanup.
 `RunningNanoseconds` counts completed scheduled intervals, including metadata

@@ -278,7 +278,7 @@ func (d *definition) Execute(env bindings.WorkflowEnvironment, header *commonpb.
 	})
 }
 
-func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
+func (d *definition) OnWorkflowTaskStarted(deadlockTimeout time.Duration) {
 	// A host callback may panic. Always release the instance before handing
 	// the panic to the SDK's Workflow Task failure path.
 	defer func() {
@@ -290,18 +290,37 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 	if d.completed || d.closed {
 		return
 	}
-	if deadline <= 0 {
-		deadline = time.Second
+	if deadlockTimeout <= 0 {
+		deadlockTimeout = time.Second
 	}
 	budget := resourceTaskBudget{start: time.Now(), options: d.resources}
-	if d.resources.MaxTaskDuration > 0 && d.resources.MaxTaskDuration < deadline {
-		deadline = d.resources.MaxTaskDuration
+	d.taskTimeout = deadlockTimeout
+	// The SDK timeout detects an execution that fails to yield. It is not a
+	// cumulative deadline across successful transport and dispatch passes.
+	// Only the explicit resource policy caps the complete task, including init.
+	var taskContext context.Context
+	var cancelTask context.CancelFunc
+	if limit := d.resources.MaxTaskDuration; limit > 0 {
+		taskContext, cancelTask = context.WithTimeout(context.Background(), limit)
+	} else {
+		taskContext, cancelTask = context.WithCancel(context.Background())
 	}
-	d.taskTimeout = deadline
-	taskContext, cancelTask := context.WithTimeout(context.Background(), deadline)
 	d.activeTaskContext = taskContext
+	var cancelPass context.CancelFunc
+	startPass := func() context.Context {
+		if cancelPass != nil {
+			cancelPass()
+		}
+		passContext, cancel := context.WithTimeout(taskContext, deadlockTimeout)
+		cancelPass = cancel
+		d.activeTaskContext = passContext
+		return passContext
+	}
 	defer func() {
 		d.activeTaskContext = nil
+		if cancelPass != nil {
+			cancelPass()
+		}
 		cancelTask()
 	}()
 	defer func() { d.observeResources("task", nil) }()
@@ -317,7 +336,7 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 	if !d.started {
 		d.started = true
 		var err error
-		d.instance, err = isolate.NewContext(taskContext, isolate.Config{Program: d.program, Deterministic: true, RandomSeed: workflowRandomSeed(d.env.WorkflowInfo()), InitialTime: &now, TimerOp: workflow.OpSleep, LogHandler: d.writeLog, ResourceLimits: d.resources.Limits})
+		d.instance, err = isolate.NewContext(startPass(), isolate.Config{Program: d.program, Deterministic: true, RandomSeed: workflowRandomSeed(d.env.WorkflowInfo()), InitialTime: &now, TimerOp: workflow.OpSleep, LogHandler: d.writeLog, ResourceLimits: d.resources.Limits})
 		if err == nil {
 			err = d.instance.Start()
 		}
@@ -367,7 +386,7 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 		if err := budget.check(instance); err != nil {
 			d.failTask(err)
 		}
-		if taskContext.Err() != nil {
+		if d.activeTaskContext.Err() != nil {
 			d.failTask(deadlineError())
 		}
 	}
@@ -415,6 +434,7 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 	for {
 		passes++
 		checkBudget()
+		passContext := startPass()
 		resume := instance.Resume
 		if phase == inboundDispatch {
 			resume = instance.ResumeInbound
@@ -462,7 +482,7 @@ func (d *definition) OnWorkflowTaskStarted(deadline time.Duration) {
 				return
 			case <-ticks:
 				checkBudget()
-			case <-taskContext.Done():
+			case <-passContext.Done():
 				checkBudget()
 				d.failTask(deadlineError())
 				return

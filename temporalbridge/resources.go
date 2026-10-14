@@ -8,7 +8,8 @@ import (
 )
 
 // ResourceOptions are host policy, sampled once when an execution is created.
-// Zero values preserve unlimited admission and the SDK's existing task deadline.
+// Zero values preserve unlimited admission and the SDK's deadlock interval for
+// each dispatch pass. MaxTaskDuration separately caps the complete task.
 // Cached time consumes neither watchdog budget. RunningNanoseconds is scheduled
 // interval accounting, not a hardware CPU quota. Uninterrupted code may leave
 // pending termination until it reaches a supported runtime fence.

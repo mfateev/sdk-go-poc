@@ -3,9 +3,12 @@ package resources
 
 import (
 	"context"
+	"isolate"
 	"iter"
 	"runtime"
 	"time"
+
+	"github.com/mfateev/sdk-go-poc/internal/testrefwire"
 )
 
 type Input struct {
@@ -16,6 +19,12 @@ type Input struct {
 //temporal:workflow
 func ResourceWorkflow(ctx context.Context, input Input) (uint64, error) {
 	switch input.Mode {
+	case "host-roundtrips":
+		for range input.Iterations {
+			if _, err := isolate.Call(testrefwire.Operation, nil); err != nil {
+				return 0, err
+			}
+		}
 	case "goroutines":
 		go func() { select {} }()
 		go func() { select {} }()

@@ -19,6 +19,8 @@ import (
 type resourceEnvironment struct {
 	bindings.WorkflowEnvironment
 	completes, cancels int
+	hostCalls          int
+	hostDelay          time.Duration
 	signal             func(string, *commonpb.Payloads, *commonpb.Header) error
 	cancel             func()
 }
@@ -55,8 +57,16 @@ func resourceDefinition(t *check, input resources.Input, options temporalbridge.
 	if !ok {
 		t.Fatal("missing compiled resource workflow")
 	}
-	d := (temporalbridge.Factory{Function: handle, ResolveResourceOptions: func() temporalbridge.ResourceOptions { return options }}).NewWorkflowDefinition()
 	e := new(resourceEnvironment)
+	d := (temporalbridge.Factory{
+		Function:               handle,
+		ResolveResourceOptions: func() temporalbridge.ResourceOptions { return options },
+		TestRefHandler: func([]byte, bool) ([]byte, error) {
+			e.hostCalls++
+			time.Sleep(e.hostDelay)
+			return nil, nil
+		},
+	}).NewWorkflowDefinition()
 	payloads, err := e.GetDataConverter().ToPayloads(input)
 	if err != nil {
 		t.Fatal(err)
@@ -65,9 +75,36 @@ func resourceDefinition(t *check, input resources.Input, options temporalbridge.
 	return d, e
 }
 func runResourceTask(d bindings.WorkflowDefinition) (failure any) {
+	return runResourceTaskWithTimeout(d, 5*time.Second)
+}
+
+func runResourceTaskWithTimeout(d bindings.WorkflowDefinition, timeout time.Duration) (failure any) {
 	defer func() { failure = recover() }()
-	d.OnWorkflowTaskStarted(5 * time.Second)
+	d.OnWorkflowTaskStarted(timeout)
 	return nil
+}
+
+func checkDispatchBudgets(t *check) {
+	for _, cap := range []time.Duration{0, time.Second} {
+		d, e := resourceDefinition(t, resources.Input{Mode: "host-roundtrips", Iterations: 3}, temporalbridge.ResourceOptions{MaxTaskDuration: cap})
+		// Every pass finishes inside the SDK's deadlock interval. Together the
+		// three acknowledged round trips exceed it; only an explicit task cap
+		// should reject that progress. Startup was warmed by earlier checks.
+		e.hostDelay = 600 * time.Millisecond
+		failure := runResourceTaskWithTimeout(d, time.Second)
+		if cap == 0 {
+			if failure != nil || e.completes != 1 || e.hostCalls != 3 {
+				t.Fatalf("successful passes inherited a cumulative deadlock deadline: failure=%v completes=%d calls=%d", failure, e.completes, e.hostCalls)
+			}
+		} else {
+			err, ok := failure.(error)
+			var limit *isolate.ResourceLimitError
+			if !ok || !errors.As(err, &limit) || limit.Resource != "task duration" || e.completes != 0 {
+				t.Fatalf("dispatch progress extended the explicit task cap: %v", failure)
+			}
+		}
+		d.Close()
+	}
 }
 
 func checkWorkflowLimits(t *check) {
@@ -205,6 +242,7 @@ func (t *check) Fatalf(format string, args ...any) {
 func (t *check) Run(name string, fn func(*check)) { fn(&check{name: t.name + "/" + name}) }
 func main() {
 	checkWorkflowLimits(&check{name: "admission"})
+	checkDispatchBudgets(&check{name: "dispatch budgets"})
 	checkWatchdogs(&check{name: "watchdogs"})
 	checkCachedIdle(&check{name: "cached"})
 	checkObserverPanic()
