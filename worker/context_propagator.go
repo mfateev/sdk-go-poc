@@ -11,7 +11,7 @@ import (
 )
 
 // ContextPropagatorOptions creates an ordered set of native propagators inside
-// each workflow isolate. Factory must be marked //go:isolate, construct its own
+// each workflow isolate. Factory must be marked //temporal:workflow, construct its own
 // state, and use only the copied Config. Host contexts never cross the boundary.
 // Configure matching host SDK propagators on client.Options.ContextPropagators
 // for clients and activities. Queries/validators construct fresh scratch instances.
@@ -29,7 +29,7 @@ func SetIsolateContextPropagators(w any, options ContextPropagatorOptions) error
 		var ok bool
 		handle, ok = isolate.LookupFunction(options.Factory)
 		if !ok {
-			return fmt.Errorf("worker: context propagator factory must be a //go:isolate function")
+			return fmt.Errorf("worker: context propagator factory must be a //temporal:workflow function")
 		}
 	} else if len(options.Config) != 0 {
 		return fmt.Errorf("worker: context propagator configuration requires a factory")

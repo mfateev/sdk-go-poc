@@ -10,7 +10,7 @@ import (
 	"go.temporal.io/sdk/converter"
 )
 
-//go:isolate
+//temporal:workflow
 func Workflow(ctx context.Context, args converter.EncodedValues) (string, error) {
 	name := workflow.GetInfo(ctx).WorkflowType.Name
 	if name == "empty" {
@@ -38,7 +38,7 @@ func Workflow(ctx context.Context, args converter.EncodedValues) (string, error)
 	}
 }
 
-//go:isolate
+//temporal:workflow
 func Handlers(ctx context.Context, args converter.EncodedValues) (int64, error) {
 	var mode string
 	if err := args.Get(&mode); err != nil {
@@ -116,10 +116,10 @@ func Handlers(ctx context.Context, args converter.EncodedValues) (int64, error) 
 	return value, nil
 }
 
-//go:isolate
+//temporal:workflow
 func Named(_ context.Context, input string) (string, error) { return "child:" + input, nil }
 
-//go:isolate
+//temporal:workflow
 func Replacement(ctx context.Context) (string, error) {
 	last := "none"
 	query := func(string, converter.EncodedValues) (string, error) { return "old", nil }

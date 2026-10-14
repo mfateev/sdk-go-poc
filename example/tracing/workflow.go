@@ -22,7 +22,7 @@ const SinkOp uint32 = 0x10200
 
 var state int
 
-//go:isolate
+//temporal:workflow
 func NewInterceptors(config []byte) ([]interceptor.WorkerInterceptor, error) {
 	if string(config) == "opentracing" {
 		tracing, err := nativeot.NewInterceptor(nativeot.TracerOptions{SinkOp: SinkOp})
@@ -38,7 +38,7 @@ func NewInterceptors(config []byte) ([]interceptor.WorkerInterceptor, error) {
 	return []interceptor.WorkerInterceptor{tracer}, err
 }
 
-//go:isolate
+//temporal:workflow
 func Workflow(ctx context.Context, input string) (string, error) {
 	root := trace.SpanFromContext(ctx)
 	if !root.SpanContext().IsValid() {

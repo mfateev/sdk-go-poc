@@ -10,7 +10,7 @@ import (
 	"github.com/mfateev/sdk-go-poc/workflow"
 )
 
-//go:isolate
+//temporal:workflow
 func ConcurrentWorkflow(ctx context.Context) ([]byte, error) {
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: time.Minute})
 	first := workflow.ExecuteActivity(ctx, "echo", []byte("one")).ToChannel()
@@ -49,13 +49,13 @@ func ConcurrentWorkflow(ctx context.Context) ([]byte, error) {
 	return []byte(strings.Join(events, "|")), nil
 }
 
-//go:isolate
+//temporal:workflow
 func WaitForCancellationWorkflow(ctx context.Context) ([]byte, error) {
 	<-ctx.Done()
 	return nil, ctx.Err()
 }
 
-//go:isolate
+//temporal:workflow
 func YieldForeverWorkflow(ctx context.Context) ([]byte, error) {
 	for {
 		runtime.Gosched()

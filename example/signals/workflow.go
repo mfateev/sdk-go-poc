@@ -16,7 +16,7 @@ type Message struct {
 	Data []byte
 }
 
-//go:isolate
+//temporal:workflow
 func Workflow(ctx context.Context, mode string) ([]Message, error) {
 	child, cancel := context.WithCancel(ctx)
 	if mode == "detached" {
@@ -56,7 +56,7 @@ func Workflow(ctx context.Context, mode string) ([]Message, error) {
 // timer or signal wakes the application. Each run consumes the complete batch
 // with ordinary nonblocking selects, as a Continue-As-New workflow would.
 //
-//go:isolate
+//temporal:workflow
 func DrainWorkflow(ctx context.Context, mode string) ([]int, error) {
 	if mode == "late" {
 		<-workflow.GetSignalChannel[bool](ctx, "start")
@@ -91,7 +91,7 @@ otherSignals:
 
 // ContinueWorkflow carries a fully drained signal batch into the next run.
 //
-//go:isolate
+//temporal:workflow
 func ContinueWorkflow(ctx context.Context, carried []int) ([]int, error) {
 	if len(carried) != 0 {
 		return carried, nil

@@ -13,7 +13,7 @@ type Input struct {
 	Iterations int
 }
 
-//go:isolate
+//temporal:workflow
 func ResourceWorkflow(ctx context.Context, input Input) (uint64, error) {
 	switch input.Mode {
 	case "goroutines":

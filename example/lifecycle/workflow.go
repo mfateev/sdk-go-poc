@@ -11,7 +11,7 @@ import (
 	"github.com/mfateev/sdk-go-poc/workflow"
 )
 
-//go:isolate
+//temporal:workflow
 func LifecycleWorkflow(ctx context.Context, mode string) (string, error) {
 	switch mode {
 	case "panic":

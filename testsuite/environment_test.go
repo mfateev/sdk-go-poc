@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-//go:isolate
+//temporal:workflow
 func referenceWorkflow(ctx context.Context, ref testref.Ref[int]) (int, error) {
 	value, err := ref.Load()
 	if err != nil {

@@ -11,10 +11,10 @@ import (
 	"go.temporal.io/sdk/temporal"
 )
 
-//go:isolate
+//temporal:workflow
 func Child(context.Context) error { return support.CustomError{Detail: support.Precise} }
 
-//go:isolate
+//temporal:workflow
 func Workflow(ctx context.Context, scenario string) error {
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: time.Hour,
 		RetryPolicy: &workflow.RetryPolicy{MaximumAttempts: 3}})

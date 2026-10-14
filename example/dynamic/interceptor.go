@@ -8,7 +8,7 @@ import (
 	"go.temporal.io/sdk/converter"
 )
 
-//go:isolate
+//temporal:workflow
 func NewInterceptors([]byte) ([]interceptor.WorkerInterceptor, error) {
 	return []interceptor.WorkerInterceptor{&dynamicInterceptor{}}, nil
 }

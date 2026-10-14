@@ -14,7 +14,7 @@ import (
 // blocking receives and selects. End-of-stream cases use a closed raw adapter,
 // because application code cannot close a receive-only SDK signal channel.
 //
-//go:isolate
+//temporal:workflow
 func CorruptWorkflow(ctx context.Context, mode string) ([]Message, error) {
 	if mode == "next" {
 		signal, err := workflow.NextSignal(ctx)
@@ -78,7 +78,7 @@ func CorruptWorkflow(ctx context.Context, mode string) ([]Message, error) {
 	}
 }
 
-//go:isolate
+//temporal:workflow
 func NewClosedSignalInterceptors(config []byte) ([]interceptor.WorkerInterceptor, error) {
 	return []interceptor.WorkerInterceptor{&closedSignalInterceptor{wire: strings.HasSuffix(string(config), "wire")}}, nil
 }

@@ -16,7 +16,7 @@ import (
 	goWorkflow "go.temporal.io/sdk/workflow"
 )
 
-//go:isolate
+//temporal:workflow
 func nilQueryWorkflow(ctx context.Context) error {
 	return workflow.SetQueryHandler(ctx, "nil_response", func(input *string) (*string, error) {
 		if input != nil {
@@ -68,7 +68,7 @@ func TestChildWorkflowListener(t *testing.T) {
 	require.Equal(t, "child:x", childResult)
 }
 
-//go:isolate
+//temporal:workflow
 func waitForMockChild(ctx context.Context) (string, error) {
 	child := workflow.ExecuteChildWorkflow(ctx, nativeChild, "x")
 	select {
@@ -103,7 +103,7 @@ func TestMockWorkflowWait(t *testing.T) {
 	}
 }
 
-//go:isolate
+//temporal:workflow
 func getMockChildExecution(ctx context.Context) (string, error) {
 	child := workflow.ExecuteChildWorkflow(ctx, nativeChild, "x")
 	_ = child.GetChildWorkflowExecution().Get(ctx, nil)
@@ -131,7 +131,7 @@ func TestChildWorkflowMockPanicGetExecution(t *testing.T) {
 	require.Contains(t, panicErr.Error(), "mock returns 3 values, workflow requires 2")
 }
 
-//go:isolate
+//temporal:workflow
 func mockChildStartFailure(ctx context.Context) error {
 	child := workflow.ExecuteChildWorkflow(ctx, nativeChild, "x")
 	return child.GetChildWorkflowExecution().Get(ctx, nil)
@@ -145,7 +145,7 @@ func TestMockChildStartFailure(t *testing.T) {
 	require.ErrorContains(t, env.GetWorkflowError(), "start child workflow failed")
 }
 
-//go:isolate
+//temporal:workflow
 func localActivityByName(ctx context.Context, name string) (string, error) {
 	ctx = workflow.WithLocalActivityOptions(ctx, workflow.LocalActivityOptions{StartToCloseTimeout: time.Minute})
 	var result string
@@ -208,7 +208,7 @@ func TestWorkflowMockingWithoutRegistration(t *testing.T) {
 	require.Equal(t, "Hello Temporal!", result)
 }
 
-//go:isolate
+//temporal:workflow
 func secondLocalActivity(ctx context.Context) error {
 	ctx = workflow.WithLocalActivityOptions(ctx, workflow.LocalActivityOptions{
 		StartToCloseTimeout: time.Hour,
@@ -238,7 +238,7 @@ func TestMockCallWrapperOrderFailures(t *testing.T) {
 	}
 }
 
-//go:isolate
+//temporal:workflow
 func queryableChild(ctx context.Context) error {
 	state := "wait for signal"
 	if err := workflow.SetQueryHandler(ctx, "state", func(prefix string) (string, error) { return prefix + state, nil }); err != nil {
@@ -254,7 +254,7 @@ func queryableChild(ctx context.Context) error {
 	return nil
 }
 
-//go:isolate
+//temporal:workflow
 func queryableChildParent(ctx context.Context) error {
 	ctx = workflow.WithChildWorkflowOptions(ctx, workflow.ChildWorkflowOptions{WorkflowID: "test-query-child-workflow"})
 	return workflow.ExecuteChildWorkflow(ctx, queryableChild).Get(ctx, nil)

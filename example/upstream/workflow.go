@@ -20,7 +20,7 @@ func check(ok bool, message string) {
 	}
 }
 
-//go:isolate
+//temporal:workflow
 func NativeWorkflow(ctx context.Context, scenario string) (string, error) {
 	switch scenario {
 	case "preferred-version":

@@ -24,7 +24,7 @@ func (w *dynamicRegistrationWorker) RegisterDynamicWorkflow(fn any, options sdkw
 }
 func hostDynamic(_ sdkwf.Context, _ converter.EncodedValues) (string, error) { return "host", nil }
 
-//go:isolate
+//temporal:workflow
 func invalidDynamicInput(context.Context, string) (string, error) { return "", nil }
 
 func TestDynamicRegistrationRoutesNativeAndHostWorkflows(t *testing.T) {

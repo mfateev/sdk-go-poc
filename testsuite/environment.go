@@ -145,7 +145,7 @@ func (e *TestWorkflowEnvironment) RegisterWorkflowWithOptions(fn any, options go
 		e.names[reflect.ValueOf(fn).Pointer()] = name
 		e.native[name] = h
 	} else if typ := reflect.TypeOf(fn); typ != nil && typ.Kind() == reflect.Func && typ.NumIn() > 0 && typ.In(0) == reflect.TypeFor[context.Context]() {
-		panic("testsuite: native workflows must be top-level //go:isolate functions built with the isolate-aware go test toolchain")
+		panic("testsuite: native workflows must be top-level //temporal:workflow functions built with the isolate-aware go test toolchain")
 	}
 	e.worker.RegisterWorkflowWithOptions(fn, options)
 }
@@ -255,7 +255,7 @@ func (e *TestWorkflowEnvironment) RegisterDynamicWorkflow(fn any, options goWork
 	e.ensureOpen()
 	if _, marked := isolate.LookupFunction(fn); !marked {
 		if t := reflect.TypeOf(fn); t != nil && t.Kind() == reflect.Func && t.NumIn() > 0 && t.In(0) == reflect.TypeFor[context.Context]() {
-			panic("testsuite: native dynamic workflows must be top-level //go:isolate functions built with the isolate-aware go test toolchain")
+			panic("testsuite: native dynamic workflows must be top-level //temporal:workflow functions built with the isolate-aware go test toolchain")
 		}
 	}
 	e.worker.RegisterDynamicWorkflow(fn, options)

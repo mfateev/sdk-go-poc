@@ -42,7 +42,7 @@ func defaultValues() []string {
 
 // StreamsWorkflow is a compiled regression fixture for named stream isolation.
 //
-//go:isolate
+//temporal:workflow
 func StreamsWorkflow(ctx context.Context, mode string) (StreamTrace, error) {
 	trace := StreamTrace{Default: defaultValues()}
 	var primary workflow.WorkflowRandomStream
@@ -156,13 +156,13 @@ func EchoStream(_ context.Context, input StreamTrace) (StreamTrace, error) { ret
 
 // DistributionWorkflow exercises the public v2.Rand facade, not just Uint64.
 //
-//go:isolate
+//temporal:workflow
 func DistributionWorkflow(ctx context.Context) ([]string, error) {
 	stream := randv2.New(workflow.GetRandomStream(ctx, "distributions"))
 	return []string{fmt.Sprint(stream.IntN(123), stream.Float64(), stream.NormFloat64(), stream.ExpFloat64(), stream.Perm(7))}, nil
 }
 
-//go:isolate
+//temporal:workflow
 func UpdateStreamsWorkflow(ctx context.Context) (StreamTrace, error) {
 	primary := workflow.GetRandomStream(ctx, "primary")
 	trace := StreamTrace{Primary: []uint64{primary.Uint64()}}
@@ -191,7 +191,7 @@ func UpdateStreamsWorkflow(ctx context.Context) (StreamTrace, error) {
 
 const GoldenStreamName = "go.temporal.io/sdk/internal/test"
 
-//go:isolate
+//temporal:workflow
 func GoldenStreamsWorkflow(ctx context.Context, mode string) (string, error) {
 	source := workflow.GetRandomStream(ctx, GoldenStreamName)
 	if mode == "uint64" {
@@ -212,7 +212,7 @@ func GoldenStreamsWorkflow(ctx context.Context, mode string) (string, error) {
 
 type ByteTrace struct{ Before, After string }
 
-//go:isolate
+//temporal:workflow
 func ByteStreamsWorkflow(ctx context.Context) (ByteTrace, error) {
 	source := workflow.GetRandomStream(ctx, "bytes")
 	prefix := make([]byte, 3)
@@ -246,7 +246,7 @@ func ByteStreamsWorkflow(ctx context.Context) (ByteTrace, error) {
 
 func EchoBytes(_ context.Context, trace ByteTrace) (ByteTrace, error) { return trace, nil }
 
-//go:isolate
+//temporal:workflow
 func ContinueStreamsWorkflow(ctx context.Context, previous uint64) ([]uint64, error) {
 	current := workflow.GetRandomStream(ctx, "continue").Uint64()
 	if previous == 0 {
@@ -255,7 +255,7 @@ func ContinueStreamsWorkflow(ctx context.Context, previous uint64) ([]uint64, er
 	return []uint64{previous, current}, nil
 }
 
-//go:isolate
+//temporal:workflow
 func ParentStreamsWorkflow(ctx context.Context) ([]uint64, error) {
 	parent := workflow.GetRandomStream(ctx, "continue").Uint64()
 	childCtx := workflow.WithChildWorkflowOptions(ctx, workflow.ChildWorkflowOptions{WorkflowRunTimeout: time.Minute})
@@ -266,7 +266,7 @@ func ParentStreamsWorkflow(ctx context.Context) ([]uint64, error) {
 	return append([]uint64{parent}, child...), nil
 }
 
-//go:isolate
+//temporal:workflow
 func ResetStreamsWorkflow(ctx context.Context, late bool) ([]uint64, error) {
 	name := "reset"
 	if late {

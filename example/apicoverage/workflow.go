@@ -33,7 +33,7 @@ func Local(ctx context.Context, mode string, input int64) (int64, error) {
 }
 func Identity(ctx context.Context) (string, error) { return activity.GetInfo(ctx).TaskQueue, nil }
 
-//go:isolate
+//temporal:workflow
 func Coverage(ctx context.Context, input Input) (string, error) {
 	switch input.Mode {
 	case "external", "external-failure":

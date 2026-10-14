@@ -11,7 +11,7 @@ import (
 )
 
 // FailureConverterOptions constructs a native failure converter with the data
-// converter selected for the operation. Factory must be a top-level //go:isolate
+// converter selected for the operation. Factory must be a top-level //temporal:workflow
 // function. Each conversion gets fresh private state, including read-only calls.
 // Configure a compatible host converter through client.Options.FailureConverter
 // for host activity serialization, retry decisions and client error decoding.
@@ -29,7 +29,7 @@ func SetIsolateFailureConverter(w any, options FailureConverterOptions) error {
 		var ok bool
 		handle, ok = isolate.LookupFunction(options.Factory)
 		if !ok {
-			return fmt.Errorf("worker: failure converter factory must be a //go:isolate function")
+			return fmt.Errorf("worker: failure converter factory must be a //temporal:workflow function")
 		}
 	} else if len(options.Config) != 0 {
 		return fmt.Errorf("worker: failure converter configuration requires a factory")

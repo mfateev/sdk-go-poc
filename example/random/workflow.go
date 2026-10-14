@@ -21,7 +21,7 @@ func init() {
 	_, _ = rand.Read(initial[:])
 }
 
-//go:isolate
+//temporal:workflow
 func RandomWorkflow(ctx context.Context) ([]string, error) {
 	trace := []string{hex.EncodeToString(initial[:])}
 	private := make([]byte, 17)

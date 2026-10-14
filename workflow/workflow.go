@@ -348,7 +348,7 @@ func decodePayloads(data []byte, converters ...converter.DataConverter) (*common
 }
 
 // RunFunction is the dispatcher used by the worker for compiler-discovered
-// //go:isolate functions. Typed invocation and default-converter operations
+// //temporal:workflow functions. Typed invocation and default-converter operations
 // execute here, behind the isolate's copied-byte boundary.
 func RunFunction(handle isolate.Handle) error {
 	return RunFunctionWithDataConverter(handle, isolate.Handle{})

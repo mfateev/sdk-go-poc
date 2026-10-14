@@ -13,7 +13,7 @@ var Initializations int
 
 func init() { Initializations++ }
 
-//go:isolate
+//temporal:workflow
 func New(config []byte) (converter.DataConverter, error) {
 	if Initializations != 1 {
 		return nil, fmt.Errorf("converter package not initialized independently")

@@ -11,7 +11,7 @@ import (
 )
 
 // InterceptorOptions constructs a fresh SDK-style workflow interceptor chain
-// inside each isolate. Factory must be marked //go:isolate and create all its
+// inside each isolate. Factory must be marked //temporal:workflow and create all its
 // state locally, using Config for settings and byte sinks for external output.
 // The first returned interceptor is the outermost. Host WorkerOptions.Interceptors
 // continue to apply to ordinary workflows and activities.
@@ -30,7 +30,7 @@ func SetIsolateInterceptors(w any, options InterceptorOptions) error {
 		var ok bool
 		handle, ok = isolate.LookupFunction(options.Factory)
 		if !ok {
-			return fmt.Errorf("worker: interceptor factory must be a //go:isolate function")
+			return fmt.Errorf("worker: interceptor factory must be a //temporal:workflow function")
 		}
 	} else if len(options.Config) != 0 {
 		return fmt.Errorf("worker: interceptor configuration requires a factory")

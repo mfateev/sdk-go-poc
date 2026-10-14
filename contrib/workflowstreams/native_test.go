@@ -17,7 +17,7 @@ import (
 	"go.temporal.io/sdk/temporal"
 )
 
-//go:isolate
+//temporal:workflow
 func namespaceWorkflow(ctx context.Context, kind string) (bool, error) {
 	switch kind {
 	case "signal":
@@ -65,7 +65,7 @@ func TestIsWorkflowStreamReservedNameStillRejectsOtherNames(t *testing.T) {
 	}
 }
 
-//go:isolate
+//temporal:workflow
 func controlledStreamWorkflow(ctx context.Context, state *WorkflowStreamState) (*WorkflowStreamState, error) {
 	stream, err := NewWorkflowStream(ctx, state)
 	if err != nil {
@@ -177,7 +177,7 @@ func TestNativePollWakeupTruncationAndDrain(t *testing.T) {
 	}
 }
 
-//go:isolate
+//temporal:workflow
 func stateAndPagingWorkflow(ctx context.Context, state *WorkflowStreamState) (*WorkflowStreamState, error) {
 	s, err := NewWorkflowStream(ctx, state)
 	if err != nil {
@@ -243,7 +243,7 @@ func TestNativeStreamPagingStateTTLAndConcurrentPublish(t *testing.T) {
 	require.NoError(t, env.GetWorkflowError())
 }
 
-//go:isolate
+//temporal:workflow
 func restoredStreamWorkflow(ctx context.Context, state *WorkflowStreamState) error {
 	s, err := NewWorkflowStream(ctx, state)
 	if err != nil {
@@ -260,7 +260,7 @@ func restoredStreamWorkflow(ctx context.Context, state *WorkflowStreamState) err
 	return nil
 }
 
-//go:isolate
+//temporal:workflow
 func canceledPollWorkflow(ctx context.Context) error {
 	s, err := NewWorkflowStream(ctx, nil)
 	if err != nil {
@@ -285,7 +285,7 @@ func TestWorkflowStreamRejectsInvalidState(t *testing.T) {
 	require.ErrorContains(t, err, "restore log")
 }
 
-//go:isolate
+//temporal:workflow
 func snapshotRolloverWorkflow(ctx context.Context, state *WorkflowStreamState) error {
 	s, err := NewWorkflowStream(ctx, state)
 	if err != nil {

@@ -26,7 +26,7 @@ func WaitActivity(ctx context.Context, input string) (string, error) {
 	}
 }
 
-//go:isolate
+//temporal:workflow
 func ActivityWorkflow(ctx context.Context, input string) (string, error) {
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: time.Minute})
 	var result string
@@ -34,13 +34,13 @@ func ActivityWorkflow(ctx context.Context, input string) (string, error) {
 	return result, err
 }
 
-//go:isolate
+//temporal:workflow
 func IdleWorkflow(ctx context.Context) (string, error) {
 	<-ctx.Done()
 	return "", ctx.Err()
 }
 
-//go:isolate
+//temporal:workflow
 func DeadlineWorkflow(ctx context.Context) (string, error) {
 	child, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
@@ -52,7 +52,7 @@ func DeadlineWorkflow(ctx context.Context) (string, error) {
 	return "deadline observed", nil
 }
 
-//go:isolate
+//temporal:workflow
 func LocalCancelWorkflow(ctx context.Context) (string, error) {
 	child, cancel := context.WithCancelCause(ctx)
 	cause := errors.New("local cancellation cause")
@@ -72,7 +72,7 @@ func LocalCancelWorkflow(ctx context.Context) (string, error) {
 // ContextStressWorkflow exercises the standard context child tree and callback
 // order under the native dispatcher. Values/maps remain owned by this isolate.
 //
-//go:isolate
+//temporal:workflow
 func ContextStressWorkflow(ctx context.Context) (int, error) {
 	const count = 64
 	parent, cancel := context.WithCancel(ctx)

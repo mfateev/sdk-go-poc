@@ -21,7 +21,7 @@ var initialized int
 
 func init() { initialized++ }
 
-//go:isolate
+//temporal:workflow
 func NewInterceptors(config []byte) ([]interceptor.WorkerInterceptor, error) {
 	if string(config) != "copied" {
 		return nil, fmt.Errorf("interceptor config changed: %q", config)
@@ -29,7 +29,7 @@ func NewInterceptors(config []byte) ([]interceptor.WorkerInterceptor, error) {
 	return []interceptor.WorkerInterceptor{&workerInterceptor{name: "A"}, &workerInterceptor{name: "B"}}, nil
 }
 
-//go:isolate
+//temporal:workflow
 func NewConverter(config []byte) (converter.DataConverter, error) {
 	if string(config) != "json" {
 		return nil, fmt.Errorf("converter config changed: %q", config)
@@ -135,7 +135,7 @@ func (o *outbound) ExecuteActivity(ctx context.Context, name string, args ...any
 
 func Activity(_ context.Context, input string) (string, error) { return input + "-activity", nil }
 
-//go:isolate
+//temporal:workflow
 func Workflow(ctx context.Context, input string) (string, error) {
 	if initialized != 1 || workflowState != 0 {
 		panic("package state initialized twice or shared between isolates")
@@ -169,5 +169,5 @@ func Workflow(ctx context.Context, input string) (string, error) {
 	return result, nil
 }
 
-//go:isolate
+//temporal:workflow
 func Immediate(ctx context.Context, input string) (string, error) { return input, nil }

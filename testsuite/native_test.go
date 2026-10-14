@@ -23,7 +23,7 @@ import (
 
 func hello(_ context.Context, input string) (string, error) { return "hello:" + input, nil }
 
-//go:isolate
+//temporal:workflow
 func nativeChild(ctx context.Context, input string) (string, error) {
 	if err := workflow.SetQueryHandler(ctx, "state", func() (string, error) { return input, nil }); err != nil {
 		return "", err
@@ -31,7 +31,7 @@ func nativeChild(ctx context.Context, input string) (string, error) {
 	return "child:" + input, nil
 }
 
-//go:isolate
+//temporal:workflow
 func nativeParent(ctx context.Context, input string) (string, error) {
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: time.Minute})
 	var activity, child string
@@ -44,7 +44,7 @@ func nativeParent(ctx context.Context, input string) (string, error) {
 	return activity + "/" + child, nil
 }
 
-//go:isolate
+//temporal:workflow
 func replacementChild(ctx context.Context, input string) (string, error) {
 	time.Sleep(2 * time.Minute)
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: time.Minute})
@@ -148,7 +148,7 @@ func TestMockPanicAndUnexpectedCallsBecomeWorkflowFailures(t *testing.T) {
 	}
 }
 
-//go:isolate
+//temporal:workflow
 func refChild(ctx context.Context, ref testref.Ref[int]) (int, error) {
 	value, err := ref.Load()
 	if err != nil {
@@ -157,7 +157,7 @@ func refChild(ctx context.Context, ref testref.Ref[int]) (int, error) {
 	return value + 1, ref.Store(value + 1)
 }
 
-//go:isolate
+//temporal:workflow
 func refParent(ctx context.Context, ref testref.Ref[int]) (int, error) {
 	var value int
 	err := workflow.ExecuteChildWorkflow(ctx, refChild, ref).Get(ctx, &value)
@@ -183,7 +183,7 @@ func TestReferencesWorkAcrossChildrenAndRejectOtherEnvironments(t *testing.T) {
 	require.ErrorContains(t, err, "closed")
 }
 
-//go:isolate
+//temporal:workflow
 func readOnlyRefWorkflow(ctx context.Context, ref testref.Ref[int]) error {
 	if err := workflow.SetQueryHandler(ctx, "write", func() (int, error) { return 0, ref.Store(99) }); err != nil {
 		return err
@@ -259,7 +259,7 @@ func TestCompletedChildQueriesRetainState(t *testing.T) {
 	require.Equal(t, "x", result)
 }
 
-//go:isolate
+//temporal:workflow
 func concurrentReferenceWorkflow(ctx context.Context, ref testref.Ref[int]) (int, error) {
 	var workers sync.WaitGroup
 	failures := make(chan error, 4)

@@ -11,7 +11,7 @@ import (
 
 var executions int
 
-//go:isolate
+//temporal:workflow
 func Workflow(ctx context.Context, input int64) (int64, error) {
 	executions++
 	if executions != 1 {
@@ -60,7 +60,7 @@ func Workflow(ctx context.Context, input int64) (int64, error) {
 	return state, nil
 }
 
-//go:isolate
+//temporal:workflow
 func Child(ctx context.Context, input int64) (int64, error) {
 	if input < 0 {
 		return 0, temporal.NewNonRetryableApplicationError("child rejected", "ChildError", nil, input)
@@ -69,7 +69,7 @@ func Child(ctx context.Context, input int64) (int64, error) {
 	return input, nil
 }
 
-//go:isolate
+//temporal:workflow
 func Parent(ctx context.Context, input int64, continued bool) (int64, error) {
 	if !continued {
 		return 0, workflow.NewContinueAsNewError(ctx, Parent, input, true)

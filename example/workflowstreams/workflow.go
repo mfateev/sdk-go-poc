@@ -7,7 +7,7 @@ import (
 	"github.com/mfateev/sdk-go-poc/workflow"
 )
 
-//go:isolate
+//temporal:workflow
 func Host(ctx context.Context, state *workflowstreams.WorkflowStreamState) (int64, error) {
 	stream, err := workflowstreams.NewWorkflowStream(ctx, state)
 	if err != nil {

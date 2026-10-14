@@ -11,7 +11,7 @@ import (
 	"go.temporal.io/sdk/temporal"
 )
 
-//go:isolate
+//temporal:workflow
 func UpdateWorkflow(ctx context.Context, initial int64) (int64, error) {
 	state := &query.State{Count: int(initial), Bytes: []byte{7}, Values: map[string]int{"count": int(initial)}}
 	state.Atomic.Store(initial)
@@ -89,7 +89,7 @@ func UpdateWorkflow(ctx context.Context, initial int64) (int64, error) {
 	return int64(state.Count), nil
 }
 
-//go:isolate
+//temporal:workflow
 func WaitWorkflow(ctx context.Context) (int64, error) {
 	var count int64
 	if err := workflow.SetUpdateHandler(ctx, "delayed", func(ctx context.Context, value int64) (int64, error) {
@@ -112,7 +112,7 @@ func WaitWorkflow(ctx context.Context) (int64, error) {
 	return count, nil
 }
 
-//go:isolate
+//temporal:workflow
 func OrderingWorkflow(ctx context.Context, mode string) ([]string, error) {
 	var events []string
 	wake := make(chan struct{})
@@ -194,7 +194,7 @@ func OrderingWorkflow(ctx context.Context, mode string) ([]string, error) {
 	return events, nil
 }
 
-//go:isolate
+//temporal:workflow
 func CancellationOrderingWorkflow(ctx context.Context) (bool, error) {
 	var sawCancellation bool
 	if err := workflow.SetUpdateHandler(ctx, "check-cancellation", func(ctx context.Context) (bool, error) {

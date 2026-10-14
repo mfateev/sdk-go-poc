@@ -20,7 +20,7 @@ import (
 	"github.com/mfateev/sdk-go-poc/workflow"
 )
 
-//go:isolate
+//temporal:workflow
 func DeterminismWorkflow(ctx context.Context, workers int) ([]string, error) {
 	if workers < 1 || workers > 32 {
 		return nil, fmt.Errorf("workers must be between 1 and 32")

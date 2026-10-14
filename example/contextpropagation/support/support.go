@@ -17,7 +17,7 @@ type Key string
 const HeaderKey Key = "test-header"
 const MaskKey Key = "mask"
 
-//go:isolate
+//temporal:workflow
 func Propagators(config []byte) ([]workflow.ContextPropagator, error) {
 	if string(config) == "factory-error" {
 		return nil, errors.New("propagator factory failure")
@@ -90,7 +90,7 @@ func PerContextConverter() converter.DataConverter {
 	return converter.NewCompositeDataConverter(converter.NewNilPayloadConverter(), converter.NewByteSlicePayloadConverter(), &payloadConverter{}, converter.NewJSONPayloadConverter())
 }
 
-//go:isolate
+//temporal:workflow
 func DataConverter([]byte) (converter.DataConverter, error) {
 	return &contextAwareConverter{DataConverter: CompatibleConverter()}, nil
 }

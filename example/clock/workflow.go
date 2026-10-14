@@ -7,7 +7,7 @@ import (
 
 // ClockWorkflow makes every clock read observable to history replay.
 //
-//go:isolate
+//temporal:workflow
 func ClockWorkflow(ctx context.Context) ([]byte, error) {
 	started := time.Now().UTC()
 	timer := time.NewTimer(time.Second)

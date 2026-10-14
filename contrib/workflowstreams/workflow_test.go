@@ -14,7 +14,7 @@ import (
 // streamHostWorkflow hosts a WorkflowStream and runs until it receives a
 // "finish" signal. priorState may be nil.
 //
-//go:isolate
+//temporal:workflow
 func streamHostWorkflow(ctx context.Context, priorState *WorkflowStreamState) error {
 	_, err := NewWorkflowStream(ctx, priorState)
 	if err != nil {
@@ -48,7 +48,7 @@ func mustPublishInput(t *testing.T, publisherID string, seq int64, entries ...to
 // converter for strings, whereas the default set's JSON fallback would accept
 // it. A []byte must still publish cleanly.
 //
-//go:isolate
+//temporal:workflow
 func byteOnlyPublishWorkflow(ctx context.Context) (bool, error) {
 	stream, err := NewWorkflowStream(ctx, nil, WithPayloadConverters(converter.NewByteSlicePayloadConverter()))
 	if err != nil {

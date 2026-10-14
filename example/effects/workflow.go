@@ -20,7 +20,7 @@ const (
 	AuditOp     uint32 = 0x10001
 )
 
-//go:isolate
+//temporal:workflow
 func EffectsWorkflow(_ context.Context, mode string) (string, error) {
 	payload := []byte{0, 255, 'a'}
 	workflow.NewSink(TelemetryOp).Emit(payload)
@@ -38,7 +38,7 @@ func EffectsWorkflow(_ context.Context, mode string) (string, error) {
 	return "logged", nil
 }
 
-//go:isolate
+//temporal:workflow
 func ReadOnlyLoggingWorkflow(ctx context.Context) (int, error) {
 	count := 0
 	if err := workflow.SetQueryHandler(ctx, "logs", func() (int, error) {

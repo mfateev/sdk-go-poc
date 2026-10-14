@@ -26,7 +26,7 @@ import (
 	"google.golang.org/protobuf/runtime/protoimpl"
 )
 
-//go:isolate
+//temporal:workflow
 func MetadataWorkflow(_ context.Context, mode string) (result string, err error) {
 	defer func() {
 		if p := recover(); p != nil {
@@ -163,7 +163,7 @@ type customMessage struct{}
 func (*customMessage) ProtoMessage()                      {}
 func (*customMessage) ProtoReflect() protoreflect.Message { panic("custom clone callback executed") }
 
-//go:isolate
+//temporal:workflow
 func StructuredFailureWorkflow(ctx context.Context, returnFailure bool) ([]byte, error) {
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: time.Minute})
 	err := workflow.ExecuteActivity(ctx, "echo", []byte("failure")).Get(ctx, nil)

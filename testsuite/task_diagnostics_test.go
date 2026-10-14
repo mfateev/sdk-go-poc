@@ -14,7 +14,7 @@ import (
 	goWorker "go.temporal.io/sdk/worker"
 )
 
-//go:isolate
+//temporal:workflow
 func taskDiagnosticStall(ctx context.Context) error {
 	if err := workflow.SetQueryHandler(ctx, "state", func() (string, error) { return "ready", nil }); err != nil {
 		return err
@@ -24,7 +24,7 @@ func taskDiagnosticStall(ctx context.Context) error {
 	}
 }
 
-//go:isolate
+//temporal:workflow
 func readOnlyDiagnosticWorkflow(ctx context.Context) error {
 	return workflow.SetQueryHandler(ctx, "stall", func() (string, error) {
 		for {

@@ -17,7 +17,7 @@ func requireValue(ctx context.Context, want string) error {
 	return nil
 }
 
-//go:isolate
+//temporal:workflow
 func Workflow(ctx context.Context, scenario string) (string, error) {
 	if err := requireValue(ctx, "test-data"); err != nil {
 		return "", err
@@ -141,7 +141,7 @@ func Workflow(ctx context.Context, scenario string) (string, error) {
 	return "ok", nil
 }
 
-//go:isolate
+//temporal:workflow
 func Child(ctx context.Context, want string) (string, error) {
 	if err := requireValue(ctx, want); err != nil {
 		return "", err

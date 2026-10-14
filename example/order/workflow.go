@@ -9,7 +9,7 @@ import (
 	"github.com/mfateev/sdk-go-poc/workflow"
 )
 
-//go:isolate
+//temporal:workflow
 func OrderWorkflow(ctx context.Context, input []byte) ([]byte, error) {
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: time.Minute})
 	err := workflow.ExecuteActivity(ctx, "echo", input).Get(ctx, &input)
@@ -25,7 +25,7 @@ func OrderWorkflow(ctx context.Context, input []byte) ([]byte, error) {
 	return input, err
 }
 
-//go:isolate
+//temporal:workflow
 func EchoWorkflow(ctx context.Context, input []byte) ([]byte, error) {
 	return append([]byte("registered:"), input...), nil
 }
@@ -38,7 +38,7 @@ type TypedEchoResult struct {
 	Message string
 }
 
-//go:isolate
+//temporal:workflow
 func TypedEchoWorkflow(ctx context.Context, request TypedEchoRequest, suffix string) (TypedEchoResult, error) {
 	return TypedEchoResult{Message: "hello " + request.Name + suffix}, nil
 }
@@ -48,7 +48,7 @@ type ActivityDetails struct {
 	Count   int
 }
 
-//go:isolate
+//temporal:workflow
 func TypedActivityWorkflow(ctx context.Context, name string) (ActivityDetails, error) {
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: time.Minute})
 	var details ActivityDetails
@@ -69,7 +69,7 @@ func TypedActivityWorkflow(ctx context.Context, name string) (ActivityDetails, e
 // ActivityLength runs in the host. Its signature supplies the async result type.
 func ActivityLength(_ context.Context, value string) (int, error) { return len(value), nil }
 
-//go:isolate
+//temporal:workflow
 func InferredActivityWorkflow(ctx context.Context, input int) (string, error) {
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: time.Minute})
 	var result string

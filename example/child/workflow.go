@@ -15,7 +15,7 @@ import (
 
 var executions int
 
-//go:isolate
+//temporal:workflow
 func Child(ctx context.Context, mode string) (int64, error) {
 	executions++
 	if executions != 1 {
@@ -45,7 +45,7 @@ func OrdinaryChild(ctx goWorkflow.Context, mode string) (int64, error) {
 	return 9007199254740993, nil
 }
 
-//go:isolate
+//temporal:workflow
 func Parent(ctx context.Context, mode string) (int64, error) {
 	executions++
 	if executions != 1 {

@@ -27,7 +27,7 @@ type State struct {
 
 // StackWorkflow deliberately registers no custom query handlers.
 //
-//go:isolate
+//temporal:workflow
 func StackWorkflow(ctx context.Context) error {
 	done := make(chan struct{})
 	finished := make(chan struct{}, 2)
@@ -49,7 +49,7 @@ func stackWait(done <-chan struct{}, finished chan<- struct{}) {
 // DispatchCloseWorkflow ports internal/internal_coroutines_test.go::TestDispatchClose.
 // Native goroutine headers replace coroutine names and fixed three-line traces.
 //
-//go:isolate
+//temporal:workflow
 func DispatchCloseWorkflow(ctx context.Context) ([]string, error) {
 	var history []string
 	if err := workflow.SetQueryHandler(ctx, "history", func() ([]string, error) {
@@ -75,7 +75,7 @@ func dispatchCloseChild(blocked <-chan struct{}, history *[]string, i int) {
 // StackDepthWorkflow exercises the native counterpart of the legacy stack
 // depth-trimming helper with the original shallow/deep values (2 and 100).
 //
-//go:isolate
+//temporal:workflow
 func StackDepthWorkflow(ctx context.Context, depth int) error {
 	stackTraceDepth(depth)
 	return nil
@@ -100,7 +100,7 @@ type callbackError struct{ state *State }
 
 func (v callbackError) Error() string { v.state.Count = 999; return "invalid" }
 
-//go:isolate
+//temporal:workflow
 func QueryWorkflow(ctx context.Context, initial int) (int, error) {
 	before := randv2.Uint64()
 	randomState := []uint64{before}

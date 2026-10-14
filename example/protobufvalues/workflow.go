@@ -42,17 +42,17 @@ func DataConverter(mode string) converter.DataConverter {
 	return converter.NewCompositeDataConverter(append(codecs, converter.NewJSONPayloadConverter())...)
 }
 
-//go:isolate
+//temporal:workflow
 func ConverterFactory(config []byte) (converter.DataConverter, error) {
 	return DataConverter(string(config)), nil
 }
 
-//go:isolate
+//temporal:workflow
 func Child(ctx context.Context, value *model.Record) (*model.Record, error) {
 	return value, CheckRecord(value)
 }
 
-//go:isolate
+//temporal:workflow
 func Workflow(ctx context.Context, value *model.Record, mode string) (*model.Record, error) {
 	if err := CheckRecord(value); err != nil {
 		return nil, err
@@ -144,7 +144,7 @@ func Workflow(ctx context.Context, value *model.Record, mode string) (*model.Rec
 	return value, nil
 }
 
-//go:isolate
+//temporal:workflow
 func UpstreamPayloads(ctx context.Context) (commonpb.Payloads, error) {
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: time.Minute})
 	ctx = workflow.WithLocalActivityOptions(ctx, workflow.LocalActivityOptions{StartToCloseTimeout: time.Minute})
@@ -158,7 +158,7 @@ func UpstreamPayloads(ctx context.Context) (commonpb.Payloads, error) {
 	return out, err
 }
 
-//go:isolate
+//temporal:workflow
 func UpstreamRandom(ctx context.Context) (*commonpb.WorkflowType, error) {
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: time.Minute})
 	ctx = workflow.WithLocalActivityOptions(ctx, workflow.LocalActivityOptions{StartToCloseTimeout: time.Minute})
@@ -250,7 +250,7 @@ func (*legacyMessage) Reset()         {}
 func (*legacyMessage) String() string { return "legacy" }
 func (*legacyMessage) ProtoMessage()  {}
 
-//go:isolate
+//temporal:workflow
 func ResolverWorkflow(ctx context.Context) error {
 	_, err := (protojson.MarshalOptions{Resolver: &protoregistry.Types{}}).Marshal(Record())
 	return err

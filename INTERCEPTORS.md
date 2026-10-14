@@ -9,7 +9,7 @@ types and forward operations through `Next`.
 
 ```go
 // In a workflow package:
-//go:isolate
+//temporal:workflow
 func NewInterceptors(config []byte) ([]interceptor.WorkerInterceptor, error) {
     return []interceptor.WorkerInterceptor{&MyInterceptor{}}, nil
 }
@@ -102,7 +102,7 @@ provider generates IDs using deterministic isolate randomness and emits complete
 spans to the configured sink:
 
 ```go
-//go:isolate
+//temporal:workflow
 func NewInterceptors(config []byte) ([]interceptor.WorkerInterceptor, error) {
     tracing, err := opentelemetry.NewTracingInterceptor(
         opentelemetry.TracerOptions{SinkOp: 0x10200},
@@ -175,7 +175,7 @@ private OpenTracing tracer backed by the same native span provider and copied-by
 sink as OpenTelemetry. It never uses or installs a process-global tracer.
 
 ```go
-//go:isolate
+//temporal:workflow
 func NewInterceptors(config []byte) ([]interceptor.WorkerInterceptor, error) {
     tracing, err := opentracing.NewInterceptor(opentracing.TracerOptions{
         SinkOp: 0x10200,

@@ -20,7 +20,7 @@ const Precise int64 = 9007199254740993
 
 var calls = make(map[string]int)
 
-//go:isolate
+//temporal:workflow
 func NewInterceptors(_ []byte) ([]interceptor.WorkerInterceptor, error) {
 	return []interceptor.WorkerInterceptor{&workerInterceptor{}}, nil
 }
@@ -166,7 +166,7 @@ func checkReads(ctx context.Context, previous string) error {
 	return nil
 }
 
-//go:isolate
+//temporal:workflow
 func Workflow(ctx context.Context, previous string, memo bool) (string, error) {
 	if err := workflow.UpsertSearchAttributes(ctx, map[string]any{}); err == nil {
 		return "", fmt.Errorf("empty search attributes accepted")

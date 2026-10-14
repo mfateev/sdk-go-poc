@@ -11,7 +11,7 @@ import (
 // EnvironmentWorkflow exercises the existing host test environment with an
 // isolate definition. No host test closures are captured by workflow code.
 //
-//go:isolate
+//temporal:workflow
 func EnvironmentWorkflow(ctx context.Context, scenario string) (string, error) {
 	ctx = workflow.WithStartToCloseTimeout(ctx, time.Minute)
 	switch scenario {
@@ -73,7 +73,7 @@ func EnvironmentWorkflow(ctx context.Context, scenario string) (string, error) {
 	}
 }
 
-//go:isolate
+//temporal:workflow
 func EnvironmentChild(ctx context.Context, input string) (string, error) {
 	ctx = workflow.WithStartToCloseTimeout(ctx, time.Minute)
 	var result string

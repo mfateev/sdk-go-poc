@@ -7,7 +7,7 @@ import (
 	"github.com/mfateev/sdk-go-poc/workflow"
 )
 
-//go:isolate
+//temporal:workflow
 func NewInterceptors([]byte) ([]interceptor.WorkerInterceptor, error) {
 	return []interceptor.WorkerInterceptor{&signalInterceptor{}}, nil
 }

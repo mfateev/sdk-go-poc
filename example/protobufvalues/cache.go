@@ -14,7 +14,7 @@ import (
 // SharedMetadata exercises repeated use of a type's shared reflection/coder
 // tables with distinct, mutable message values. Settings remains unused.
 //
-//go:isolate
+//temporal:workflow
 func SharedMetadata(ctx context.Context) (string, error) {
 	if err := workflow.SetQueryHandler(ctx, "mutateLibrary", func() (string, error) {
 		unicode.L.R16[0].Lo++

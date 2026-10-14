@@ -10,7 +10,7 @@ import (
 
 var runs int
 
-//go:isolate
+//temporal:workflow
 func ContinueWorkflow(ctx context.Context, remaining int) (int, error) {
 	runs++
 	if runs != 1 {
@@ -26,10 +26,10 @@ func ContinueWorkflow(ctx context.Context, remaining int) (int, error) {
 	return runs, nil
 }
 
-//go:isolate
+//temporal:workflow
 func LegacyVersionWorkflow(ctx context.Context) (int, error) { return 0, nil }
 
-//go:isolate
+//temporal:workflow
 func VersionWorkflow(ctx context.Context) (int, error) {
 	// Replay state is available for diagnostics; never use it to choose commands.
 	_ = workflow.IsReplaying(ctx)
@@ -44,7 +44,7 @@ func VersionWorkflow(ctx context.Context) (int, error) {
 	return int(version), nil
 }
 
-//go:isolate
+//temporal:workflow
 func UnsupportedVersionWorkflow(ctx context.Context) (int, error) {
 	return int(workflow.GetVersion(ctx, "poc-change", 2, 2)), nil
 }

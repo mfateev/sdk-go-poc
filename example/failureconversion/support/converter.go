@@ -26,7 +26,7 @@ func New(dc converter.DataConverter) converter.FailureConverter {
 	return &failureConverter{dc: dc, fallback: temporal.NewDefaultFailureConverter(temporal.DefaultFailureConverterOptions{DataConverter: dc})}
 }
 
-//go:isolate
+//temporal:workflow
 func Factory(config []byte, dc converter.DataConverter) (converter.FailureConverter, error) {
 	if string(config) == "factory-error" {
 		return nil, errors.New("custom failure converter factory failed")

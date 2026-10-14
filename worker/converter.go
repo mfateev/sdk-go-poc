@@ -11,7 +11,7 @@ import (
 )
 
 // DataConverterOptions configures deterministic value serialization inside an
-// isolate. Factory must be a top-level //go:isolate function. It receives its
+// isolate. Factory must be a top-level //temporal:workflow function. It receives its
 // own copy of Config and must construct a new converter without external I/O.
 // Use client.Options.DataConverter for host codecs, encryption and remote I/O;
 // its underlying value serializer must use the same wire format as Factory.
@@ -30,7 +30,7 @@ func SetIsolateDataConverter(w any, options DataConverterOptions) error {
 		var ok bool
 		handle, ok = isolate.LookupFunction(options.Factory)
 		if !ok {
-			return fmt.Errorf("worker: data converter factory must be a //go:isolate function")
+			return fmt.Errorf("worker: data converter factory must be a //temporal:workflow function")
 		}
 	} else if len(options.Config) != 0 {
 		return fmt.Errorf("worker: data converter configuration requires a factory")

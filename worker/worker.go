@@ -1,5 +1,5 @@
 // Package worker keeps Temporal's worker API while routing functions marked
-// //go:isolate through the isolate workflow factory. Ordinary workflow and
+// //temporal:workflow through the isolate workflow factory. Ordinary workflow and
 // activity registrations are passed to the Temporal Go SDK.
 package worker
 

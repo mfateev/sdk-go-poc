@@ -5,7 +5,7 @@ publish/subscribe log inside a native isolate workflow. This package is part of
 the POC module and uses the upstream cross-language workflow stream protocol.
 
 ```go
-//go:isolate
+//temporal:workflow
 func Events(ctx context.Context, state *workflowstreams.WorkflowStreamState) error {
     stream, err := workflowstreams.NewWorkflowStream(ctx, state)
     if err != nil {

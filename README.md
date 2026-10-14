@@ -263,7 +263,7 @@ Mark each workflow function and register it through the POC worker package:
 
 ```go
 // In an ordinary workflow package:
-//go:isolate
+//temporal:workflow
 func TypedEchoWorkflow(ctx context.Context, request TypedEchoRequest, suffix string) (TypedEchoResult, error) {
     return TypedEchoResult{Message: "hello " + request.Name + suffix}, nil
 }
@@ -385,7 +385,7 @@ func FormatNumber(ctx context.Context, input int) (string, error) {
     return fmt.Sprintf("number:%d", input), nil // host activity
 }
 
-//go:isolate
+//temporal:workflow
 func Example(ctx context.Context, input int) (string, error) {
     ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
         StartToCloseTimeout: time.Minute,
@@ -621,7 +621,7 @@ The host SDK still loads `DynamicRegisterOptions.LoadDynamicRuntimeOptions`.
 The native test environment also supports `RegisterDynamicWorkflow`.
 
 ```go
-//go:isolate
+//temporal:workflow
 func DynamicWorkflow(ctx context.Context, args converter.EncodedValues) (string, error) {
     var first, second string
     if err := args.Get(&first, &second); err != nil { return "", err }
@@ -1028,7 +1028,7 @@ Create the deterministic value serializer inside each workflow isolate:
 
 ```go
 // This function can live in a separate package from the workflows.
-//go:isolate
+//temporal:workflow
 func NewWorkflowConverter(config []byte) (converter.DataConverter, error) {
     // Parse copied configuration here. Construct new converter/cache objects.
     return converter.NewCompositeDataConverter(
@@ -1047,7 +1047,7 @@ err := worker.SetIsolateDataConverter(w, worker.DataConverterOptions{
 if err != nil { return err }
 ```
 
-The factory must be a top-level `//go:isolate` function with this exact signature.
+The factory must be a top-level `//temporal:workflow` function with this exact signature.
 Closures and host-owned converter instances cannot be passed into an isolate.
 The compiler adds the factory's package/dependencies to the workflow's selected
 state; common dependencies initialize once. The factory runs inside the isolate
@@ -1124,7 +1124,7 @@ interface has two methods: `Inject(context.Context, HeaderWriter) error` and
 ordered propagators inside each isolate with a marked factory:
 
 ```go
-//go:isolate
+//temporal:workflow
 func NewPropagators(config []byte) ([]workflow.ContextPropagator, error) {
     return []workflow.ContextPropagator{newMyPropagator(config)}, nil
 }
@@ -1184,7 +1184,7 @@ interface: `ErrorToFailure(error) *failurepb.Failure` and
 payload codec pipeline are unchanged. Use an isolate factory for the native side:
 
 ```go
-//go:isolate
+//temporal:workflow
 func NewFailureConverter(config []byte, dc converter.DataConverter) (converter.FailureConverter, error) {
     return &MyFailureConverter{
         DataConverter: dc,
@@ -1243,7 +1243,7 @@ their existing path. Marked tests currently require the default gc mode without
 `-cover`.
 
 ```go
-//go:isolate
+//temporal:workflow
 func TestedWorkflow(ctx context.Context, observed testref.Ref[int]) (int, error) {
     if err := observed.Store(42); err != nil {
         return 0, err
