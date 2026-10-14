@@ -1520,9 +1520,13 @@ continue to wrap the wire payloads, and saved histories replay with the same
 configuration.
 
 Descriptors remain canonical process metadata. Generated accessors resolve their
-metadata by the Go type recorded by the audited process builder. Mutable reflection
-and coder tables, codec pools, and value allocations belong to the active workflow
-or query owner. Descriptor names and scalar defaults are copied into that owner.
+metadata by the Go type recorded by the audited process builder. Reflection and
+coder tables initialize lazily once per used type in the host process and are
+shared across isolates after safe publication. Unused types remain uninitialized.
+Only audited immutable cache fields and allocations become readable; workflow
+values cannot be retained in shared caches. Message values, size caches, nil
+reflection wrappers and codec pools belong to the active workflow or query owner.
+Descriptor names and scalar defaults are copied into that owner.
 Queries and validators serialize captured messages through scratch clones, so
 protobuf's size caches cannot write workflow memory. Ordinary read-only checks still
 reject direct mutation and reflection setters. Host protobuf behavior is unchanged.
@@ -1531,7 +1535,8 @@ Gogo/legacy messages, `dynamicpb`, extension-bearing messages, weak/opaque layou
 custom resolvers and registry mutation are outside this implementation. Their types
 or operations are rejected rather than gaining shared metadata privileges.
 
-[Compiled API checks](example/protobufvalues/check/main_test.go) run both encodings
+[Compiled API checks](example/protobufvalues/check/main_test.go) verify lazy metadata
+reuse across concurrent isolates and run both encodings
 at GOMAXPROCS 1/2/8, including read-only conversions and mutation rejection. The
 original two activity-environment cases retain host coverage in
 [upstream_test.go](example/protobufvalues/check/upstream_test.go), with native

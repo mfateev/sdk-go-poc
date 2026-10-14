@@ -178,6 +178,10 @@ func main() {
 	historyDir := flag.String("history-dir", "", "saved histories")
 	cacheSize := flag.Int("cache-size", 1000, "workflow cache size")
 	flag.Parse()
+	if *scenario == "cache" {
+		check(cacheReuse())
+		return
+	}
 	if *address != "" {
 		check(live(*address, *recordDir, *cacheSize))
 		return

@@ -13,7 +13,7 @@ import (
 
 // Read-only marshal may update a generated message's size cache. Clone just
 // message values into scratch memory first; descriptors remain opaque handles
-// and coder tables are private to the current conversion owner.
+// and initialized coder tables are shared immutable process metadata.
 type protobufConverter struct{ converter.DataConverter }
 
 func protectProtobuf(dc converter.DataConverter) converter.DataConverter {

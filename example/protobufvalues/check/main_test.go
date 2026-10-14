@@ -37,3 +37,10 @@ func TestGeneratedProtobufRejectsCustomResolver(t *testing.T) {
 		t.Fatalf("custom resolver policy: %v\n%s", err, out)
 	}
 }
+
+func TestGeneratedProtobufSharedMetadata(t *testing.T) {
+	binary := checktest.Build(t, "protobuf-cache-check")
+	if out, err := checktest.Command(t, binary, "-scenario", "cache").CombinedOutput(); err != nil {
+		t.Fatalf("shared protobuf metadata: %v\n%s", err, out)
+	}
+}
