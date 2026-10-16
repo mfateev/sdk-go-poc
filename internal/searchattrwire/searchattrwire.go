@@ -23,7 +23,8 @@ func defaultConverter() converter.DataConverter {
 func EncodeFields(attributes temporal.SearchAttributes) (map[string][]byte, error) {
 	fields := make(map[string][]byte)
 	dc := defaultConverter()
-	for key, value := range bindings.GetSearchAttributeUpdates(attributes) {
+	for _, entry := range bindings.GetSearchAttributeUpdates(attributes) {
+		key, value := entry.Key, entry.Value
 		p, err := dc.ToPayload(value)
 		if err != nil {
 			return nil, err

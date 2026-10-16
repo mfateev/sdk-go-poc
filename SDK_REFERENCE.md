@@ -495,10 +495,11 @@ the registered channel type; use `GetSignalChannel[[]byte]` for existing byte-in
 The host SDK owns IDs, retry/cron behavior, timeouts, parent-close policy,
 versioning, priority and summaries. Memo and untyped search-attribute values
 cross as encoded payloads, preserving integers larger than JSON float precision.
-Typed search attributes use the SDK's seven key/update types. Their audited
-interface-key map iteration sorts by attribute name and value type, ignoring
-process-specific `reflect.Type` addresses; custom key implementations remain
-unsupported. Native context propagators inject child headers, including values
+Typed search attributes use the SDK's seven key/update types. Use
+`workflow.SearchAttributeEntries(attributes)` for canonical name/type traversal,
+including copied keyword lists and nil/unset markers. The SDK maintains its key
+index; Go does not recognize SDK types. Direct interface-keyed map iteration
+remains outside the deterministic map subset. Native context propagators inject child headers, including values
 overridden on a derived context. Cache eviction detaches local callbacks without canceling server-side
 children; parent completion follows the configured parent-close policy.
 

@@ -614,7 +614,7 @@ func (d *definition) finishWorkflow(result *commonpb.Payloads, err error) {
 	if (len(d.queryHandlers) != 0 || d.dynamicQuery != nil) && instance != nil {
 		d.retainedCompletion = &workflowCompletion{result: result, err: err}
 		d.retireOperations()
-		instance.FreezeWorkflow()
+		instance.FenceReadOnly()
 		return
 	}
 	d.Close()

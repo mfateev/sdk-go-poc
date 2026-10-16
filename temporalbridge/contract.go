@@ -9,8 +9,8 @@ import (
 )
 
 func validateSDKBindings() error {
-	if bindings.IntegrationVersion != 1 {
-		return fmt.Errorf("isolate integration: incompatible SDK binding version %d, requires 1", bindings.IntegrationVersion)
+	if bindings.IntegrationVersion != 2 {
+		return fmt.Errorf("isolate integration: incompatible SDK binding version %d, requires 2", bindings.IntegrationVersion)
 	}
 	return nil
 }

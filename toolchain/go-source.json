@@ -1,7 +1,7 @@
 {
   "repository": "https://github.com/mfateev/golang-go.git",
-  "revision": "a6599cb7d2bc127438217a214bc9260aac765d83",
+  "revision": "21e2e75aae415e38388874dd76b8865d0d932575",
   "bootstrap": "1.26.7",
-  "temporal_sdk_revision": "6570fab47a9f3d49969e5febce1a9736c9db7952",
+  "temporal_sdk_revision": "643d90e3b3d39919797110d40b35cb1558328603",
   "samples_revision": "0229414a4be573a797da99989d2e1b55996dae70"
 }

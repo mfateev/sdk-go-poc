@@ -169,7 +169,7 @@ func check(previous string, e *environment, taskTimeout time.Duration) {
 	}
 	checkQuery()
 
-	if _, err := e.query("bad-key", nil, nil); err == nil || !strings.Contains(err.Error(), "unsupported search attribute map key") {
+	if _, err := e.query("bad-key", nil, nil); err == nil || !strings.Contains(err.Error(), "deterministic map iteration requires integer or string keys") {
 		panic(fmt.Sprintf("custom map key: %v", err))
 	}
 	checkQuery()

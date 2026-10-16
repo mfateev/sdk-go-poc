@@ -238,30 +238,45 @@ func Workflow(ctx context.Context, previous string, memo bool) (string, error) {
 	return "ok", nil
 }
 
-// SDK keys contain reflect.Type pointers. Verify canonical order independently
+// SDK-owned traversal orders keys independently
 // of those process-specific addresses, including collisions in attribute names.
 func checkKeyOrdering() error {
-	values := make(map[temporal.SearchAttributeKey]int)
+	var updates []temporal.SearchAttributeUpdate
 	for i := 255; i >= 0; i-- {
 		name := fmt.Sprintf("key-%03d", i)
-		values[temporal.NewSearchAttributeKeyString(name)] = i
-		values[temporal.NewSearchAttributeKeyInt64(name)] = i
+		updates = append(updates, temporal.NewSearchAttributeKeyString(name).ValueSet(name))
+		updates = append(updates, temporal.NewSearchAttributeKeyInt64(name).ValueSet(int64(i)))
 	}
-	values[temporal.NewSearchAttributeKeyKeyword("same")] = 2
-	values[temporal.NewSearchAttributeKeyKeywordList("same")] = 7
-	values[temporal.NewSearchAttributeKeyTime("same")] = 6
-	values[temporal.NewSearchAttributeKeyBool("same")] = 5
-	values[temporal.NewSearchAttributeKeyFloat64("same")] = 4
+	updates = append(updates,
+		temporal.NewSearchAttributeKeyKeyword("same").ValueSet("two"),
+		temporal.NewSearchAttributeKeyKeywordList("same").ValueSet([]string{"seven"}),
+		temporal.NewSearchAttributeKeyTime("same").ValueSet(time.Unix(6, 0)),
+		temporal.NewSearchAttributeKeyBool("same").ValueSet(true),
+		temporal.NewSearchAttributeKeyFloat64("same").ValueSet(4),
+	)
+	values := temporal.NewSearchAttributes(updates...)
 	var lastName string
 	var lastKind int32
 	count := 0
-	for key, value := range values {
+	for _, entry := range workflow.SearchAttributeEntries(values) {
+		key, value := entry.Key, entry.Value
 		name, kind := key.GetName(), int32(key.GetValueType())
 		if name < lastName || name == lastName && kind <= lastKind {
 			return fmt.Errorf("noncanonical SDK key order: %s/%d after %s/%d", name, kind, lastName, lastKind)
 		}
-		if strings.HasPrefix(name, "key-") && fmt.Sprintf("key-%03d", value) != name {
-			return fmt.Errorf("SDK map value changed")
+		if strings.HasPrefix(name, "key-") {
+			switch value := value.(type) {
+			case string:
+				if value != name {
+					return fmt.Errorf("SDK text value changed")
+				}
+			case int64:
+				if fmt.Sprintf("key-%03d", value) != name {
+					return fmt.Errorf("SDK numeric value changed")
+				}
+			default:
+				return fmt.Errorf("SDK value type changed: %T", value)
+			}
 		}
 		lastName, lastKind = name, kind
 		count++
