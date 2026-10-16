@@ -1,0 +1,16 @@
+{
+	"Path": "go.temporal.io/sdk",
+	"Version": "v1.49.0",
+	"Info": "/Users/maxim/go/pkg/mod/cache/download/go.temporal.io/sdk/@v/v1.49.0.info",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.temporal.io/sdk/@v/v1.49.0.mod",
+	"Zip": "/Users/maxim/go/pkg/mod/cache/download/go.temporal.io/sdk/@v/v1.49.0.zip",
+	"Dir": "/Users/maxim/go/pkg/mod/go.temporal.io/sdk@v1.49.0",
+	"Sum": "h1:CtGI0BUe/SCo3eoqTwuWWtXKueii9GBVus7KrKKH1Vo=",
+	"GoModSum": "h1:xP0FulN5JJSfisESUP60LlWsrKz2tLSStGjVdk8r5cc=",
+	"Origin": {
+		"VCS": "git",
+		"URL": "https://github.com/temporalio/sdk-go",
+		"Hash": "58115b581391037b93451f50ac3628611ea0493b",
+		"Ref": "refs/tags/v1.49.0"
+	}
+}

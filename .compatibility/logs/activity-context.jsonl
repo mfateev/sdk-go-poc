@@ -1,0 +1,10 @@
+{"Time":"2026-10-16T16:52:50.355473554Z","Action":"start","Package":"github.com/mfateev/sdk-go-poc/.compatibility/probes"}
+{"Time":"2026-10-16T16:52:50.370041512Z","Action":"run","Package":"github.com/mfateev/sdk-go-poc/.compatibility/probes","Test":"TestActivityContextOptionalBaselineComparison"}
+{"Time":"2026-10-16T16:52:50.370348679Z","Action":"output","Package":"github.com/mfateev/sdk-go-poc/.compatibility/probes","Test":"TestActivityContextOptionalBaselineComparison","Output":"=== RUN   TestActivityContextOptionalBaselineComparison\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:52:50.681969221Z","Action":"output","Package":"github.com/mfateev/sdk-go-poc/.compatibility/probes","Test":"TestActivityContextOptionalBaselineComparison","Output":"    plugin_test.go:71: pinned host accepts activity without context\n"}
+{"Time":"2026-10-16T16:52:50.682698554Z","Action":"output","Package":"github.com/mfateev/sdk-go-poc/.compatibility/probes","Test":"TestActivityContextOptionalBaselineComparison","Output":"    plugin_test.go:73: POC rejects same activity: activity must take context.Context first\n"}
+{"Time":"2026-10-16T16:52:50.683787846Z","Action":"output","Package":"github.com/mfateev/sdk-go-poc/.compatibility/probes","Test":"TestActivityContextOptionalBaselineComparison","Output":"--- PASS: TestActivityContextOptionalBaselineComparison (0.31s)\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:52:50.683948179Z","Action":"pass","Package":"github.com/mfateev/sdk-go-poc/.compatibility/probes","Test":"TestActivityContextOptionalBaselineComparison","Elapsed":0.31}
+{"Time":"2026-10-16T16:52:50.684112221Z","Action":"output","Package":"github.com/mfateev/sdk-go-poc/.compatibility/probes","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:52:50.684549596Z","Action":"output","Package":"github.com/mfateev/sdk-go-poc/.compatibility/probes","Output":"ok  \tgithub.com/mfateev/sdk-go-poc/.compatibility/probes\t0.328s\n"}
+{"Time":"2026-10-16T16:52:50.685200304Z","Action":"pass","Package":"github.com/mfateev/sdk-go-poc/.compatibility/probes","Elapsed":0.33}

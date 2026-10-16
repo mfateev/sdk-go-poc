@@ -1,0 +1,27 @@
+{
+  "io": [
+    "/Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/golang-go/src/io/io.go",
+    "/Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/golang-go/src/io/multi.go",
+    "/Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/golang-go/src/io/pipe.go"
+  ],
+  "math/rand/v2": [
+    "/Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/golang-go/src/math/rand/v2/pcg.go",
+    "/Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/golang-go/src/math/rand/v2/chacha8.go",
+    "/Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/golang-go/src/math/rand/v2/normal.go",
+    "/Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/golang-go/src/math/rand/v2/isolate.go",
+    "/Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/golang-go/src/math/rand/v2/rand.go",
+    "/Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/golang-go/src/math/rand/v2/exp.go",
+    "/Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/golang-go/src/math/rand/v2/zipf.go"
+  ],
+  "isolate": [
+    "/Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/golang-go/src/isolate/log.go",
+    "/Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/golang-go/src/isolate/version.go",
+    "/Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/golang-go/src/isolate/function_state_stub.go",
+    "/Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/golang-go/src/isolate/host.go",
+    "/Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/golang-go/src/isolate/resources.go",
+    "/Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/golang-go/src/isolate/isolate.go",
+    "/Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/golang-go/src/isolate/function.go",
+    "/Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/golang-go/src/isolate/protobuf.go",
+    "/Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/golang-go/src/isolate/function_state.go"
+  ]
+}

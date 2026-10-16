@@ -1,0 +1,13 @@
+2026/10/16 16:51:38 INFO  Starting DevServer ExePath /tmp/temporal-cli-go-sdk-1.49.0 Args [server start-dev --ip 127.0.0.1 --port 43625 --namespace default --dynamic-config-value frontend.enableServerVersionCheck=false --headless]
+2026/10/16 16:51:38 INFO  DevServer ready
+Temporal CLI 1.9.1 (Server 1.32.0, UI 2.54.1)
+
+Temporal Server:      localhost:43625
+Temporal Persistence: in-memory
+Temporal Metrics:     http://localhost:45555/metrics
+2026/10/16 16:51:38 INFO  Started Worker Namespace default TaskQueue dynamic-1000-1792169498449183966 WorkerID 2320043@modify-go-runtime-for-isolates@
+2026/10/16 16:51:39 INFO  Stopped Worker Namespace default TaskQueue dynamic-1000-1792169498449183966 WorkerID 2320043@modify-go-runtime-for-isolates@
+2026/10/16 16:51:39 INFO  Started Worker Namespace default TaskQueue dynamic-0-1792169499026537258 WorkerID 2320043@modify-go-runtime-for-isolates@
+2026/10/16 16:51:39 INFO  Stopped Worker Namespace default TaskQueue dynamic-0-1792169499026537258 WorkerID 2320043@modify-go-runtime-for-isolates@
+dynamic saved history replay passed
+live dynamic handlers, codecs, cache eviction and replay passed

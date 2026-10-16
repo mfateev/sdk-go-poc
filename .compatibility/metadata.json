@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-16",
+  "official": {
+    "version": "v1.49.0",
+    "revision": "58115b581391037b93451f50ac3628611ea0493b",
+    "status": ""
+  },
+  "poc": {
+    "revision": "c91e13324d62489202663d50be38354795fdec1f",
+    "initial_untracked": [
+      ".idea/"
+    ],
+    "tracked_diff": ""
+  },
+  "host": {
+    "Path": "go.temporal.io/sdk",
+    "Version": "v1.49.0",
+    "Replace": {
+      "Path": "github.com/mfateev/temporal-go-sdk",
+      "Version": "v1.49.0-isolates.1.0.20261012175541-b87b0a1d5dda",
+      "Time": "2026-10-12T17:55:41Z",
+      "Dir": "/Users/maxim/go/pkg/mod/github.com/mfateev/temporal-go-sdk@v1.49.0-isolates.1.0.20261012175541-b87b0a1d5dda",
+      "GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/mfateev/temporal-go-sdk/@v/v1.49.0-isolates.1.0.20261012175541-b87b0a1d5dda.mod",
+      "GoVersion": "1.26.0",
+      "Sum": "h1:6Of8OLy7hXV+XlqKwORrj2U0+T4RG/dWKOgSAsa4l18=",
+      "GoModSum": "h1:xP0FulN5JJSfisESUP60LlWsrKz2tLSStGjVdk8r5cc="
+    },
+    "Dir": "/Users/maxim/go/pkg/mod/github.com/mfateev/temporal-go-sdk@v1.49.0-isolates.1.0.20261012175541-b87b0a1d5dda",
+    "GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/mfateev/temporal-go-sdk/@v/v1.49.0-isolates.1.0.20261012175541-b87b0a1d5dda.mod",
+    "GoVersion": "1.26.0"
+  },
+  "sibling_host_revision": "fbc4738d28663daf230d32456ff8f082d9531c5a",
+  "runtime": {
+    "revision": "04ee2113dc0805b35188dba1e064c0035d7e9366",
+    "status": "?? .idea/\n?? go-build-cache/",
+    "tool_version": "go version go1.28-devel_dba1c0fd35 Wed Oct 14 19:08:54 2026 +0000 linux/arm64 (isolates POC)",
+    "binary_sha256": "3cf323ec51b5c8d6ef4335998a7a08027537c1b85e4664e3b23e0df75cb732f8"
+  },
+  "standard_go": "go version go1.26.7 linux/arm64",
+  "build_tags": "default; go1.27 generic methods compiled separately with tgo",
+  "os_arch": "Linux aarch64",
+  "live_server": {
+    "cli": "1.9.1",
+    "server": "1.32.0",
+    "storage": "in-memory",
+    "namespace": "default",
+    "dynamic_config": {
+      "frontend.enableServerVersionCheck": false
+    },
+    "capabilities": "dynamic workflow, updates, query-after-completion observed; full capability response not captured"
+  },
+  "cache_modes": [
+    1000,
+    0
+  ],
+  "concurrency": "existing compiled fixtures exercise GOMAXPROCS 1/2/8; no new native race run",
+  "exclusions": []
+}

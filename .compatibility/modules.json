@@ -1,0 +1,2454 @@
+{
+	"Path": "github.com/mfateev/sdk-go-poc",
+	"Main": true,
+	"Dir": "/Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/sdk-go-poc",
+	"GoMod": "/Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/sdk-go-poc/go.mod",
+	"GoVersion": "1.26.0"
+}
+{
+	"Path": "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go",
+	"Version": "v1.36.6-20250425153114-8976f5be98c1.1",
+	"Time": "0001-01-01T00:00:00Z",
+	"Indirect": true
+}
+{
+	"Path": "buf.build/go/protovalidate",
+	"Version": "v0.12.0",
+	"Time": "2025-04-30T17:09:28Z",
+	"Indirect": true
+}
+{
+	"Path": "cel.dev/expr",
+	"Version": "v0.25.2",
+	"Time": "2026-03-12T16:46:44Z",
+	"Indirect": true
+}
+{
+	"Path": "cloud.google.com/go/auth",
+	"Version": "v0.18.2",
+	"Time": "2026-02-13T17:14:27Z",
+	"Indirect": true
+}
+{
+	"Path": "cloud.google.com/go/auth/oauth2adapt",
+	"Version": "v0.2.8",
+	"Time": "2025-03-20T15:18:21Z",
+	"Indirect": true
+}
+{
+	"Path": "cloud.google.com/go/compute",
+	"Version": "v1.54.0",
+	"Time": "2026-01-22T15:05:45Z",
+	"Indirect": true
+}
+{
+	"Path": "cloud.google.com/go/compute/metadata",
+	"Version": "v0.9.0",
+	"Time": "2025-09-24T19:41:55Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/comp/api/api/def",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/comp/core/config",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/comp/core/flare/builder",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/comp/core/flare/types",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/comp/core/ipc/def",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/comp/core/log/def",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/comp/core/log/fx",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/comp/core/log/impl",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/comp/core/secrets/def",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/comp/core/secrets/noop-impl",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/comp/core/tagger/def",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/comp/core/tagger/fx-remote",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/comp/core/tagger/generic_store",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/comp/core/tagger/impl-remote",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/comp/core/tagger/origindetection",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/!data!dog/datadog-agent/comp/core/tagger/origindetection@v0.77.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/!data!dog/datadog-agent/comp/core/tagger/origindetection/@v/v0.77.0.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:Lu/HEo5svx/UwE7XWh8vOrEHCrVRsein9X1N0jGK5bo=",
+	"GoModSum": "h1:+Ty3r23MjcmMSkr8JbFeqA3utgtc1wxsZ0KaQ9CzoWA="
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/comp/core/tagger/tags",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/comp/core/tagger/telemetry",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/comp/core/tagger/types",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/comp/core/tagger/utils",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/comp/core/telemetry",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/comp/def",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/comp/otelcol/otlp/components/processor/infraattributesprocessor",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/comp/otelcol/otlp/testutil",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/comp/trace/compression/def",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/comp/trace/compression/impl-gzip",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/comp/trace/compression/impl-zstd",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/api",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/collector/check/defaults",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/config/basic",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/config/create",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/config/env",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/config/helper",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/config/mock",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/config/model",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/config/nodetreemodel",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/config/setup",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/config/structure",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/config/teeconfig",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/config/viperconfig",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/fips",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/obfuscate",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/!data!dog/datadog-agent/pkg/obfuscate@v0.77.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/!data!dog/datadog-agent/pkg/obfuscate/@v/v0.77.0.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:mrHaNnDAIOFAVYhCqDpkenUtbadswHN68ZlG5krv40o=",
+	"GoModSum": "h1:E6RGAcEOr/d8wsV5/khYHvaHkijWex6dfNEvsBIgR7A="
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/opentelemetry-mapping-go/inframetadata",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/opentelemetry-mapping-go/otlp/attributes",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/!data!dog/datadog-agent/pkg/opentelemetry-mapping-go/otlp/attributes@v0.77.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/!data!dog/datadog-agent/pkg/opentelemetry-mapping-go/otlp/attributes/@v/v0.77.0.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:g1d9d1CfG54WjXgvkysTFL9yjXexWeDbYssQaf1PG6c=",
+	"GoModSum": "h1:N/AB9VGpVwHxCcyX+7GLNYMfnTZvn65vp5cHb5Ed0ow="
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/proto",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/!data!dog/datadog-agent/pkg/proto@v0.77.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/!data!dog/datadog-agent/pkg/proto/@v/v0.77.0.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:21nDAKD+LdxZz2pMsLAQTZ+w9Z4JqecjKpt8xY1b7Ig=",
+	"GoModSum": "h1:g2QYJe1CheZdssiDQpSYWra9hORkh+S3WO8aOqDNLkg="
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/remoteconfig/state",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/!data!dog/datadog-agent/pkg/remoteconfig/state@v0.77.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/!data!dog/datadog-agent/pkg/remoteconfig/state/@v/v0.77.0.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:SxFGFN/Dd/uREaUTxuVTi0R7fRABzvUtu32YOXcjf6c=",
+	"GoModSum": "h1:TpW5ZwsQTrlRBPjtZH5/OFwpmOqxV/v2i9BiF4Xfcac="
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/serializer",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/tagger/types",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/tagset",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/telemetry",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/template",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/!data!dog/datadog-agent/pkg/template@v0.77.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/!data!dog/datadog-agent/pkg/template/@v/v0.77.0.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:sUbTCoQyU9kXMc6/aDd4YTP2pe9PlNkgySM11ydMEbE=",
+	"GoModSum": "h1:ZUjICHSlN0of0cmWrYk9Pof0DV0eqHSpTUK1NTnN26Y="
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/trace",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/!data!dog/datadog-agent/pkg/trace@v0.77.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/!data!dog/datadog-agent/pkg/trace/@v/v0.77.0.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:B7M6IW0sd60XnLfeP6HEneeR4lRnaNtI9bboU4R1cV0=",
+	"GoModSum": "h1:+7zMNPjHTDidiphECirrpq5jLK09S9kmLtGRv7di29Q="
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/trace/log",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/!data!dog/datadog-agent/pkg/trace/log@v0.77.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/!data!dog/datadog-agent/pkg/trace/log/@v/v0.77.0.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:2VY1byEA2XnYVg7+eLQSTgX2f76ZCf/AwpCBJDXCiDc=",
+	"GoModSum": "h1:thnxBOGfMU9uRlFUClXud6J7DdI8qWtElELSds5jqts="
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/trace/otel",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/!data!dog/datadog-agent/pkg/trace/otel@v0.77.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/!data!dog/datadog-agent/pkg/trace/otel/@v/v0.77.0.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:9zSto72E+wSETaKs47Yiq5D9du9H71IqWgbDJzGpzSs=",
+	"GoModSum": "h1:IxBidgqUt8aBrKYq4VKynBHWYZYNoflk+0+m7w+lfbI="
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/trace/stats",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/!data!dog/datadog-agent/pkg/trace/stats@v0.77.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/!data!dog/datadog-agent/pkg/trace/stats/@v/v0.77.0.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:InA6JO5R8TFAUcKRxsdmIF1hJpVZqVO5Aqux+Iw/2V0=",
+	"GoModSum": "h1:iZVotmInV8qaU6Q5h+tsKk4CBYupDcOgTzonzLlMi0k="
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/trace/traceutil",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/!data!dog/datadog-agent/pkg/trace/traceutil@v0.77.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/!data!dog/datadog-agent/pkg/trace/traceutil/@v/v0.77.0.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:b/2+uA/cG2xEV0LzgwnxloMFWe5sdJa3xtaQhSGN0+s=",
+	"GoModSum": "h1:csT+8o3GOUjhKPs/GqWMb5Zh4iQpuZ/HZQ4Z5ls8Sak="
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/util/cache",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/util/cgroups",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/util/common",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/util/executable",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/util/filesystem",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/util/flavor",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/util/fxutil",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/util/grpc",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/util/http",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/util/log",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/!data!dog/datadog-agent/pkg/util/log@v0.77.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/!data!dog/datadog-agent/pkg/util/log/@v/v0.77.0.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:YFa+8kIg2qQZca9zvowtwCPdHDhGMcTIF+PMIQsLSRs=",
+	"GoModSum": "h1:DFK2U5RcB8/BcObgmVEZ4VxqXUi2t7y2svLTtJwQqeo="
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/util/log/setup",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/util/option",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/util/pointer",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/util/scrubber",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/!data!dog/datadog-agent/pkg/util/scrubber@v0.77.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/!data!dog/datadog-agent/pkg/util/scrubber/@v/v0.77.0.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:dd0W9e39rv0R3DSgnaurVnQ43/jX/juqQPwLpGAJgFs=",
+	"GoModSum": "h1:nkhevws2pJvoXSGhjc8wuTbptNQ9ECRBjwVr4hSvoq0="
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/util/sort",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/util/system",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/util/winutil",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/datadog-agent/pkg/version",
+	"Version": "v0.77.0",
+	"Time": "2026-03-16T16:55:18Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/!data!dog/datadog-agent/pkg/version@v0.77.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/!data!dog/datadog-agent/pkg/version/@v/v0.77.0.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:fxpMWuoaRHS5vHzCNHftvJ6wdQrGhEmuozjjl8wZG5k=",
+	"GoModSum": "h1:h9eJjfeTHlYYv+kzq6n3rQ07qXGirdCCacn1Ryu4TFQ="
+}
+{
+	"Path": "github.com/DataDog/datadog-go/v5",
+	"Version": "v5.8.3",
+	"Time": "2026-02-02T12:31:23Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/!data!dog/datadog-go/v5@v5.8.3",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/!data!dog/datadog-go/v5/@v/v5.8.3.mod",
+	"GoVersion": "1.13",
+	"Sum": "h1:s58CUJ9s8lezjhTNJO/SxkPBv2qZjS3ktpRSqGF5n0s=",
+	"GoModSum": "h1:K9kcYBlxkcPP8tvvjZZKs/m1edNAUFzBbdpTUKfCsuw="
+}
+{
+	"Path": "github.com/DataDog/dd-trace-go/v2",
+	"Version": "v2.8.1",
+	"Time": "2026-05-05T17:16:09Z",
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/!data!dog/dd-trace-go/v2@v2.8.1",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/!data!dog/dd-trace-go/v2/@v/v2.8.1.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:O/lPXXcJof4hqfcBGsL6p/PiVa5xTfvYzv5iv/4S66U=",
+	"GoModSum": "h1:IVkBpsq66Cw/YIRM/Te3pl2F0M9n4zguAB2ReGczWeo="
+}
+{
+	"Path": "github.com/DataDog/go-libddwaf/v4",
+	"Version": "v4.9.0",
+	"Time": "2026-03-05T13:02:49Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/!data!dog/go-libddwaf/v4@v4.9.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/!data!dog/go-libddwaf/v4/@v/v4.9.0.mod",
+	"GoVersion": "1.23.0",
+	"Sum": "h1:a788e37iuH7sR9uIYHkulvTnp2FkXTiZ3yY/kuaHgZE=",
+	"GoModSum": "h1:/AZqP6zw3qGJK5mLrA0PkfK3UQDk1zCI2fUNCt4xftE="
+}
+{
+	"Path": "github.com/DataDog/go-runtime-metrics-internal",
+	"Version": "v0.0.4-0.20260217080614-b0f4edc38a6d",
+	"Time": "2026-02-17T08:06:14Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/!data!dog/go-runtime-metrics-internal@v0.0.4-0.20260217080614-b0f4edc38a6d",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/!data!dog/go-runtime-metrics-internal/@v/v0.0.4-0.20260217080614-b0f4edc38a6d.mod",
+	"GoVersion": "1.23",
+	"Sum": "h1:cH9Bm0tJ8FEQbA4FRi0iRm7Zr/5Lata/Or31c+Dth0E=",
+	"GoModSum": "h1:yDuvU+Ak1TKwgd4K8DNcpJmUrrK8ONLkBMGNAppmBRk="
+}
+{
+	"Path": "github.com/DataDog/go-sqllexer",
+	"Version": "v0.1.13",
+	"Time": "2026-02-05T21:39:57Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/!data!dog/go-sqllexer@v0.1.13",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/!data!dog/go-sqllexer/@v/v0.1.13.mod",
+	"GoVersion": "1.21",
+	"Sum": "h1:HhT2G21y7SDZYQx9i1b+3Sy/CHhESHet/YKMSm06XcE=",
+	"GoModSum": "h1:vOw7Ia7z+z6nl3zGZlLIZe0vQlPtCPR906WIPBJadxc="
+}
+{
+	"Path": "github.com/DataDog/go-tuf",
+	"Version": "v1.1.1-0.5.2",
+	"Time": "2025-07-23T13:22:37Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/!data!dog/go-tuf@v1.1.1-0.5.2",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/!data!dog/go-tuf/@v/v1.1.1-0.5.2.mod",
+	"GoVersion": "1.18",
+	"Sum": "h1:YWvghV4ZvrQsPcUw8IOUMSDpqc3W5ruOIC+KJxPknv0=",
+	"GoModSum": "h1:zBcq6f654iVqmkk8n2Cx81E1JnNTMOAx1UEO/wZR+P0="
+}
+{
+	"Path": "github.com/DataDog/sketches-go",
+	"Version": "v1.4.8",
+	"Time": "2026-02-20T20:34:42Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/!data!dog/sketches-go@v1.4.8",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/!data!dog/sketches-go/@v/v1.4.8.mod",
+	"GoVersion": "1.23",
+	"Sum": "h1:pFk9BNn+Rzv8IMIoPUttoOpOr3bJOqU3P6EP5wK+Lv8=",
+	"GoModSum": "h1:a/wjRUqzqtGS8qRHRPDCs4EAQfmvPDZGDlMIF5mxXOE="
+}
+{
+	"Path": "github.com/DataDog/viper",
+	"Version": "v1.15.0",
+	"Time": "2025-12-01T09:41:10Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/DataDog/zstd",
+	"Version": "v1.5.7",
+	"Time": "2025-03-28T19:54:20Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp",
+	"Version": "v1.33.0",
+	"Time": "2026-06-04T20:21:43Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/Microsoft/go-winio",
+	"Version": "v0.6.2",
+	"Time": "2024-04-09T20:07:04Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/!microsoft/go-winio@v0.6.2",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/!microsoft/go-winio/@v/v0.6.2.mod",
+	"GoVersion": "1.21",
+	"Sum": "h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERoyfY=",
+	"GoModSum": "h1:yd8OoFMLzJbo9gZq8j5qaps8bJ9aShtEA8Ipt1oGCvU="
+}
+{
+	"Path": "github.com/antihax/optional",
+	"Version": "v1.0.0",
+	"Time": "2019-10-10T23:37:20Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/antlr4-go/antlr/v4",
+	"Version": "v4.13.0",
+	"Time": "2023-05-19T05:49:53Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/beorn7/perks",
+	"Version": "v1.0.1",
+	"Time": "2019-07-31T12:00:54Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/cenkalti/backoff/v5",
+	"Version": "v5.0.3",
+	"Time": "2025-07-23T16:23:35Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/cenkalti/backoff/v5@v5.0.3",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/cenkalti/backoff/v5/@v/v5.0.3.mod",
+	"GoVersion": "1.23",
+	"Sum": "h1:ZN+IMa753KfX5hd8vVaMixjnqRZ3y8CuJKRKj1xcsSM=",
+	"GoModSum": "h1:rkhZdG3JZukswDf7f0cwqPNk4K0sa+F97BxZthm/crw="
+}
+{
+	"Path": "github.com/cespare/xxhash/v2",
+	"Version": "v2.3.0",
+	"Time": "2024-04-04T20:00:10Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/cespare/xxhash/v2@v2.3.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/cespare/xxhash/v2/@v/v2.3.0.mod",
+	"GoVersion": "1.11",
+	"Sum": "h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=",
+	"GoModSum": "h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs="
+}
+{
+	"Path": "github.com/cihub/seelog",
+	"Version": "v0.0.0-20170130134532-f561c5e57575",
+	"Time": "2017-01-30T13:45:32Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/cihub/seelog@v0.0.0-20170130134532-f561c5e57575",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/cihub/seelog/@v/v0.0.0-20170130134532-f561c5e57575.mod",
+	"Sum": "h1:kHaBemcxl8o/pQ5VM1c8PVE1PubbNx3mjUr09OqWGCs=",
+	"GoModSum": "h1:9d6lWj8KzO/fd/NrVaLscBKmPigpZpn5YawRPw+e3Yo="
+}
+{
+	"Path": "github.com/cncf/xds/go",
+	"Version": "v0.0.0-20260202195803-dba9d589def2",
+	"Time": "2026-02-02T19:58:03Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/codahale/rfc6979",
+	"Version": "v0.0.0-20141003034818-6a90f24967eb",
+	"Time": "2014-10-03T03:48:18Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/davecgh/go-spew",
+	"Version": "v1.1.2-0.20180830191138-d8f796af33cc",
+	"Time": "2018-08-30T19:11:38Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/davecgh/go-spew@v1.1.2-0.20180830191138-d8f796af33cc",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/davecgh/go-spew/@v/v1.1.2-0.20180830191138-d8f796af33cc.mod",
+	"Sum": "h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=",
+	"GoModSum": "h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38="
+}
+{
+	"Path": "github.com/dgryski/go-farm",
+	"Version": "v0.0.0-20240924180020-3414d57e47da",
+	"Time": "2024-09-24T18:00:20Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/dgryski/go-farm@v0.0.0-20240924180020-3414d57e47da",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/dgryski/go-farm/@v/v0.0.0-20240924180020-3414d57e47da.mod",
+	"Sum": "h1:aIftn67I1fkbMa512G+w+Pxci9hJPB8oMnkcP3iZF38=",
+	"GoModSum": "h1:SqUrOPUnsFjfmXRMNPybcSiG0BgUW2AuFH8PAnS2iTw="
+}
+{
+	"Path": "github.com/dustin/go-humanize",
+	"Version": "v1.0.1",
+	"Time": "2023-01-10T06:44:38Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/dustin/go-humanize@v1.0.1",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/dustin/go-humanize/@v/v1.0.1.mod",
+	"GoVersion": "1.16",
+	"Sum": "h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=",
+	"GoModSum": "h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto="
+}
+{
+	"Path": "github.com/ebitengine/purego",
+	"Version": "v0.10.0",
+	"Time": "2026-02-23T08:46:21Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/ebitengine/purego@v0.10.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/ebitengine/purego/@v/v0.10.0.mod",
+	"GoVersion": "1.18",
+	"Sum": "h1:QIw4xfpWT6GWTzaW5XEKy3HXoqrJGx1ijYHzTF0/ISU=",
+	"GoModSum": "h1:iIjxzd6CiRiOG0UyXP+V1+jWqUXVjPKLAI0mRfJZTmQ="
+}
+{
+	"Path": "github.com/envoyproxy/go-control-plane",
+	"Version": "v0.14.0",
+	"Time": "2025-11-04T22:01:44Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/envoyproxy/go-control-plane/envoy",
+	"Version": "v1.37.0",
+	"Time": "2026-01-13T06:26:49Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/envoyproxy/go-control-plane/ratelimit",
+	"Version": "v0.1.0",
+	"Time": "2024-12-23T15:25:59Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/envoyproxy/protoc-gen-validate",
+	"Version": "v1.3.3",
+	"Time": "2026-02-18T16:13:16Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/facebookgo/clock",
+	"Version": "v0.0.0-20150410010913-600d898af40a",
+	"Time": "2015-04-10T01:09:13Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/facebookgo/clock@v0.0.0-20150410010913-600d898af40a",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/facebookgo/clock/@v/v0.0.0-20150410010913-600d898af40a.mod",
+	"Sum": "h1:yDWHCSQ40h88yih2JAcL6Ls/kVkSE8GFACTGVnMPruw=",
+	"GoModSum": "h1:7Ga40egUymuWXxAe151lTNnCv97MddSOVsjpPPkityA="
+}
+{
+	"Path": "github.com/felixge/httpsnoop",
+	"Version": "v1.0.4",
+	"Time": "2023-03-12T10:31:09Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/flynn/go-docopt",
+	"Version": "v0.0.0-20140912013429-f6dd2ebbb31e",
+	"Time": "2014-09-12T01:34:29Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/fsnotify/fsnotify",
+	"Version": "v1.9.0",
+	"Time": "2025-04-04T15:13:49Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/go-jose/go-jose/v4",
+	"Version": "v4.1.4",
+	"Time": "2026-03-31T23:33:50Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/go-logr/logr",
+	"Version": "v1.4.3",
+	"Time": "2025-05-19T04:56:57Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/go-logr/logr@v1.4.3",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/go-logr/logr/@v/v1.4.3.mod",
+	"GoVersion": "1.18",
+	"Sum": "h1:CjnDlHq8ikf6E492q6eKboGOC0T8CDaOvkHCIg8idEI=",
+	"GoModSum": "h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY="
+}
+{
+	"Path": "github.com/go-logr/stdr",
+	"Version": "v1.2.2",
+	"Time": "2021-12-14T08:00:35Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/go-logr/stdr@v1.2.2",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/go-logr/stdr/@v/v1.2.2.mod",
+	"GoVersion": "1.16",
+	"Sum": "h1:hSWxHoqTgW2S2qGc0LTAI563KZ5YKYRhT3MFKZMbjag=",
+	"GoModSum": "h1:mMo/vtBO5dYbehREoey6XUKy/eSumjCCveDpRre4VKE="
+}
+{
+	"Path": "github.com/go-ole/go-ole",
+	"Version": "v1.3.0",
+	"Time": "2023-08-04T03:10:36Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/go-ole/go-ole@v1.3.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/go-ole/go-ole/@v/v1.3.0.mod",
+	"GoVersion": "1.12",
+	"Sum": "h1:Dt6ye7+vXGIKZ7Xtk4s6/xVdGDQynvom7xCFEdWr6uE=",
+	"GoModSum": "h1:5LS6F96DhAwUc7C+1HLexzMXY1xGRSryjyPPKW6zv78="
+}
+{
+	"Path": "github.com/go-viper/mapstructure/v2",
+	"Version": "v2.5.0",
+	"Time": "2026-01-12T17:24:26Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/gofrs/flock",
+	"Version": "v0.13.0",
+	"Time": "2025-10-09T22:24:42Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/gogo/protobuf",
+	"Version": "v1.3.2",
+	"Time": "2021-01-10T08:01:47Z",
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/gogo/protobuf@v1.3.2",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/gogo/protobuf/@v/v1.3.2.mod",
+	"GoVersion": "1.15",
+	"Sum": "h1:Ov1cvc58UF3b5XjBnZv7+opcTcQFZebYjWzi34vdm4Q=",
+	"GoModSum": "h1:P1XiOD3dCwIKUDQYPy72D8LYyHL2YPYrpS2s69NZV8Q="
+}
+{
+	"Path": "github.com/golang/glog",
+	"Version": "v1.2.5",
+	"Time": "2025-04-29T08:43:26Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/golang/mock",
+	"Version": "v1.7.0-rc.1",
+	"Time": "2022-05-12T03:06:13Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/golang/mock@v1.7.0-rc.1",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/golang/mock/@v/v1.7.0-rc.1.mod",
+	"GoVersion": "1.15",
+	"Sum": "h1:YojYx61/OLFsiv6Rw1Z96LpldJIy31o+UHmwAUMJ6/U=",
+	"GoModSum": "h1:s42URUywIqd+OcERslBJvOjepvNymP31m3q8d/GkuRs="
+}
+{
+	"Path": "github.com/golang/protobuf",
+	"Version": "v1.5.4",
+	"Time": "2024-03-06T06:45:40Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/golang/protobuf@v1.5.4",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/golang/protobuf/@v/v1.5.4.mod",
+	"GoVersion": "1.17",
+	"Sum": "h1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=",
+	"GoModSum": "h1:lnTiLA8Wa4RWRcIUkrtSVa5nRhsEGBg48fD6rSs7xps="
+}
+{
+	"Path": "github.com/golang/snappy",
+	"Version": "v0.0.4",
+	"Time": "2021-06-08T04:05:37Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/google/cel-go",
+	"Version": "v0.25.0",
+	"Time": "2025-04-22T06:35:47Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/google/go-cmp",
+	"Version": "v0.7.0",
+	"Time": "2025-01-14T18:15:44Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/google/go-cmp@v0.7.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/google/go-cmp/@v/v0.7.0.mod",
+	"GoVersion": "1.21",
+	"Sum": "h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=",
+	"GoModSum": "h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU="
+}
+{
+	"Path": "github.com/google/gofuzz",
+	"Version": "v1.2.0",
+	"Time": "2020-08-04T22:43:24Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/google/gofuzz@v1.2.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/google/gofuzz/@v/v1.2.0.mod",
+	"GoVersion": "1.12",
+	"Sum": "h1:xRy4A+RhZaiKjJ1bPfwQ8sedCA+YS2YcCHW6ec7JMi0=",
+	"GoModSum": "h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg="
+}
+{
+	"Path": "github.com/google/pprof",
+	"Version": "v0.0.0-20250403155104-27863c87afa6",
+	"Time": "2025-04-03T15:51:04Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/google/pprof@v0.0.0-20250403155104-27863c87afa6",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/google/pprof/@v/v0.0.0-20250403155104-27863c87afa6.mod",
+	"GoVersion": "1.23",
+	"Sum": "h1:BHT72Gu3keYf3ZEu2J0b1vyeLSOYI8bm5wbJM/8yDe8=",
+	"GoModSum": "h1:boTsfXsheKC2y+lKOCMpSfarhxDeIzfZG1jqGcPl3cA="
+}
+{
+	"Path": "github.com/google/s2a-go",
+	"Version": "v0.1.9",
+	"Time": "2025-01-06T17:53:46Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/google/uuid",
+	"Version": "v1.6.0",
+	"Time": "2024-01-23T18:54:04Z",
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/google/uuid@v1.6.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/google/uuid/@v/v1.6.0.mod",
+	"Sum": "h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=",
+	"GoModSum": "h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo="
+}
+{
+	"Path": "github.com/googleapis/enterprise-certificate-proxy",
+	"Version": "v0.3.11",
+	"Time": "2026-01-13T07:11:36Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/googleapis/gax-go/v2",
+	"Version": "v2.17.0",
+	"Time": "2026-02-03T18:41:38Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/gorilla/mux",
+	"Version": "v1.8.1",
+	"Time": "2023-10-18T11:23:00Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/grpc-ecosystem/go-grpc-middleware",
+	"Version": "v1.4.0",
+	"Time": "2023-03-15T10:41:00Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/grpc-ecosystem/go-grpc-middleware/v2",
+	"Version": "v2.3.2",
+	"Time": "2025-05-02T04:29:38Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/grpc-ecosystem/go-grpc-middleware/v2@v2.3.2",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/grpc-ecosystem/go-grpc-middleware/v2/@v/v2.3.2.mod",
+	"GoVersion": "1.23.0",
+	"Sum": "h1:sGm2vDRFUrQJO/Veii4h4zG2vvqG6uWNkBHSTqXOZk0=",
+	"GoModSum": "h1:wd1YpapPLivG6nQgbf7ZkG1hhSOXDhhn4MLTknx2aAc="
+}
+{
+	"Path": "github.com/grpc-ecosystem/grpc-gateway/v2",
+	"Version": "v2.27.4",
+	"Time": "2025-12-26T20:01:04Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/grpc-ecosystem/grpc-gateway/v2@v2.27.4",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/grpc-ecosystem/grpc-gateway/v2/@v/v2.27.4.mod",
+	"GoVersion": "1.24.0",
+	"Sum": "h1:kEISI/Gx67NzH3nJxAmY/dGac80kKZgZt134u7Y/k1s=",
+	"GoModSum": "h1:6Nz966r3vQYCqIzWsuEl9d7cf7mRhtDmm++sOxlnfxI="
+}
+{
+	"Path": "github.com/hashicorp/go-version",
+	"Version": "v1.8.0",
+	"Time": "2025-11-21T09:01:15Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/hashicorp/go-version@v1.8.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/hashicorp/go-version/@v/v1.8.0.mod",
+	"Sum": "h1:KAkNb1HAiZd1ukkxDFGmokVZe1Xy9HG6NUp+bPle2i4=",
+	"GoModSum": "h1:fltr4n8CU8Ke44wwGCBoEymUuxUHl09ZGVZPK5anwXA="
+}
+{
+	"Path": "github.com/hectane/go-acl",
+	"Version": "v0.0.0-20230122075934-ca0b05cb1adb",
+	"Time": "2023-01-22T07:59:34Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/inconshreveable/mousetrap",
+	"Version": "v1.1.0",
+	"Time": "2022-11-27T22:01:53Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/json-iterator/go",
+	"Version": "v1.1.12",
+	"Time": "2021-09-11T02:17:26Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/json-iterator/go@v1.1.12",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/json-iterator/go/@v/v1.1.12.mod",
+	"GoVersion": "1.12",
+	"Sum": "h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=",
+	"GoModSum": "h1:e30LSqwooZae/UwlEbR2852Gd8hjQvJoHmT4TnhNGBo="
+}
+{
+	"Path": "github.com/kisielk/errcheck",
+	"Version": "v1.5.0",
+	"Time": "2021-01-05T19:12:31Z",
+	"Indirect": true,
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/kisielk/errcheck/@v/v1.5.0.mod",
+	"GoVersion": "1.14",
+	"GoModSum": "h1:pFxgyoBC7bSaBwPgfKdkLd5X25qrDl4LWUI2bnpBCr8="
+}
+{
+	"Path": "github.com/kisielk/gotool",
+	"Version": "v1.0.0",
+	"Time": "2018-02-21T18:54:26Z",
+	"Indirect": true,
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/kisielk/gotool/@v/v1.0.0.mod",
+	"GoModSum": "h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck="
+}
+{
+	"Path": "github.com/klauspost/compress",
+	"Version": "v1.18.4",
+	"Time": "2026-02-05T15:29:14Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/klauspost/compress@v1.18.4",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/klauspost/compress/@v/v1.18.4.mod",
+	"GoVersion": "1.23",
+	"Sum": "h1:RPhnKRAQ4Fh8zU2FY/6ZFDwTVTxgJ/EMydqSTzE9a2c=",
+	"GoModSum": "h1:R0h/fSBs8DE4ENlcrlib3PsXS61voFxhIs2DeRhCvJ4="
+}
+{
+	"Path": "github.com/klauspost/cpuid/v2",
+	"Version": "v2.3.0",
+	"Time": "2025-07-11T09:57:38Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/klauspost/cpuid/v2@v2.3.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/klauspost/cpuid/v2/@v/v2.3.0.mod",
+	"GoVersion": "1.22",
+	"Sum": "h1:S4CRMLnYUhGeDFDqkGriYKdfoFlDnMtqTiI/sFzhA9Y=",
+	"GoModSum": "h1:hqwkgyIinND0mEev00jJYCxPNVRVXFQeu1XKlok6oO0="
+}
+{
+	"Path": "github.com/kr/pretty",
+	"Version": "v0.3.1",
+	"Time": "2022-08-29T23:03:05Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/kr/pretty@v0.3.1",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/kr/pretty/@v/v0.3.1.mod",
+	"GoVersion": "1.12",
+	"Sum": "h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=",
+	"GoModSum": "h1:hoEshYVHaxMs3cyo3Yncou5ZscifuDolrwPKZanG3xk="
+}
+{
+	"Path": "github.com/kr/text",
+	"Version": "v0.2.0",
+	"Time": "2020-02-14T20:31:06Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/kr/text@v0.2.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/kr/text/@v/v0.2.0.mod",
+	"Sum": "h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=",
+	"GoModSum": "h1:eLer722TekiGuMkidMxC/pM04lWEeraHUUmBw8l2grE="
+}
+{
+	"Path": "github.com/linkdata/deadlock",
+	"Version": "v0.5.5",
+	"Time": "2025-08-14T11:24:35Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/linkdata/deadlock@v0.5.5",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/linkdata/deadlock/@v/v0.5.5.mod",
+	"GoVersion": "1.12",
+	"Sum": "h1:d6O+rzEqasSfamGDA8u7bjtaq7hOX8Ha4Zn36Wxrkvo=",
+	"GoModSum": "h1:tXb28stzAD3trzEEK0UJWC+rZKuobCoPktPYzebb1u0="
+}
+{
+	"Path": "github.com/lufia/plan9stats",
+	"Version": "v0.0.0-20260216142805-b3301c5f2a88",
+	"Time": "2026-02-16T14:28:05Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/lufia/plan9stats@v0.0.0-20260216142805-b3301c5f2a88",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/lufia/plan9stats/@v/v0.0.0-20260216142805-b3301c5f2a88.mod",
+	"GoVersion": "1.21",
+	"Sum": "h1:PTw+yKnXcOFCR6+8hHTyWBeQ/P4Nb7dd4/0ohEcWQuM=",
+	"GoModSum": "h1:autxFIvghDt3jPTLoqZ9OZ7s9qTGNAWmYCjVFWPX/zg="
+}
+{
+	"Path": "github.com/magiconair/properties",
+	"Version": "v1.8.10",
+	"Time": "2025-04-09T19:30:57Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/mdlayher/socket",
+	"Version": "v0.5.1",
+	"Time": "2024-03-15T15:39:10Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/mdlayher/vsock",
+	"Version": "v1.2.1",
+	"Time": "2023-04-29T14:19:24Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/minio/simdjson-go",
+	"Version": "v0.4.5",
+	"Time": "2023-03-11T19:16:56Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/minio/simdjson-go@v0.4.5",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/minio/simdjson-go/@v/v0.4.5.mod",
+	"GoVersion": "1.18",
+	"Sum": "h1:r4IQwjRGmWCQ2VeMc7fGiilu1z5du0gJ/I/FsKwgo5A=",
+	"GoModSum": "h1:eoNz0DcLQRyEDeaPr4Ru6JpjlZPzbA0IodxVJk8lO8E="
+}
+{
+	"Path": "github.com/modern-go/concurrent",
+	"Version": "v0.0.0-20180306012644-bacd9c7ef1dd",
+	"Time": "2018-03-06T01:26:44Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/modern-go/concurrent@v0.0.0-20180306012644-bacd9c7ef1dd",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/modern-go/concurrent/@v/v0.0.0-20180306012644-bacd9c7ef1dd.mod",
+	"Sum": "h1:TRLaZ9cD/w8PVh93nsPXa1VrQ6jlwL5oN8l14QlcNfg=",
+	"GoModSum": "h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q="
+}
+{
+	"Path": "github.com/modern-go/reflect2",
+	"Version": "v1.0.3-0.20250322232337-35a7c28c31ee",
+	"Time": "2025-03-22T23:23:37Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/modern-go/reflect2@v1.0.3-0.20250322232337-35a7c28c31ee",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/modern-go/reflect2/@v/v1.0.3-0.20250322232337-35a7c28c31ee.mod",
+	"GoVersion": "1.12",
+	"Sum": "h1:W5t00kpgFdJifH4BDsTlE89Zl93FEloxaWZfGcifgq8=",
+	"GoModSum": "h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk="
+}
+{
+	"Path": "github.com/mohae/deepcopy",
+	"Version": "v0.0.0-20170929034955-c48cc78d4826",
+	"Time": "2017-09-29T03:49:55Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/munnerz/goautoneg",
+	"Version": "v0.0.0-20191010083416-a7dc8b61c822",
+	"Time": "2019-10-10T08:34:16Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/nexus-rpc/nexus-proto-annotations",
+	"Version": "v0.1.0",
+	"Time": "2026-03-30T19:40:09Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/nexus-rpc/nexus-proto-annotations@v0.1.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/nexus-rpc/nexus-proto-annotations/@v/v0.1.0.mod",
+	"GoVersion": "1.25.4",
+	"Sum": "h1:2fELd+9sqUtNu6Fg//pw8YFsxOvp8vZ8hfP0nHhNI80=",
+	"GoModSum": "h1:n3UjF1bPCW8llR8tHvbxJ+27yPWrhpo8w/Yg1IOuY0Y="
+}
+{
+	"Path": "github.com/nexus-rpc/sdk-go",
+	"Version": "v0.7.0",
+	"Time": "2026-08-12T17:16:26Z",
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/nexus-rpc/sdk-go@v0.7.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/nexus-rpc/sdk-go/@v/v0.7.0.mod",
+	"GoVersion": "1.23",
+	"Sum": "h1:38NrfY5rLnZAiMMs2ZfCKI/CSDzdfJG+27iAgfA8bUI=",
+	"GoModSum": "h1:FHdPfVQwRuJFZFTF0Y2GOAxCrbIBNrcPna9slkGKPYk="
+}
+{
+	"Path": "github.com/open-feature/go-sdk",
+	"Version": "v1.17.0",
+	"Time": "2025-11-05T19:39:01Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/open-telemetry/opentelemetry-collector-contrib/pkg/sampling",
+	"Version": "v0.145.0",
+	"Time": "2026-02-03T15:50:06Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/open-telemetry/opentelemetry-collector-contrib/pkg/sampling@v0.145.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/open-telemetry/opentelemetry-collector-contrib/pkg/sampling/@v/v0.145.0.mod",
+	"GoVersion": "1.24.0",
+	"Sum": "h1:7rdLY2Ewa1WVnjMfJTEKwQ5uPDHYeA1tqNPNROi957U=",
+	"GoModSum": "h1:jYlQAaJO4ZyJAW2jcKAbjN+nt5BRCyu49mlZv4Rui7U="
+}
+{
+	"Path": "github.com/open-telemetry/opentelemetry-collector-contrib/processor/probabilisticsamplerprocessor",
+	"Version": "v0.145.0",
+	"Time": "2026-02-03T15:50:06Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/open-telemetry/opentelemetry-collector-contrib/processor/probabilisticsamplerprocessor@v0.145.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/open-telemetry/opentelemetry-collector-contrib/processor/probabilisticsamplerprocessor/@v/v0.145.0.mod",
+	"GoVersion": "1.24.0",
+	"Sum": "h1:12mxn+8YLeAjMZ1kLGulBcvHrdhRNUmxLVIDnaLkJbQ=",
+	"GoModSum": "h1:V87HYJpfmvCeQ6Cjy3Q4xylxfCn2wVSS80wvv5ECc0s="
+}
+{
+	"Path": "github.com/opentracing/opentracing-go",
+	"Version": "v1.2.0",
+	"Time": "2020-07-01T21:27:29Z",
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/opentracing/opentracing-go@v1.2.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/opentracing/opentracing-go/@v/v1.2.0.mod",
+	"GoVersion": "1.14",
+	"Sum": "h1:uEJPy/1a5RIPAJ0Ov+OIO8OxWu77jEv+1B0VhjKrZUs=",
+	"GoModSum": "h1:GxEUsuufX4nBwe+T+Wl9TAgYrxe9dPLANfrWvHYVTgc="
+}
+{
+	"Path": "github.com/outcaste-io/ristretto",
+	"Version": "v0.2.3",
+	"Time": "2023-07-27T04:07:33Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/outcaste-io/ristretto@v0.2.3",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/outcaste-io/ristretto/@v/v0.2.3.mod",
+	"GoVersion": "1.12",
+	"Sum": "h1:AK4zt/fJ76kjlYObOeNwh4T3asEuaCmp26pOvUOL9w0=",
+	"GoModSum": "h1:W8HywhmtlopSB1jeMg3JtdIhf+DYkLAr0VN/s4+MHac="
+}
+{
+	"Path": "github.com/patrickmn/go-cache",
+	"Version": "v2.1.0+incompatible",
+	"Time": "2017-07-22T04:01:10Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/pelletier/go-toml",
+	"Version": "v1.9.5",
+	"Time": "2022-01-05T14:17:32Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/petermattis/goid",
+	"Version": "v0.0.0-20260226131333-17d1149c6ac6",
+	"Time": "2026-02-26T13:13:33Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/petermattis/goid@v0.0.0-20260226131333-17d1149c6ac6",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/petermattis/goid/@v/v0.0.0-20260226131333-17d1149c6ac6.mod",
+	"GoVersion": "1.17",
+	"Sum": "h1:rh2lKw/P/EqHa724vYH2+VVQ1YnW4u6EOXl0PMAovZE=",
+	"GoModSum": "h1:pxMtw7cyUw6B2bRH0ZBANSPg+AoSud1I1iyJHI69jH4="
+}
+{
+	"Path": "github.com/philhofer/fwd",
+	"Version": "v1.2.0",
+	"Time": "2024-09-16T14:44:58Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/philhofer/fwd@v1.2.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/philhofer/fwd/@v/v1.2.0.mod",
+	"GoVersion": "1.20",
+	"Sum": "h1:e6DnBTl7vGY+Gz322/ASL4Gyp1FspeMvx1RNDoToZuM=",
+	"GoModSum": "h1:RqIHx9QI14HlwKwm98g9Re5prTQ6LdeRQn+gXJFxsJM="
+}
+{
+	"Path": "github.com/pkg/errors",
+	"Version": "v0.9.1",
+	"Time": "2020-01-14T19:47:44Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/pkg/errors@v0.9.1",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/pkg/errors/@v/v0.9.1.mod",
+	"Sum": "h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=",
+	"GoModSum": "h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0="
+}
+{
+	"Path": "github.com/planetscale/vtprotobuf",
+	"Version": "v0.6.1-0.20240319094008-0393e58bdf10",
+	"Time": "2024-03-19T09:40:08Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/planetscale/vtprotobuf@v0.6.1-0.20240319094008-0393e58bdf10",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/planetscale/vtprotobuf/@v/v0.6.1-0.20240319094008-0393e58bdf10.mod",
+	"GoVersion": "1.20",
+	"Sum": "h1:GFCKgmp0tecUJ0sJuv4pzYCqS9+RGSn52M3FUwPs+uo=",
+	"GoModSum": "h1:t/avpk3KcrXxUnYOhZhMXJlSEyie6gQbtLq5NM3loB8="
+}
+{
+	"Path": "github.com/pmezard/go-difflib",
+	"Version": "v1.0.1-0.20181226105442-5d4384ee4fb2",
+	"Time": "2018-12-26T10:54:42Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/pmezard/go-difflib@v1.0.1-0.20181226105442-5d4384ee4fb2",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/pmezard/go-difflib/@v/v1.0.1-0.20181226105442-5d4384ee4fb2.mod",
+	"Sum": "h1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=",
+	"GoModSum": "h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4="
+}
+{
+	"Path": "github.com/power-devops/perfstat",
+	"Version": "v0.0.0-20240221224432-82ca36839d55",
+	"Time": "2024-02-21T22:44:32Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/power-devops/perfstat@v0.0.0-20240221224432-82ca36839d55",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/power-devops/perfstat/@v/v0.0.0-20240221224432-82ca36839d55.mod",
+	"GoVersion": "1.14",
+	"Sum": "h1:o4JXh1EVt9k/+g42oCprj/FisM4qX9L3sZB3upGN2ZU=",
+	"GoModSum": "h1:OmDBASR4679mdNQnz2pUhc2G8CO2JrUAVFDRBDP/hJE="
+}
+{
+	"Path": "github.com/prometheus/client_golang",
+	"Version": "v1.23.2",
+	"Time": "2025-09-05T14:03:59Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/prometheus/client_model",
+	"Version": "v0.6.2",
+	"Time": "2025-04-11T05:38:16Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/prometheus/common",
+	"Version": "v0.67.5",
+	"Time": "2026-01-05T14:14:40Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/prometheus/otlptranslator",
+	"Version": "v1.0.0",
+	"Time": "2025-09-09T19:39:14Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/prometheus/procfs",
+	"Version": "v0.19.2",
+	"Time": "2025-10-30T14:20:06Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/puzpuzpuz/xsync/v3",
+	"Version": "v3.5.1",
+	"Time": "2025-01-27T07:29:28Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/puzpuzpuz/xsync/v3@v3.5.1",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/puzpuzpuz/xsync/v3/@v/v3.5.1.mod",
+	"GoVersion": "1.18",
+	"Sum": "h1:GJYJZwO6IdxN/IKbneznS6yPkVC+c3zyY/j19c++5Fg=",
+	"GoModSum": "h1:VjzYrABPabuM4KyBh1Ftq6u8nhwY5tBPKP9jpmh0nnA="
+}
+{
+	"Path": "github.com/quasilyte/go-ruleguard/dsl",
+	"Version": "v0.3.22",
+	"Time": "2022-12-28T18:20:27Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/richardartoul/molecule",
+	"Version": "v1.0.1-0.20240531184615-7ca0df43c0b3",
+	"Time": "2024-05-31T18:46:15Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/richardartoul/molecule@v1.0.1-0.20240531184615-7ca0df43c0b3",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/richardartoul/molecule/@v/v1.0.1-0.20240531184615-7ca0df43c0b3.mod",
+	"GoVersion": "1.13",
+	"Sum": "h1:4+LEVOB87y175cLJC/mbsgKmoDOjrBldtXvioEy96WY=",
+	"GoModSum": "h1:vl5+MqJ1nBINuSsUI2mGgH79UweUT/B5Fy8857PqyyI="
+}
+{
+	"Path": "github.com/robfig/cron",
+	"Version": "v1.2.0",
+	"Time": "2018-05-05T20:34:41Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/robfig/cron@v1.2.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/robfig/cron/@v/v1.2.0.mod",
+	"Sum": "h1:ZjScXvvxeQ63Dbyxy76Fj3AT3Ut0aKsyd2/tl3DTMuQ=",
+	"GoModSum": "h1:JGuDeoQd7Z6yL4zQhZ3OPEVHB7fL6Ka6skscFHfmt2k="
+}
+{
+	"Path": "github.com/rogpeppe/fastuuid",
+	"Version": "v1.2.0",
+	"Time": "2019-07-08T15:05:45Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/rogpeppe/go-internal",
+	"Version": "v1.14.1",
+	"Time": "2025-02-25T12:37:03Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/rogpeppe/go-internal@v1.14.1",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/rogpeppe/go-internal/@v/v1.14.1.mod",
+	"GoVersion": "1.23",
+	"Sum": "h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0tI/otEQ=",
+	"GoModSum": "h1:MaRKkUm5W0goXpeCfT7UZI6fk/L7L7so1lCWt35ZSgc="
+}
+{
+	"Path": "github.com/secure-systems-lab/go-securesystemslib",
+	"Version": "v0.10.0",
+	"Time": "2026-01-06T15:36:12Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/secure-systems-lab/go-securesystemslib@v0.10.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/secure-systems-lab/go-securesystemslib/@v/v0.10.0.mod",
+	"GoVersion": "1.24.0",
+	"Sum": "h1:l+H5ErcW0PAehBNrBxoGv1jjNpGYdZ9RcheFkB2WI14=",
+	"GoModSum": "h1:MRKONWmRoFzPNQ9USRF9i1mc7MvAVvF1LlW8X5VWDvk="
+}
+{
+	"Path": "github.com/shirou/gopsutil/v4",
+	"Version": "v4.26.2",
+	"Time": "2026-02-27T12:05:12Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/shirou/gopsutil/v4@v4.26.2",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/shirou/gopsutil/v4/@v/v4.26.2.mod",
+	"GoVersion": "1.24.0",
+	"Sum": "h1:X8i6sicvUFih4BmYIGT1m2wwgw2VG9YgrDTi7cIRGUI=",
+	"GoModSum": "h1:LZ6ewCSkBqUpvSOf+LsTGnRinC6iaNUNMGBtDkJBaLQ="
+}
+{
+	"Path": "github.com/sirupsen/logrus",
+	"Version": "v1.9.3",
+	"Time": "2023-05-21T12:59:35Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/spaolacci/murmur3",
+	"Version": "v1.1.0",
+	"Time": "2018-01-18T20:28:30Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/spaolacci/murmur3@v1.1.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/spaolacci/murmur3/@v/v1.1.0.mod",
+	"Sum": "h1:7c1g84S4BPRrfL5Xrdp6fOJ206sU9y293DDHaoy0bLI=",
+	"GoModSum": "h1:JwIasOWyU6f++ZhiEuf87xNszmSA2myDM2Kzu9HwQUA="
+}
+{
+	"Path": "github.com/spf13/cast",
+	"Version": "v1.10.0",
+	"Time": "2025-09-08T16:45:31Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/spf13/cobra",
+	"Version": "v1.10.2",
+	"Time": "2025-12-03T23:51:15Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/spf13/jwalterweatherman",
+	"Version": "v1.1.0",
+	"Time": "2018-10-28T14:53:47Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/spf13/pflag",
+	"Version": "v1.0.10",
+	"Time": "2025-09-02T06:08:29Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/spiffe/go-spiffe/v2",
+	"Version": "v2.7.0",
+	"Time": "2026-06-03T20:07:47Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/stoewer/go-strcase",
+	"Version": "v1.3.0",
+	"Time": "2023-03-27T23:57:07Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/stretchr/objx",
+	"Version": "v0.5.2",
+	"Time": "2024-02-29T09:57:51Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/stretchr/objx@v0.5.2",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/stretchr/objx/@v/v0.5.2.mod",
+	"GoVersion": "1.20",
+	"Sum": "h1:xuMeJ0Sdp5ZMRXx/aWO6RZxdr3beISkG5/G/aIRr3pY=",
+	"GoModSum": "h1:FRsXN1f5AsAjCGJKqEizvkpNtU+EGNCLh3NxZ/8L+MA="
+}
+{
+	"Path": "github.com/stretchr/testify",
+	"Version": "v1.11.1",
+	"Time": "2025-08-27T10:46:31Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/stretchr/testify@v1.11.1",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/stretchr/testify/@v/v1.11.1.mod",
+	"GoVersion": "1.17",
+	"Sum": "h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=",
+	"GoModSum": "h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U="
+}
+{
+	"Path": "github.com/syndtr/goleveldb",
+	"Version": "v1.0.1-0.20220721030215-126854af5e6d",
+	"Time": "2022-07-21T03:02:15Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/tinylib/msgp",
+	"Version": "v1.6.3",
+	"Time": "2026-01-01T06:18:14Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/tinylib/msgp@v1.6.3",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/tinylib/msgp/@v/v1.6.3.mod",
+	"GoVersion": "1.24",
+	"Sum": "h1:bCSxiTz386UTgyT1i0MSCvdbWjVW+8sG3PjkGsZQt4s=",
+	"GoModSum": "h1:RSp0LW9oSxFut3KzESt5Voq4GVWyS+PSulT77roAqEA="
+}
+{
+	"Path": "github.com/tklauser/go-sysconf",
+	"Version": "v0.3.16",
+	"Time": "2025-11-12T12:31:00Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/tklauser/go-sysconf@v0.3.16",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/tklauser/go-sysconf/@v/v0.3.16.mod",
+	"GoVersion": "1.24.0",
+	"Sum": "h1:frioLaCQSsF5Cy1jgRBrzr6t502KIIwQ0MArYICU0nA=",
+	"GoModSum": "h1:/qNL9xxDhc7tx3HSRsLWNnuzbVfh3e7gh/BmM179nYI="
+}
+{
+	"Path": "github.com/tklauser/numcpus",
+	"Version": "v0.11.0",
+	"Time": "2025-11-12T12:13:05Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/tklauser/numcpus@v0.11.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/tklauser/numcpus/@v/v0.11.0.mod",
+	"GoVersion": "1.24.0",
+	"Sum": "h1:nSTwhKH5e1dMNsCdVBukSZrURJRoHbSEQjdEbY+9RXw=",
+	"GoModSum": "h1:z+LwcLq54uWZTX0u/bGobaV34u6V7KNlTZejzM6/3MQ="
+}
+{
+	"Path": "github.com/trailofbits/go-mutexasserts",
+	"Version": "v0.0.0-20250514102930-c1f3d2e37561",
+	"Time": "2025-05-14T10:29:30Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/trailofbits/go-mutexasserts@v0.0.0-20250514102930-c1f3d2e37561",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/trailofbits/go-mutexasserts/@v/v0.0.0-20250514102930-c1f3d2e37561.mod",
+	"GoVersion": "1.20",
+	"Sum": "h1:qqa3P9AtNn6RMe90l/lxd3eJWnIRxjI4eb5Rx8xqCLA=",
+	"GoModSum": "h1:GA3+Mq3kt3tYAfM0WZCu7ofy+GW9PuGysHfhr+6JX7s="
+}
+{
+	"Path": "github.com/twmb/murmur3",
+	"Version": "v1.1.8",
+	"Time": "2023-06-01T15:33:08Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/vmihailenco/msgpack/v4",
+	"Version": "v4.3.13",
+	"Time": "2023-10-01T12:21:26Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/vmihailenco/msgpack/v4@v4.3.13",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/vmihailenco/msgpack/v4/@v/v4.3.13.mod",
+	"GoVersion": "1.11",
+	"Sum": "h1:A2wsiTbvp63ilDaWmsk2wjx6xZdxQOvpiNlKBGKKXKI=",
+	"GoModSum": "h1:gborTTJjAo/GWTqqRjrLCn9pgNN+NXzzngzBKDPIqw4="
+}
+{
+	"Path": "github.com/vmihailenco/tagparser",
+	"Version": "v0.1.2",
+	"Time": "2020-10-01T12:21:18Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/vmihailenco/tagparser@v0.1.2",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/vmihailenco/tagparser/@v/v0.1.2.mod",
+	"GoVersion": "1.13",
+	"Sum": "h1:gnjoVuB/kljJ5wICEEOpx98oXMWPLj22G67Vbd1qPqc=",
+	"GoModSum": "h1:OeAg3pn3UbLjkWt+rN9oFYB6u/cQgqMEUPoW2WPyhdI="
+}
+{
+	"Path": "github.com/yuin/goldmark",
+	"Version": "v1.4.1",
+	"Time": "2021-09-12T09:21:50Z",
+	"Indirect": true,
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/yuin/goldmark/@v/v1.4.1.mod",
+	"GoVersion": "1.15",
+	"GoModSum": "h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k="
+}
+{
+	"Path": "github.com/yusufpapurcu/wmi",
+	"Version": "v1.2.4",
+	"Time": "2024-01-28T14:29:43Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/yusufpapurcu/wmi@v1.2.4",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/yusufpapurcu/wmi/@v/v1.2.4.mod",
+	"GoVersion": "1.16",
+	"Sum": "h1:zFUKzehAFReQwLys1b/iSMl+JQGSCSjtVqQn9bBrPo0=",
+	"GoModSum": "h1:SBZ9tNy3G9/m5Oi98Zks0QjeHVDvuK0qfxQmPyzfmi0="
+}
+{
+	"Path": "go.opentelemetry.io/auto/sdk",
+	"Version": "v1.2.1",
+	"Time": "2025-09-15T16:53:44Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/go.opentelemetry.io/auto/sdk@v1.2.1",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.opentelemetry.io/auto/sdk/@v/v1.2.1.mod",
+	"GoVersion": "1.24.0",
+	"Sum": "h1:jXsnJ4Lmnqd11kwkBV2LgLoFMZKizbCi5fNZ/ipaZ64=",
+	"GoModSum": "h1:KRTj+aOaElaLi+wW1kO/DZRXwkF4C5xPbEe3ZiIhN7Y="
+}
+{
+	"Path": "go.opentelemetry.io/collector/component",
+	"Version": "v1.51.1-0.20260205185216-81bc641f26c0",
+	"Time": "2026-02-05T18:52:16Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/go.opentelemetry.io/collector/component@v1.51.1-0.20260205185216-81bc641f26c0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.opentelemetry.io/collector/component/@v/v1.51.1-0.20260205185216-81bc641f26c0.mod",
+	"GoVersion": "1.24.0",
+	"Sum": "h1:ZSlXxE90IY0Cl53RTqzyEgRgRPLTeTNBdGhaTmvj9eY=",
+	"GoModSum": "h1:944C7vEIdk13Pn1fBbyaU8C1qKf2XC0jRBlc69NAsRY="
+}
+{
+	"Path": "go.opentelemetry.io/collector/component/componentstatus",
+	"Version": "v0.145.0",
+	"Time": "2026-02-02T17:58:20Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/go.opentelemetry.io/collector/component/componentstatus@v0.145.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.opentelemetry.io/collector/component/componentstatus/@v/v0.145.0.mod",
+	"GoVersion": "1.24.0",
+	"Sum": "h1:EwUZfSaagdpRXnlrb0TqReJXXW2p9HWBU5YiIeXPCAE=",
+	"GoModSum": "h1:OiYb8rT4FtSJPFSGCKYvOaajdueDUTJZncixGrmy5aM="
+}
+{
+	"Path": "go.opentelemetry.io/collector/component/componenttest",
+	"Version": "v0.145.1-0.20260205185216-81bc641f26c0",
+	"Time": "2026-02-05T18:52:16Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/go.opentelemetry.io/collector/component/componenttest@v0.145.1-0.20260205185216-81bc641f26c0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.opentelemetry.io/collector/component/componenttest/@v/v0.145.1-0.20260205185216-81bc641f26c0.mod",
+	"GoVersion": "1.24.0",
+	"Sum": "h1:+VCK6wX/WN170dcaWJweRAkxpmAEyVucfrUV13NwUlY=",
+	"GoModSum": "h1:U2wUjKMGwgqM49/q8ORkzzYzSWY2m6zpG/e606eK1wc="
+}
+{
+	"Path": "go.opentelemetry.io/collector/confmap",
+	"Version": "v1.51.1-0.20260205185216-81bc641f26c0",
+	"Time": "2026-02-05T18:52:16Z",
+	"Indirect": true
+}
+{
+	"Path": "go.opentelemetry.io/collector/confmap/xconfmap",
+	"Version": "v0.145.1-0.20260205185216-81bc641f26c0",
+	"Time": "2026-02-05T18:52:16Z",
+	"Indirect": true
+}
+{
+	"Path": "go.opentelemetry.io/collector/connector",
+	"Version": "v0.145.1-0.20260205185216-81bc641f26c0",
+	"Time": "2026-02-05T18:52:16Z",
+	"Indirect": true
+}
+{
+	"Path": "go.opentelemetry.io/collector/connector/connectortest",
+	"Version": "v0.145.1-0.20260205185216-81bc641f26c0",
+	"Time": "2026-02-05T18:52:16Z",
+	"Indirect": true
+}
+{
+	"Path": "go.opentelemetry.io/collector/connector/xconnector",
+	"Version": "v0.145.1-0.20260205185216-81bc641f26c0",
+	"Time": "2026-02-05T18:52:16Z",
+	"Indirect": true
+}
+{
+	"Path": "go.opentelemetry.io/collector/consumer",
+	"Version": "v1.51.1-0.20260205185216-81bc641f26c0",
+	"Time": "2026-02-05T18:52:16Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/go.opentelemetry.io/collector/consumer@v1.51.1-0.20260205185216-81bc641f26c0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.opentelemetry.io/collector/consumer/@v/v1.51.1-0.20260205185216-81bc641f26c0.mod",
+	"GoVersion": "1.24.0",
+	"Sum": "h1:WNkJ1bKnRVAEJtBm1bwEkoLG2x7GyANc3/OnErZJ338=",
+	"GoModSum": "h1:Erk6qdfVj+24QTrGCpurcrF+qdUlHkb4dgMy5wJxLvY="
+}
+{
+	"Path": "go.opentelemetry.io/collector/consumer/consumererror",
+	"Version": "v0.145.1-0.20260205185216-81bc641f26c0",
+	"Time": "2026-02-05T18:52:16Z",
+	"Indirect": true
+}
+{
+	"Path": "go.opentelemetry.io/collector/consumer/consumertest",
+	"Version": "v0.145.1-0.20260205185216-81bc641f26c0",
+	"Time": "2026-02-05T18:52:16Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/go.opentelemetry.io/collector/consumer/consumertest@v0.145.1-0.20260205185216-81bc641f26c0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.opentelemetry.io/collector/consumer/consumertest/@v/v0.145.1-0.20260205185216-81bc641f26c0.mod",
+	"GoVersion": "1.24.0",
+	"Sum": "h1:FHyDIlTbqt0Y6tDI9EbI3hr9uWthwkeLY7uGF1jZYqQ=",
+	"GoModSum": "h1:IFc/FeaIHQClb8KK0aVn0tFDNMc+/MmfQ+aBT1cJNeo="
+}
+{
+	"Path": "go.opentelemetry.io/collector/consumer/xconsumer",
+	"Version": "v0.145.1-0.20260205185216-81bc641f26c0",
+	"Time": "2026-02-05T18:52:16Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/go.opentelemetry.io/collector/consumer/xconsumer@v0.145.1-0.20260205185216-81bc641f26c0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.opentelemetry.io/collector/consumer/xconsumer/@v/v0.145.1-0.20260205185216-81bc641f26c0.mod",
+	"GoVersion": "1.24.0",
+	"Sum": "h1:zg2Jqfy7n7o/LEmLsXB4sFhxWtOEMFCKRyQUFLFUS9M=",
+	"GoModSum": "h1:SryDCLP2ZaFeZJtA2CSksJ0XvjH8k3LmlfXvy/kC7Wc="
+}
+{
+	"Path": "go.opentelemetry.io/collector/exporter",
+	"Version": "v1.51.1-0.20260205185216-81bc641f26c0",
+	"Time": "2026-02-05T18:52:16Z",
+	"Indirect": true
+}
+{
+	"Path": "go.opentelemetry.io/collector/extension",
+	"Version": "v1.51.1-0.20260205185216-81bc641f26c0",
+	"Time": "2026-02-05T18:52:16Z",
+	"Indirect": true
+}
+{
+	"Path": "go.opentelemetry.io/collector/featuregate",
+	"Version": "v1.51.1-0.20260205185216-81bc641f26c0",
+	"Time": "2026-02-05T18:52:16Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/go.opentelemetry.io/collector/featuregate@v1.51.1-0.20260205185216-81bc641f26c0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.opentelemetry.io/collector/featuregate/@v/v1.51.1-0.20260205185216-81bc641f26c0.mod",
+	"GoVersion": "1.24.0",
+	"Sum": "h1:fOXhfT2xKqNhfalTXaT/Wic9EBRK8+9ZH0y8phReQS4=",
+	"GoModSum": "h1:/1bclXgP91pISaEeNulRxzzmzMTm4I5Xih2SnI4HRSo="
+}
+{
+	"Path": "go.opentelemetry.io/collector/internal/componentalias",
+	"Version": "v0.145.1-0.20260205185216-81bc641f26c0",
+	"Time": "2026-02-05T18:52:16Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/go.opentelemetry.io/collector/internal/componentalias@v0.145.1-0.20260205185216-81bc641f26c0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.opentelemetry.io/collector/internal/componentalias/@v/v0.145.1-0.20260205185216-81bc641f26c0.mod",
+	"GoVersion": "1.24.0",
+	"Sum": "h1:s4/vCxeIxgQpuWmX1AK1DRbZmEdmNBq925EKES8ebiI=",
+	"GoModSum": "h1:Z0TtMbzaMp2qhj1dw4toya8toyQzqoTF46/WhJXplVw="
+}
+{
+	"Path": "go.opentelemetry.io/collector/internal/fanoutconsumer",
+	"Version": "v0.145.1-0.20260205185216-81bc641f26c0",
+	"Time": "2026-02-05T18:52:16Z",
+	"Indirect": true
+}
+{
+	"Path": "go.opentelemetry.io/collector/internal/testutil",
+	"Version": "v0.145.0",
+	"Time": "2026-02-02T17:58:20Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/go.opentelemetry.io/collector/internal/testutil@v0.145.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.opentelemetry.io/collector/internal/testutil/@v/v0.145.0.mod",
+	"GoVersion": "1.24.0",
+	"Sum": "h1:H/KL0GH3kGqSMKxZvnQ0B0CulfO9xdTg4DZf28uV7fY=",
+	"GoModSum": "h1:YAD9EAkwh/l5asZNbEBEUCqEjoL1OKMjAMoPjPqH76c="
+}
+{
+	"Path": "go.opentelemetry.io/collector/pdata",
+	"Version": "v1.51.1-0.20260205185216-81bc641f26c0",
+	"Time": "2026-02-05T18:52:16Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/go.opentelemetry.io/collector/pdata@v1.51.1-0.20260205185216-81bc641f26c0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.opentelemetry.io/collector/pdata/@v/v1.51.1-0.20260205185216-81bc641f26c0.mod",
+	"GoVersion": "1.24.0",
+	"Sum": "h1:8tgf9W3aW3vFabyVxPNHKsaoyUytudfVOQbqZI9xBHQ=",
+	"GoModSum": "h1:GoX1bjKDR++mgFKdT7Hynv9+mdgQ1DDXbjs7/Ww209Q="
+}
+{
+	"Path": "go.opentelemetry.io/collector/pdata/pprofile",
+	"Version": "v0.145.1-0.20260205185216-81bc641f26c0",
+	"Time": "2026-02-05T18:52:16Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/go.opentelemetry.io/collector/pdata/pprofile@v0.145.1-0.20260205185216-81bc641f26c0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.opentelemetry.io/collector/pdata/pprofile/@v/v0.145.1-0.20260205185216-81bc641f26c0.mod",
+	"GoVersion": "1.24.0",
+	"Sum": "h1:MJcnK8txYZlqHZyfZ1rVf66kt5/kEveIdR6KX//BY1Y=",
+	"GoModSum": "h1:a60GC7wQPhLAixWzKbbP51QLwwc+J0Cmp4SurOlhGUk="
+}
+{
+	"Path": "go.opentelemetry.io/collector/pdata/testdata",
+	"Version": "v0.145.0",
+	"Time": "2026-02-02T17:58:20Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/go.opentelemetry.io/collector/pdata/testdata@v0.145.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.opentelemetry.io/collector/pdata/testdata/@v/v0.145.0.mod",
+	"GoVersion": "1.24.0",
+	"Sum": "h1:iFsxsCMtE3lnAc/5kZbhZHpRv1OMmM+O5ry46xdQHbg=",
+	"GoModSum": "h1:0y2ERArdzqmYdJHdKLKue+AUubSEGlwK49F+23+Mbic="
+}
+{
+	"Path": "go.opentelemetry.io/collector/pdata/xpdata",
+	"Version": "v0.145.1-0.20260205185216-81bc641f26c0",
+	"Time": "2026-02-05T18:52:16Z",
+	"Indirect": true
+}
+{
+	"Path": "go.opentelemetry.io/collector/pipeline",
+	"Version": "v1.51.1-0.20260205185216-81bc641f26c0",
+	"Time": "2026-02-05T18:52:16Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/go.opentelemetry.io/collector/pipeline@v1.51.1-0.20260205185216-81bc641f26c0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.opentelemetry.io/collector/pipeline/@v/v1.51.1-0.20260205185216-81bc641f26c0.mod",
+	"GoVersion": "1.24.0",
+	"Sum": "h1:1KP5gXGF9qN1mEzJupZDUQVIND35qe/0Hy6Cptvdk0s=",
+	"GoModSum": "h1:xUrAqiebzYbrgxyoXSkk6/Y3oi5Sy3im2iCA51LwUAI="
+}
+{
+	"Path": "go.opentelemetry.io/collector/pipeline/xpipeline",
+	"Version": "v0.145.1-0.20260205185216-81bc641f26c0",
+	"Time": "2026-02-05T18:52:16Z",
+	"Indirect": true
+}
+{
+	"Path": "go.opentelemetry.io/collector/processor",
+	"Version": "v1.51.0",
+	"Time": "2026-02-02T17:58:20Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/go.opentelemetry.io/collector/processor@v1.51.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.opentelemetry.io/collector/processor/@v/v1.51.0.mod",
+	"GoVersion": "1.24.0",
+	"Sum": "h1:PKpCzkLQmqaW08TOVh/zM0qx07Ihq+DR5J/OBkPiL9o=",
+	"GoModSum": "h1:rtIPFS+EFRAkG+CSwtjxs2IsIkuZStObvALeueD02XI="
+}
+{
+	"Path": "go.opentelemetry.io/collector/processor/processorhelper",
+	"Version": "v0.145.0",
+	"Time": "2026-02-02T17:58:20Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/go.opentelemetry.io/collector/processor/processorhelper@v0.145.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.opentelemetry.io/collector/processor/processorhelper/@v/v0.145.0.mod",
+	"GoVersion": "1.24.0",
+	"Sum": "h1:vXdv6lHz20Tm3ZEsg0i6jPZJBQgy9kzk/PuqWhHWiiM=",
+	"GoModSum": "h1:3Ecpe5jHRHGf24EvJHeJ/ekK/a1DLByyq0CSUxjjURg="
+}
+{
+	"Path": "go.opentelemetry.io/collector/processor/processorhelper/xprocessorhelper",
+	"Version": "v0.145.0",
+	"Time": "2026-02-02T17:58:20Z",
+	"Indirect": true
+}
+{
+	"Path": "go.opentelemetry.io/collector/processor/processortest",
+	"Version": "v0.145.0",
+	"Time": "2026-02-02T17:58:20Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/go.opentelemetry.io/collector/processor/processortest@v0.145.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.opentelemetry.io/collector/processor/processortest/@v/v0.145.0.mod",
+	"GoVersion": "1.24.0",
+	"Sum": "h1:RDGBmyZnHk7XVK/EdLt/8iPWj+QLStbbVi1nFTNR01s=",
+	"GoModSum": "h1:WAvxAzSojkdoZB915Z1lsVHCPDJBb2fepjJBjenrzjg="
+}
+{
+	"Path": "go.opentelemetry.io/collector/processor/xprocessor",
+	"Version": "v0.145.0",
+	"Time": "2026-02-02T17:58:20Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/go.opentelemetry.io/collector/processor/xprocessor@v0.145.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.opentelemetry.io/collector/processor/xprocessor/@v/v0.145.0.mod",
+	"GoVersion": "1.24.0",
+	"Sum": "h1:DaIE7MxRlg0OL1o2P0GQZtmZeExAmVso3qWv8S0RLps=",
+	"GoModSum": "h1:kUwRyKBU/kjCmXodd+0z7CpvcP0A9G9/QL+MaJt4U2o="
+}
+{
+	"Path": "go.opentelemetry.io/contrib/detectors/gcp",
+	"Version": "v1.44.0",
+	"Time": "2026-05-28T05:28:14Z",
+	"Indirect": true
+}
+{
+	"Path": "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp",
+	"Version": "v0.64.0",
+	"Time": "2025-12-08T20:14:59Z",
+	"Indirect": true
+}
+{
+	"Path": "go.opentelemetry.io/otel",
+	"Version": "v1.44.0",
+	"Time": "2026-05-27T16:42:37Z",
+	"Dir": "/Users/maxim/go/pkg/mod/go.opentelemetry.io/otel@v1.44.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.opentelemetry.io/otel/@v/v1.44.0.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:JjwHmHpA4iZ3wBxluu2fbbE7j4kqlE8jXyAyPXH7HqU=",
+	"GoModSum": "h1:BMgjTHL9WPRlRjL2oZCBTL4whCGtXch2H4BhOPIAyYc="
+}
+{
+	"Path": "go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc",
+	"Version": "v0.14.0",
+	"Time": "2025-08-29T19:42:52Z",
+	"Indirect": true
+}
+{
+	"Path": "go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp",
+	"Version": "v0.14.0",
+	"Time": "2025-08-29T19:42:52Z",
+	"Indirect": true
+}
+{
+	"Path": "go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc",
+	"Version": "v1.39.0",
+	"Time": "2025-12-08T16:30:47Z",
+	"Indirect": true
+}
+{
+	"Path": "go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp",
+	"Version": "v1.39.0",
+	"Time": "2025-12-08T16:30:47Z",
+	"Indirect": true
+}
+{
+	"Path": "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc",
+	"Version": "v1.39.0",
+	"Time": "2025-12-08T16:30:47Z",
+	"Indirect": true
+}
+{
+	"Path": "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp",
+	"Version": "v1.39.0",
+	"Time": "2025-12-08T16:30:47Z",
+	"Indirect": true
+}
+{
+	"Path": "go.opentelemetry.io/otel/exporters/stdout/stdoutmetric",
+	"Version": "v1.39.0",
+	"Time": "2025-12-08T16:30:47Z",
+	"Indirect": true
+}
+{
+	"Path": "go.opentelemetry.io/otel/exporters/stdout/stdouttrace",
+	"Version": "v1.39.0",
+	"Time": "2025-12-08T16:30:47Z",
+	"Indirect": true
+}
+{
+	"Path": "go.opentelemetry.io/otel/log",
+	"Version": "v0.15.0",
+	"Time": "2025-12-08T16:30:47Z",
+	"Indirect": true
+}
+{
+	"Path": "go.opentelemetry.io/otel/metric",
+	"Version": "v1.44.0",
+	"Time": "2026-05-27T16:42:37Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/go.opentelemetry.io/otel/metric@v1.44.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.opentelemetry.io/otel/metric/@v/v1.44.0.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:1w0gILTcHdr3YI+ixLyjemwrVnsMURbTZFrSYCdDdmc=",
+	"GoModSum": "h1:8O7hanEPBNgEMmybD3s2VBKcgWOCsA6tzHBPODAiquo="
+}
+{
+	"Path": "go.opentelemetry.io/otel/sdk",
+	"Version": "v1.44.0",
+	"Time": "2026-05-27T16:42:37Z",
+	"Dir": "/Users/maxim/go/pkg/mod/go.opentelemetry.io/otel/sdk@v1.44.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.opentelemetry.io/otel/sdk/@v/v1.44.0.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:nHYwb9lK+fJPU/dnT6s7W7Z8itMWyqrnVfbheVYrZ58=",
+	"GoModSum": "h1:Osuydd3Se74nqjAKxid74N5eC+jfEqfTegHRnq58oK0="
+}
+{
+	"Path": "go.opentelemetry.io/otel/sdk/log",
+	"Version": "v0.14.0",
+	"Time": "2025-08-29T19:42:52Z",
+	"Indirect": true
+}
+{
+	"Path": "go.opentelemetry.io/otel/sdk/metric",
+	"Version": "v1.44.0",
+	"Time": "2026-05-27T16:42:37Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/go.opentelemetry.io/otel/sdk/metric@v1.44.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.opentelemetry.io/otel/sdk/metric/@v/v1.44.0.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:3LlKgI+VjbVsjNRFZJZAJ30WjXC5VkNRks6si09iEfI=",
+	"GoModSum": "h1:5B5pMARnXxKhltooO4xUuCBorl65a4EpnTalObqOigA="
+}
+{
+	"Path": "go.opentelemetry.io/otel/trace",
+	"Version": "v1.44.0",
+	"Time": "2026-05-27T16:42:37Z",
+	"Dir": "/Users/maxim/go/pkg/mod/go.opentelemetry.io/otel/trace@v1.44.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.opentelemetry.io/otel/trace/@v/v1.44.0.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:jxF5CsGYCe74MCRx2X4g7WsY/VBKRqqpNvXlX/6gtIk=",
+	"GoModSum": "h1:oLl1jrMQAVo6v3GAggN+1VH9VIz9iUSvW53sW1Q8PIE="
+}
+{
+	"Path": "go.opentelemetry.io/proto/otlp",
+	"Version": "v1.9.0",
+	"Time": "2025-11-03T15:38:58Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/go.opentelemetry.io/proto/otlp@v1.9.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.opentelemetry.io/proto/otlp/@v/v1.9.0.mod",
+	"GoVersion": "1.23.0",
+	"Sum": "h1:l706jCMITVouPOqEnii2fIAuO3IVGBRPV5ICjceRb/A=",
+	"GoModSum": "h1:xE+Cx5E/eEHw+ISFkwPLwCZefwVjY+pqKg1qcK03+/4="
+}
+{
+	"Path": "go.opentelemetry.io/proto/slim/otlp",
+	"Version": "v1.9.0",
+	"Time": "2025-11-03T15:38:58Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/go.opentelemetry.io/proto/slim/otlp@v1.9.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.opentelemetry.io/proto/slim/otlp/@v/v1.9.0.mod",
+	"GoVersion": "1.23.0",
+	"Sum": "h1:fPVMv8tP3TrsqlkH1HWYUpbCY9cAIemx184VGkS6vlE=",
+	"GoModSum": "h1:xXdeJJ90Gqyll+orzUkY4bOd2HECo5JofeoLpymVqdI="
+}
+{
+	"Path": "go.opentelemetry.io/proto/slim/otlp/collector/profiles/v1development",
+	"Version": "v0.2.0",
+	"Time": "2025-11-03T15:38:58Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/go.opentelemetry.io/proto/slim/otlp/collector/profiles/v1development@v0.2.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.opentelemetry.io/proto/slim/otlp/collector/profiles/v1development/@v/v0.2.0.mod",
+	"GoVersion": "1.23.0",
+	"Sum": "h1:o13nadWDNkH/quoDomDUClnQBpdQQ2Qqv0lQBjIXjE8=",
+	"GoModSum": "h1:Gyb6Xe7FTi/6xBHwMmngGoHqL0w29Y4eW8TGFzpefGA="
+}
+{
+	"Path": "go.opentelemetry.io/proto/slim/otlp/profiles/v1development",
+	"Version": "v0.2.0",
+	"Time": "2025-11-03T15:38:58Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/go.opentelemetry.io/proto/slim/otlp/profiles/v1development@v0.2.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.opentelemetry.io/proto/slim/otlp/profiles/v1development/@v/v0.2.0.mod",
+	"GoVersion": "1.23.0",
+	"Sum": "h1:EiUYvtwu6PMrMHVjcPfnsG3v+ajPkbUeH+IL93+QYyk=",
+	"GoModSum": "h1:mUUHKFiN2SST3AhJ8XhJxEoeVW12oqfXog0Bo8W3Ec4="
+}
+{
+	"Path": "go.temporal.io/api",
+	"Version": "v1.63.6",
+	"Time": "2026-09-09T22:22:56Z",
+	"Dir": "/Users/maxim/go/pkg/mod/go.temporal.io/api@v1.63.6",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.temporal.io/api/@v/v1.63.6.mod",
+	"GoVersion": "1.25.4",
+	"Sum": "h1:LoV2ubLM9M5uiGeBcYCSCTmHAPGQPy18dC8Vcw8TciQ=",
+	"GoModSum": "h1:acM0I9WPuYg8W3Pd9jOZvEgi7mRUttUQ4+e7fowKVnM="
+}
+{
+	"Path": "go.temporal.io/sdk",
+	"Version": "v1.49.0",
+	"Replace": {
+		"Path": "github.com/mfateev/temporal-go-sdk",
+		"Version": "v1.49.0-isolates.1.0.20261012175541-b87b0a1d5dda",
+		"Time": "2026-10-12T17:55:41Z",
+		"Dir": "/Users/maxim/go/pkg/mod/github.com/mfateev/temporal-go-sdk@v1.49.0-isolates.1.0.20261012175541-b87b0a1d5dda",
+		"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/mfateev/temporal-go-sdk/@v/v1.49.0-isolates.1.0.20261012175541-b87b0a1d5dda.mod",
+		"GoVersion": "1.26.0",
+		"Sum": "h1:6Of8OLy7hXV+XlqKwORrj2U0+T4RG/dWKOgSAsa4l18=",
+		"GoModSum": "h1:xP0FulN5JJSfisESUP60LlWsrKz2tLSStGjVdk8r5cc="
+	},
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/mfateev/temporal-go-sdk@v1.49.0-isolates.1.0.20261012175541-b87b0a1d5dda",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/mfateev/temporal-go-sdk/@v/v1.49.0-isolates.1.0.20261012175541-b87b0a1d5dda.mod",
+	"GoVersion": "1.26.0"
+}
+{
+	"Path": "go.temporal.io/sdk/contrib/datadog",
+	"Version": "v0.6.0",
+	"Time": "2026-07-16T15:43:41Z",
+	"Dir": "/Users/maxim/go/pkg/mod/go.temporal.io/sdk/contrib/datadog@v0.6.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.temporal.io/sdk/contrib/datadog/@v/v0.6.0.mod",
+	"GoVersion": "1.25.4",
+	"Sum": "h1:FhIpL2G1xDTzyDclRUSo5kvnRm309U/Q+lQNB0fQ6iQ=",
+	"GoModSum": "h1:xxUZrEKo9LPPcC4bhGm6LPonP0bNA9Xp2rroKcDPCN4="
+}
+{
+	"Path": "go.temporal.io/sdk/contrib/opentelemetry",
+	"Version": "v0.8.1",
+	"Time": "2026-07-23T18:04:53Z",
+	"Dir": "/Users/maxim/go/pkg/mod/go.temporal.io/sdk/contrib/opentelemetry@v0.8.1",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.temporal.io/sdk/contrib/opentelemetry/@v/v0.8.1.mod",
+	"GoVersion": "1.25.4",
+	"Sum": "h1:wmQnxBWUsQQN6QihaEuUmsn8ZK6d+2G9oQF5bN4ObiY=",
+	"GoModSum": "h1:NnJgL/EwJIaWZVx4Vmb/qMh18a0fTu00VG/ojQ7tHPY="
+}
+{
+	"Path": "go.temporal.io/sdk/contrib/opentelemetry-v2",
+	"Version": "v0.1.0",
+	"Time": "2026-08-18T22:12:19Z",
+	"Dir": "/Users/maxim/go/pkg/mod/go.temporal.io/sdk/contrib/opentelemetry-v2@v0.1.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.temporal.io/sdk/contrib/opentelemetry-v2/@v/v0.1.0.mod",
+	"GoVersion": "1.25.4",
+	"Sum": "h1:1tUq0xcMW3NBtwQKD/lefI4+Ll5wVjdi/ssMapegNp8=",
+	"GoModSum": "h1:SG+dTlPywNuy/Gidg1Svy27QEIZvelsV2U1QyCxim4w="
+}
+{
+	"Path": "go.temporal.io/sdk/contrib/opentracing",
+	"Version": "v0.3.0",
+	"Time": "2026-03-23T16:23:33Z",
+	"Dir": "/Users/maxim/go/pkg/mod/go.temporal.io/sdk/contrib/opentracing@v0.3.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.temporal.io/sdk/contrib/opentracing/@v/v0.3.0.mod",
+	"GoVersion": "1.23.0",
+	"Sum": "h1:IKJgyvZiaOSFl0YHSxJpwXwQa08W3KaZCJkbx05rX7Q=",
+	"GoModSum": "h1:hMs5MBzEluvFhExS8n8I2gNrk3rTrg07uHYi7W2TDbw="
+}
+{
+	"Path": "go.uber.org/atomic",
+	"Version": "v1.11.0",
+	"Time": "2023-05-03T17:25:03Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/go.uber.org/atomic@v1.11.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.uber.org/atomic/@v/v1.11.0.mod",
+	"GoVersion": "1.18",
+	"Sum": "h1:ZvwS0R+56ePWxUNi+Atn9dWONBPp/AUETXlHW0DxSjE=",
+	"GoModSum": "h1:LUxbIzbOniOlMKjJjyPfpl4v+PKK2cNJn91OQbhoJI0="
+}
+{
+	"Path": "go.uber.org/dig",
+	"Version": "v1.19.0",
+	"Time": "2025-05-13T19:43:30Z",
+	"Indirect": true
+}
+{
+	"Path": "go.uber.org/fx",
+	"Version": "v1.24.0",
+	"Time": "2025-05-13T22:11:49Z",
+	"Indirect": true
+}
+{
+	"Path": "go.uber.org/goleak",
+	"Version": "v1.3.0",
+	"Time": "2023-10-24T16:28:03Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/go.uber.org/goleak@v1.3.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.uber.org/goleak/@v/v1.3.0.mod",
+	"GoVersion": "1.20",
+	"Sum": "h1:2K3zAYmnTNqV73imy9J1T3WC+gmCePx2hEGkimedGto=",
+	"GoModSum": "h1:CoHD4mav9JJNrW/WLlf7HGZPjdw8EucARQHekz1X6bE="
+}
+{
+	"Path": "go.uber.org/mock",
+	"Version": "v0.6.0",
+	"Time": "2025-08-18T14:58:04Z",
+	"Indirect": true
+}
+{
+	"Path": "go.uber.org/multierr",
+	"Version": "v1.11.0",
+	"Time": "2023-03-29T23:00:37Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/go.uber.org/multierr@v1.11.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.uber.org/multierr/@v/v1.11.0.mod",
+	"GoVersion": "1.19",
+	"Sum": "h1:blXXJkSxSSfBVBlC76pxqeO+LN3aDfLQo+309xJstO0=",
+	"GoModSum": "h1:20+QtiLqy0Nd6FdQB9TLXag12DsQkrbs3htMFfDN80Y="
+}
+{
+	"Path": "go.uber.org/zap",
+	"Version": "v1.27.1",
+	"Time": "2025-11-19T21:20:44Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/go.uber.org/zap@v1.27.1",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.uber.org/zap/@v/v1.27.1.mod",
+	"GoVersion": "1.19",
+	"Sum": "h1:08RqriUEv8+ArZRYSTXy1LeBScaMpVSTBhCeaZYfMYc=",
+	"GoModSum": "h1:GB2qFLM7cTU87MWRP2mPIjqfIDnGu+VIO4V/SdhGo2E="
+}
+{
+	"Path": "go.yaml.in/yaml/v2",
+	"Version": "v2.4.3",
+	"Time": "2025-09-11T04:10:14Z",
+	"Indirect": true
+}
+{
+	"Path": "go.yaml.in/yaml/v3",
+	"Version": "v3.0.4",
+	"Time": "2025-06-29T14:09:51Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/go.yaml.in/yaml/v3@v3.0.4",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/go.yaml.in/yaml/v3/@v/v3.0.4.mod",
+	"GoVersion": "1.16",
+	"Sum": "h1:tfq32ie2Jv2UxXFdLJdh3jXuOzWiL1fo0bu/FbuKpbc=",
+	"GoModSum": "h1:DhzuOOF2ATzADvBadXxruRBLzYTpT36CKvDb3+aBEFg="
+}
+{
+	"Path": "golang.org/x/crypto",
+	"Version": "v0.55.0",
+	"Time": "2026-08-11T17:56:31Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/golang.org/x/crypto@v0.55.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/golang.org/x/crypto/@v/v0.55.0.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:+KWHjbgOaAQ66dh/YlkZKHlz9ZUlq61AFirAR9ntP8M=",
+	"GoModSum": "h1:uq0V9dE/fzQuJtbnL+2EhWOE63vo164FY8xqEnV9xis="
+}
+{
+	"Path": "golang.org/x/exp",
+	"Version": "v0.0.0-20260209203927-2842357ff358",
+	"Time": "2026-02-09T20:39:27Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/golang.org/x/exp@v0.0.0-20260209203927-2842357ff358",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/golang.org/x/exp/@v/v0.0.0-20260209203927-2842357ff358.mod",
+	"GoVersion": "1.24.0",
+	"Sum": "h1:kpfSV7uLwKJbFSEgNhWzGSL47NDSF/5pYYQw1V0ub6c=",
+	"GoModSum": "h1:R3t0oliuryB5eenPWl3rrQxwnNM3WTwnsRZZiXLAAW8="
+}
+{
+	"Path": "golang.org/x/mod",
+	"Version": "v0.38.0",
+	"Time": "2026-07-08T15:41:22Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/golang.org/x/mod@v0.38.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/golang.org/x/mod/@v/v0.38.0.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:MECBjubtXD7yj4HrhIUcywNaGeNVUdfVnxmPajOk4yk=",
+	"GoModSum": "h1:V6Xz0pq8TQ3dGqVQ1FVHuelZpAL0uNhSkk9ogYP3c40="
+}
+{
+	"Path": "golang.org/x/net",
+	"Version": "v0.58.0",
+	"Time": "2026-08-12T17:41:32Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/golang.org/x/net@v0.58.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/golang.org/x/net/@v/v0.58.0.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:ynWG7rqYi4ccpTEuPZ2QGWHktVEM9DMCj9yzDE0Q7To=",
+	"GoModSum": "h1:YwCddHnFlT7eLQqVprV19OnhLGtc5xOKgE0RyqgfWAU="
+}
+{
+	"Path": "golang.org/x/oauth2",
+	"Version": "v0.36.0",
+	"Time": "2026-02-11T19:14:10Z",
+	"Indirect": true
+}
+{
+	"Path": "golang.org/x/sync",
+	"Version": "v0.22.0",
+	"Time": "2026-07-01T17:29:34Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/golang.org/x/sync@v0.22.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/golang.org/x/sync/@v/v0.22.0.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:SZjpbeLmrCk4xhRSZFNZW5gFUeCeFgjekvI/+gfScek=",
+	"GoModSum": "h1:9xrNwdLfx4jkKbNva9FpL6vEN7evnE43NNNJQ2LF3+0="
+}
+{
+	"Path": "golang.org/x/sys",
+	"Version": "v0.47.0",
+	"Time": "2026-06-30T17:07:31Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/golang.org/x/sys@v0.47.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/golang.org/x/sys/@v/v0.47.0.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:o7XGOvZQCADBQQ4Y7VNq2dRWQR7JmOUW8Kxx4ZsNgWs=",
+	"GoModSum": "h1:4GL1E5IUh+htKOUEOaiffhrAeqysfVGipDYzABqnCmw="
+}
+{
+	"Path": "golang.org/x/term",
+	"Version": "v0.45.0",
+	"Time": "2026-07-08T15:40:56Z",
+	"Indirect": true
+}
+{
+	"Path": "golang.org/x/text",
+	"Version": "v0.41.0",
+	"Time": "2026-08-11T15:22:47Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/golang.org/x/text@v0.41.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/golang.org/x/text/@v/v0.41.0.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:vz/seA0lnX87Othu2f/0L24RcgrXD9/YFTSuGjj3rH8=",
+	"GoModSum": "h1:jvf1O8ajNzZqhSrQBPbutR/EB83Cc0CFrezNQIwbb5M="
+}
+{
+	"Path": "golang.org/x/time",
+	"Version": "v0.15.0",
+	"Time": "2026-02-11T19:14:29Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/golang.org/x/time@v0.15.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/golang.org/x/time/@v/v0.15.0.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:bbrp8t3bGUeFOx08pvsMYRTCVSMk89u4tKbNOZbp88U=",
+	"GoModSum": "h1:Y4YMaQmXwGQZoFaVFk4YpCt4FLQMYKZe9oeV/f4MSno="
+}
+{
+	"Path": "golang.org/x/tools",
+	"Version": "v0.48.0",
+	"Time": "2026-07-09T02:42:41Z",
+	"Indirect": true
+}
+{
+	"Path": "golang.org/x/tools/go/expect",
+	"Version": "v0.1.1-deprecated",
+	"Time": "2025-06-13T18:44:18Z",
+	"Indirect": true
+}
+{
+	"Path": "golang.org/x/tools/go/packages/packagestest",
+	"Version": "v0.1.1-deprecated",
+	"Time": "2025-06-13T18:44:18Z",
+	"Indirect": true
+}
+{
+	"Path": "golang.org/x/xerrors",
+	"Version": "v0.0.0-20240903120638-7835f813f4da",
+	"Time": "2024-09-03T12:06:38Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/golang.org/x/xerrors@v0.0.0-20240903120638-7835f813f4da",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/golang.org/x/xerrors/@v/v0.0.0-20240903120638-7835f813f4da.mod",
+	"GoVersion": "1.18",
+	"Sum": "h1:noIWHXmPHxILtqtCOPIhSt0ABwskkZKjD3bXGnZGpNY=",
+	"GoModSum": "h1:NDW/Ps6MPRej6fsCIbMTohpP40sJ/P/vI1MoTEGwX90="
+}
+{
+	"Path": "gonum.org/v1/gonum",
+	"Version": "v0.17.0",
+	"Time": "2025-12-29T19:16:44Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/gonum.org/v1/gonum@v0.17.0",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/gonum.org/v1/gonum/@v/v0.17.0.mod",
+	"GoVersion": "1.24.0",
+	"Sum": "h1:VbpOemQlsSMrYmn7T2OUvQ4dqxQXU+ouZFQsZOx50z4=",
+	"GoModSum": "h1:El3tOrEuMpv2UdMrbNlKEh9vd86bmQ6vqIcDwxEOc1E="
+}
+{
+	"Path": "google.golang.org/api",
+	"Version": "v0.258.0",
+	"Time": "2025-12-18T20:58:50Z",
+	"Indirect": true
+}
+{
+	"Path": "google.golang.org/appengine",
+	"Version": "v1.6.8",
+	"Time": "2023-08-30T01:12:52Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/google.golang.org/appengine@v1.6.8",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/google.golang.org/appengine/@v/v1.6.8.mod",
+	"GoVersion": "1.11",
+	"Sum": "h1:IhEN5q69dyKagZPYMSdIjS2HqprW324FRQZJcGqPAsM=",
+	"GoModSum": "h1:1jJ3jBArFh5pcgW8gCtRJnepW8FzD1V44FJffLiz/Ds="
+}
+{
+	"Path": "google.golang.org/genproto",
+	"Version": "v0.0.0-20251022142026-3a174f9686a8",
+	"Time": "2025-10-22T14:20:26Z",
+	"Indirect": true
+}
+{
+	"Path": "google.golang.org/genproto/googleapis/api",
+	"Version": "v0.0.0-20260526163538-3dc84a4a5aaa",
+	"Time": "2026-05-26T16:35:38Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260526163538-3dc84a4a5aaa",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/google.golang.org/genproto/googleapis/api/@v/v0.0.0-20260526163538-3dc84a4a5aaa.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:Kjn0N0tCrDgiAFW+lGO4JZ3ck44CehvJQMAwj9QF0G8=",
+	"GoModSum": "h1:q4lMZS6kskjT5HvCPrnnypcDPVJqT/f4nfxmkE7gryY="
+}
+{
+	"Path": "google.golang.org/genproto/googleapis/rpc",
+	"Version": "v0.0.0-20260526163538-3dc84a4a5aaa",
+	"Time": "2026-05-26T16:35:38Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/google.golang.org/genproto/googleapis/rpc@v0.0.0-20260526163538-3dc84a4a5aaa",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/google.golang.org/genproto/googleapis/rpc/@v/v0.0.0-20260526163538-3dc84a4a5aaa.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:mZHHdPZl0dbGHCflZgAq/Q468DWVFcU2whhB2KAo8fk=",
+	"GoModSum": "h1:4Hqkh8ycfw05ld/3BWL7rJOSfebL2Q+DVDeRgYgxUU8="
+}
+{
+	"Path": "google.golang.org/grpc",
+	"Version": "v1.83.2",
+	"Time": "2026-08-25T15:47:16Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/google.golang.org/grpc@v1.83.2",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/google.golang.org/grpc/@v/v1.83.2.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:EManeRomTObA0BU7I8vXgg/78uE5MJ9M8B39EX2WscU=",
+	"GoModSum": "h1:YPI1hK3kDked6iHvgX3tR0y+nX/qpMFKhPgFsokw1S8="
+}
+{
+	"Path": "google.golang.org/protobuf",
+	"Version": "v1.36.11",
+	"Time": "2025-12-12T08:48:31Z",
+	"Dir": "/Users/maxim/go/pkg/mod/google.golang.org/protobuf@v1.36.11",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/google.golang.org/protobuf/@v/v1.36.11.mod",
+	"GoVersion": "1.23",
+	"Sum": "h1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=",
+	"GoModSum": "h1:HTf+CrKn2C3g5S8VImy6tdcUvCska2kB7j23XfzDpco="
+}
+{
+	"Path": "gopkg.in/check.v1",
+	"Version": "v1.0.0-20201130134442-10cb98267c6c",
+	"Time": "2020-11-30T13:44:42Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/gopkg.in/check.v1@v1.0.0-20201130134442-10cb98267c6c",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/gopkg.in/check.v1/@v/v1.0.0-20201130134442-10cb98267c6c.mod",
+	"GoVersion": "1.11",
+	"Sum": "h1:Hei/4ADfdWqJk1ZMxUNpqntNwaWcugrBjAiHlqqRiVk=",
+	"GoModSum": "h1:JHkPIbrfpd72SG/EVd6muEfDQjcINNoR0C8j2r3qZ4Q="
+}
+{
+	"Path": "gopkg.in/ini.v1",
+	"Version": "v1.67.1",
+	"Time": "2026-01-10T18:46:57Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/gopkg.in/ini.v1@v1.67.1",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/gopkg.in/ini.v1/@v/v1.67.1.mod",
+	"GoVersion": "1.13",
+	"Sum": "h1:tVBILHy0R6e4wkYOn3XmiITt/hEVH4TFMYvAX2Ytz6k=",
+	"GoModSum": "h1:x/cyOwCgZqOkJoDIJ3c1KNHMo10+nLGAhh+kn3Zizss="
+}
+{
+	"Path": "gopkg.in/yaml.v2",
+	"Version": "v2.4.0",
+	"Time": "2020-11-17T15:46:20Z",
+	"Indirect": true
+}
+{
+	"Path": "gopkg.in/yaml.v3",
+	"Version": "v3.0.1",
+	"Time": "2022-05-27T08:35:30Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/gopkg.in/yaml.v3@v3.0.1",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/gopkg.in/yaml.v3/@v/v3.0.1.mod",
+	"Sum": "h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=",
+	"GoModSum": "h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM="
+}
+{
+	"Path": "k8s.io/apimachinery",
+	"Version": "v0.35.1",
+	"Time": "2025-12-04T22:24:03Z",
+	"Indirect": true,
+	"Dir": "/Users/maxim/go/pkg/mod/k8s.io/apimachinery@v0.35.1",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/k8s.io/apimachinery/@v/v0.35.1.mod",
+	"GoVersion": "1.25.0",
+	"Sum": "h1:yxO6gV555P1YV0SANtnTjXYfiivaTPvCTKX6w6qdDsU=",
+	"GoModSum": "h1:jQCgFZFR1F4Ik7hvr2g84RTJSZegBc8yHgFWKn//hns="
+}

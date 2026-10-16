@@ -1,0 +1,83 @@
+FAIL: 7897 compatibility gate errors
+- missing human review evidence: inventory_completeness
+- missing human review evidence: build_variants
+- missing human review evidence: configuration_paths
+- unreviewed external type: context.Context
+- unreviewed external type: crypto/tls.Config
+- unreviewed external type: github.com/nexus-rpc/sdk-go/nexus.CancelOperationOptions
+- unreviewed external type: github.com/nexus-rpc/sdk-go/nexus.Failure
+- unreviewed external type: github.com/nexus-rpc/sdk-go/nexus.Header
+- unreviewed external type: github.com/nexus-rpc/sdk-go/nexus.LazyValue
+- unreviewed external type: github.com/nexus-rpc/sdk-go/nexus.Link
+- unreviewed external type: github.com/nexus-rpc/sdk-go/nexus.OperationState
+- unreviewed external type: github.com/nexus-rpc/sdk-go/nexus.Reader
+- unreviewed external type: github.com/nexus-rpc/sdk-go/nexus.Serializer
+- unreviewed external type: github.com/nexus-rpc/sdk-go/nexus.StartOperationOptions
+- unreviewed external type: go.opentelemetry.io/otel/attribute.Set
+- unreviewed external type: go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc.Option
+- unreviewed external type: go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc.Option
+- unreviewed external type: go.opentelemetry.io/otel/metric.Meter
+- unreviewed external type: go.opentelemetry.io/otel/metric.MeterProvider
+- unreviewed external type: go.opentelemetry.io/otel/propagation.TextMapPropagator
+- unreviewed external type: go.opentelemetry.io/otel/trace.Tracer
+- unreviewed external type: go.temporal.io/api/activity/v1.ActivityExecutionListInfo
+- unreviewed external type: go.temporal.io/api/common/v1.Header
+- unreviewed external type: go.temporal.io/api/common/v1.Memo
+- unreviewed external type: go.temporal.io/api/common/v1.Payload
+- unreviewed external type: go.temporal.io/api/common/v1.Payloads
+- unreviewed external type: go.temporal.io/api/common/v1.Priority
+- unreviewed external type: go.temporal.io/api/common/v1.RetryPolicy
+- unreviewed external type: go.temporal.io/api/common/v1.SearchAttributes
+- unreviewed external type: go.temporal.io/api/enums/v1.ActivityExecutionStatus
+- unreviewed external type: go.temporal.io/api/enums/v1.ActivityIdConflictPolicy
+- unreviewed external type: go.temporal.io/api/enums/v1.ActivityIdReusePolicy
+- unreviewed external type: go.temporal.io/api/enums/v1.NexusOperationCancellationState
+- unreviewed external type: go.temporal.io/api/enums/v1.NexusOperationExecutionStatus
+- unreviewed external type: go.temporal.io/api/enums/v1.NexusOperationIdConflictPolicy
+- unreviewed external type: go.temporal.io/api/enums/v1.NexusOperationIdReusePolicy
+- unreviewed external type: go.temporal.io/api/enums/v1.ParentClosePolicy
+- unreviewed external type: go.temporal.io/api/enums/v1.PendingActivityState
+- unreviewed external type: go.temporal.io/api/enums/v1.PendingNexusOperationState
+- unreviewed external type: go.temporal.io/api/enums/v1.QueryRejectCondition
+- unreviewed external type: go.temporal.io/api/enums/v1.ScheduleOverlapPolicy
+- unreviewed external type: go.temporal.io/api/enums/v1.WorkflowExecutionStatus
+- unreviewed external type: go.temporal.io/api/enums/v1.WorkflowIdConflictPolicy
+- unreviewed external type: go.temporal.io/api/enums/v1.WorkflowIdReusePolicy
+- unreviewed external type: go.temporal.io/api/failure/v1.Failure
+- unreviewed external type: go.temporal.io/api/history/v1.History
+- unreviewed external type: go.temporal.io/api/nexus/v1.NexusOperationExecutionCancellationInfo
+- unreviewed external type: go.temporal.io/api/nexus/v1.NexusOperationExecutionInfo
+- unreviewed external type: go.temporal.io/api/nexus/v1.NexusOperationExecutionListInfo
+- unreviewed external type: go.temporal.io/api/query/v1.QueryRejected
+- unreviewed external type: go/token.Position
+- unreviewed external type: google.golang.org/adk/v2/session.Event
+- unreviewed external type: google.golang.org/adk/v2/tool.Predicate
+- unreviewed external type: google.golang.org/genai.FunctionCall
+- unreviewed external type: google.golang.org/grpc.DialOption
+- unreviewed external type: google.golang.org/protobuf/types/known/timestamppb.Timestamp
+- unreviewed external type: internal/isolatebridge.ResourceStats
+- unreviewed external type: iter.Seq2
+- unreviewed external type: net/http.Client
+- unreviewed external type: net/http.Request
+- unreviewed external type: regexp.Regexp
+- unreviewed external type: sync/atomic.Int64
+- unreviewed external type: time.Duration
+- unreviewed external type: time.Time
+- run native-all: empty, failed, or skipped test results
+- run plugin-start: recorded regression run did not pass
+- run plugin-start: empty, failed, or skipped test results
+- run plugin-replay: recorded regression run did not pass
+- run plugin-replay: empty, failed, or skipped test results
+- run plugin-policy: recorded regression run did not pass
+- run plugin-policy: empty, failed, or skipped test results
+- go.temporal.io/sdk/activity.DynamicRegisterOptions@go.temporal.io/sdk/activity/activity/activity.go: unresolved status unverified
+- go.temporal.io/sdk/activity.ErrActivityPaused@go.temporal.io/sdk/activity/activity/activity.go: unresolved status unverified
+- go.temporal.io/sdk/activity.ErrActivityReset@go.temporal.io/sdk/activity/activity/activity.go: unresolved status unverified
+- go.temporal.io/sdk/activity.ErrResultPending@go.temporal.io/sdk/activity/activity/activity.go: unresolved status unverified
+- go.temporal.io/sdk/activity.GetClient@go.temporal.io/sdk/activity/activity/activity.go: unresolved status unverified
+- go.temporal.io/sdk/activity.GetHeartbeatDetails@go.temporal.io/sdk/activity/activity/activity.go: unresolved status unverified
+- go.temporal.io/sdk/activity.GetInfo@go.temporal.io/sdk/activity/activity/activity.go: unresolved status unverified
+- go.temporal.io/sdk/activity.GetLogger@go.temporal.io/sdk/activity/activity/activity.go: unresolved status unverified
+- go.temporal.io/sdk/activity.GetMetricsHandler@go.temporal.io/sdk/activity/activity/activity.go: unresolved status unverified
+- ... 7817 more
+Matrix: needs_decision=12, pending=817, unsupported=12, unverified=6985

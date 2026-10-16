@@ -1,0 +1,365 @@
+{"Time":"2026-10-16T16:50:43.586571554Z","Action":"start","Package":"go.temporal.io/sdk/.github/scripts/cloud-namespace"}
+{"Time":"2026-10-16T16:50:43.586683595Z","Action":"output","Package":"go.temporal.io/sdk/.github/scripts/cloud-namespace","Output":"?   \tgo.temporal.io/sdk/.github/scripts/cloud-namespace\t[no test files]\n"}
+{"Time":"2026-10-16T16:50:43.586694012Z","Action":"skip","Package":"go.temporal.io/sdk/.github/scripts/cloud-namespace","Elapsed":0}
+{"Time":"2026-10-16T16:51:01.115657547Z","Action":"start","Package":"go.temporal.io/sdk/contrib/aws/lambdaworker"}
+{"Time":"2026-10-16T16:51:01.13415313Z","Action":"output","Package":"go.temporal.io/sdk/contrib/aws/lambdaworker","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:51:01.134226713Z","Action":"output","Package":"go.temporal.io/sdk/contrib/aws/lambdaworker","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:02.148318547Z","Action":"output","Package":"go.temporal.io/sdk/contrib/aws/lambdaworker","Output":"ok  \tgo.temporal.io/sdk/contrib/aws/lambdaworker\t1.032s [no tests to run]\n"}
+{"Time":"2026-10-16T16:51:02.14851013Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/aws/lambdaworker","Elapsed":1.033}
+{"Time":"2026-10-16T16:51:20.757163973Z","Action":"start","Package":"go.temporal.io/sdk/contrib/aws/lambdaworker/otel"}
+{"Time":"2026-10-16T16:51:20.774643348Z","Action":"output","Package":"go.temporal.io/sdk/contrib/aws/lambdaworker/otel","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:51:20.774694181Z","Action":"output","Package":"go.temporal.io/sdk/contrib/aws/lambdaworker/otel","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:21.777068792Z","Action":"output","Package":"go.temporal.io/sdk/contrib/aws/lambdaworker/otel","Output":"ok  \tgo.temporal.io/sdk/contrib/aws/lambdaworker/otel\t1.021s [no tests to run]\n"}
+{"Time":"2026-10-16T16:51:21.77727Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/aws/lambdaworker/otel","Elapsed":1.021}
+{"Time":"2026-10-16T16:51:22.47643Z","Action":"start","Package":"go.temporal.io/sdk/contrib/aws/s3driver"}
+{"Time":"2026-10-16T16:51:22.49431175Z","Action":"output","Package":"go.temporal.io/sdk/contrib/aws/s3driver","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:51:22.4943755Z","Action":"output","Package":"go.temporal.io/sdk/contrib/aws/s3driver","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:23.500624417Z","Action":"output","Package":"go.temporal.io/sdk/contrib/aws/s3driver","Output":"ok  \tgo.temporal.io/sdk/contrib/aws/s3driver\t1.024s [no tests to run]\n"}
+{"Time":"2026-10-16T16:51:23.500688334Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/aws/s3driver","Elapsed":1.024}
+{"Time":"2026-10-16T16:51:34.209949756Z","Action":"start","Package":"go.temporal.io/sdk/contrib/aws/s3driver/awssdkv2"}
+{"Time":"2026-10-16T16:51:34.227357214Z","Action":"output","Package":"go.temporal.io/sdk/contrib/aws/s3driver/awssdkv2","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:51:34.227412881Z","Action":"output","Package":"go.temporal.io/sdk/contrib/aws/s3driver/awssdkv2","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:35.23271634Z","Action":"output","Package":"go.temporal.io/sdk/contrib/aws/s3driver/awssdkv2","Output":"ok  \tgo.temporal.io/sdk/contrib/aws/s3driver/awssdkv2\t1.023s [no tests to run]\n"}
+{"Time":"2026-10-16T16:51:35.232763298Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/aws/s3driver/awssdkv2","Elapsed":1.023}
+{"Time":"2026-10-16T16:52:10.044103549Z","Action":"start","Package":"go.temporal.io/sdk/contrib/datadog/tracing"}
+{"Time":"2026-10-16T16:52:10.074412216Z","Action":"output","Package":"go.temporal.io/sdk/contrib/datadog/tracing","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:10.074470008Z","Action":"output","Package":"go.temporal.io/sdk/contrib/datadog/tracing","Output":"PASS\n"}
+{"Time":"2026-10-16T16:52:11.078820883Z","Action":"output","Package":"go.temporal.io/sdk/contrib/datadog/tracing","Output":"ok  \tgo.temporal.io/sdk/contrib/datadog/tracing\t1.034s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:11.078853675Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/datadog/tracing","Elapsed":1.035}
+{"Time":"2026-10-16T16:52:47.811852803Z","Action":"start","Package":"go.temporal.io/sdk/contrib/googleadk"}
+{"Time":"2026-10-16T16:52:47.838739719Z","Action":"run","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestNewPluginRejectsInvalidConfig"}
+{"Time":"2026-10-16T16:52:47.838792094Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestNewPluginRejectsInvalidConfig","Output":"=== RUN   TestNewPluginRejectsInvalidConfig\n"}
+{"Time":"2026-10-16T16:52:47.838906053Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestNewPluginRejectsInvalidConfig","Output":"--- PASS: TestNewPluginRejectsInvalidConfig (0.00s)\n"}
+{"Time":"2026-10-16T16:52:47.838935886Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestNewPluginRejectsInvalidConfig","Elapsed":0}
+{"Time":"2026-10-16T16:52:47.838939053Z","Action":"run","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginRegistersActivitiesOnWorkerStart"}
+{"Time":"2026-10-16T16:52:47.838940678Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginRegistersActivitiesOnWorkerStart","Output":"=== RUN   TestPluginRegistersActivitiesOnWorkerStart\n"}
+{"Time":"2026-10-16T16:52:47.839056219Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginRegistersActivitiesOnWorkerStart","Output":"--- PASS: TestPluginRegistersActivitiesOnWorkerStart (0.00s)\n"}
+{"Time":"2026-10-16T16:52:47.839094761Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginRegistersActivitiesOnWorkerStart","Elapsed":0}
+{"Time":"2026-10-16T16:52:47.839103094Z","Action":"run","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginClosesMCPToolsetsOnWorkerStop"}
+{"Time":"2026-10-16T16:52:47.839105011Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginClosesMCPToolsetsOnWorkerStop","Output":"=== RUN   TestPluginClosesMCPToolsetsOnWorkerStop\n"}
+{"Time":"2026-10-16T16:52:47.917059553Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginClosesMCPToolsetsOnWorkerStop","Output":"2026/10/16 16:52:47 DEBUG listed MCP tools ActivityID 1 ActivityType googleadk.ListMcpTools Attempt 1 WorkflowType agentRunWorkflow WorkflowID default-test-workflow-id RunID default-test-run-id toolset search-server count 1\n"}
+{"Time":"2026-10-16T16:52:47.917387136Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginClosesMCPToolsetsOnWorkerStop","Output":"2026/10/16 16:52:47 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 1 ActivityType googleadk.ListMcpTools\n"}
+{"Time":"2026-10-16T16:52:47.917841761Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginClosesMCPToolsetsOnWorkerStop","Output":"2026/10/16 16:52:47 DEBUG listed MCP tools ActivityID 2 ActivityType googleadk.ListMcpTools Attempt 1 WorkflowType agentRunWorkflow WorkflowID default-test-workflow-id RunID default-test-run-id toolset search-server count 1\n"}
+{"Time":"2026-10-16T16:52:47.917930803Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginClosesMCPToolsetsOnWorkerStop","Output":"2026/10/16 16:52:47 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 2 ActivityType googleadk.ListMcpTools\n"}
+{"Time":"2026-10-16T16:52:47.920703678Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginClosesMCPToolsetsOnWorkerStop","Output":"2026/10/16 16:52:47 DEBUG invoking model ActivityID 3 ActivityType googleadk.InvokeModel Attempt 1 WorkflowType agentRunWorkflow WorkflowID default-test-workflow-id RunID default-test-run-id model fake-model\n"}
+{"Time":"2026-10-16T16:52:47.921606719Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginClosesMCPToolsetsOnWorkerStop","Output":"2026/10/16 16:52:47 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 3 ActivityType googleadk.InvokeModel\n"}
+{"Time":"2026-10-16T16:52:47.922130136Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginClosesMCPToolsetsOnWorkerStop","Output":"2026/10/16 16:52:47 DEBUG running MCP tool ActivityID 4 ActivityType googleadk.CallMcpTool Attempt 1 WorkflowType agentRunWorkflow WorkflowID default-test-workflow-id RunID default-test-run-id toolset search-server tool search\n"}
+{"Time":"2026-10-16T16:52:47.922220344Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginClosesMCPToolsetsOnWorkerStop","Output":"2026/10/16 16:52:47 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 4 ActivityType googleadk.CallMcpTool\n"}
+{"Time":"2026-10-16T16:52:47.922643594Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginClosesMCPToolsetsOnWorkerStop","Output":"2026/10/16 16:52:47 DEBUG listed MCP tools ActivityID 5 ActivityType googleadk.ListMcpTools Attempt 1 WorkflowType agentRunWorkflow WorkflowID default-test-workflow-id RunID default-test-run-id toolset search-server count 1\n"}
+{"Time":"2026-10-16T16:52:47.922695511Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginClosesMCPToolsetsOnWorkerStop","Output":"2026/10/16 16:52:47 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 5 ActivityType googleadk.ListMcpTools\n"}
+{"Time":"2026-10-16T16:52:47.923234886Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginClosesMCPToolsetsOnWorkerStop","Output":"2026/10/16 16:52:47 DEBUG invoking model ActivityID 6 ActivityType googleadk.InvokeModel Attempt 1 WorkflowType agentRunWorkflow WorkflowID default-test-workflow-id RunID default-test-run-id model fake-model\n"}
+{"Time":"2026-10-16T16:52:47.923272511Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginClosesMCPToolsetsOnWorkerStop","Output":"2026/10/16 16:52:47 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 6 ActivityType googleadk.InvokeModel\n"}
+{"Time":"2026-10-16T16:52:47.923584219Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginClosesMCPToolsetsOnWorkerStop","Output":"--- PASS: TestPluginClosesMCPToolsetsOnWorkerStop (0.08s)\n"}
+{"Time":"2026-10-16T16:52:47.923658511Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginClosesMCPToolsetsOnWorkerStop","Elapsed":0.08}
+{"Time":"2026-10-16T16:52:47.923667594Z","Action":"run","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginReplayDoesNotCloseToolsets"}
+{"Time":"2026-10-16T16:52:47.923669511Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginReplayDoesNotCloseToolsets","Output":"=== RUN   TestPluginReplayDoesNotCloseToolsets\n"}
+{"Time":"2026-10-16T16:52:47.924340636Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginReplayDoesNotCloseToolsets","Output":"2026/10/16 16:52:47 DEBUG listed MCP tools ActivityID 1 ActivityType googleadk.ListMcpTools Attempt 1 WorkflowType agentRunWorkflow WorkflowID default-test-workflow-id RunID default-test-run-id toolset search-server count 1\n"}
+{"Time":"2026-10-16T16:52:47.924391219Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginReplayDoesNotCloseToolsets","Output":"2026/10/16 16:52:47 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 1 ActivityType googleadk.ListMcpTools\n"}
+{"Time":"2026-10-16T16:52:47.924722344Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginReplayDoesNotCloseToolsets","Output":"2026/10/16 16:52:47 DEBUG listed MCP tools ActivityID 2 ActivityType googleadk.ListMcpTools Attempt 1 WorkflowType agentRunWorkflow WorkflowID default-test-workflow-id RunID default-test-run-id toolset search-server count 1\n"}
+{"Time":"2026-10-16T16:52:47.924764344Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginReplayDoesNotCloseToolsets","Output":"2026/10/16 16:52:47 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 2 ActivityType googleadk.ListMcpTools\n"}
+{"Time":"2026-10-16T16:52:47.925233469Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginReplayDoesNotCloseToolsets","Output":"2026/10/16 16:52:47 DEBUG invoking model ActivityID 3 ActivityType googleadk.InvokeModel Attempt 1 WorkflowType agentRunWorkflow WorkflowID default-test-workflow-id RunID default-test-run-id model fake-model\n"}
+{"Time":"2026-10-16T16:52:47.925285428Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginReplayDoesNotCloseToolsets","Output":"2026/10/16 16:52:47 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 3 ActivityType googleadk.InvokeModel\n"}
+{"Time":"2026-10-16T16:52:47.925818761Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginReplayDoesNotCloseToolsets","Output":"2026/10/16 16:52:47 DEBUG running MCP tool ActivityID 4 ActivityType googleadk.CallMcpTool Attempt 1 WorkflowType agentRunWorkflow WorkflowID default-test-workflow-id RunID default-test-run-id toolset search-server tool search\n"}
+{"Time":"2026-10-16T16:52:47.926182261Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginReplayDoesNotCloseToolsets","Output":"2026/10/16 16:52:47 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 4 ActivityType googleadk.CallMcpTool\n"}
+{"Time":"2026-10-16T16:52:47.926622553Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginReplayDoesNotCloseToolsets","Output":"2026/10/16 16:52:47 DEBUG listed MCP tools ActivityID 5 ActivityType googleadk.ListMcpTools Attempt 1 WorkflowType agentRunWorkflow WorkflowID default-test-workflow-id RunID default-test-run-id toolset search-server count 1\n"}
+{"Time":"2026-10-16T16:52:47.926671761Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginReplayDoesNotCloseToolsets","Output":"2026/10/16 16:52:47 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 5 ActivityType googleadk.ListMcpTools\n"}
+{"Time":"2026-10-16T16:52:47.927213428Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginReplayDoesNotCloseToolsets","Output":"2026/10/16 16:52:47 DEBUG invoking model ActivityID 6 ActivityType googleadk.InvokeModel Attempt 1 WorkflowType agentRunWorkflow WorkflowID default-test-workflow-id RunID default-test-run-id model fake-model\n"}
+{"Time":"2026-10-16T16:52:47.927251303Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginReplayDoesNotCloseToolsets","Output":"2026/10/16 16:52:47 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 6 ActivityType googleadk.InvokeModel\n"}
+{"Time":"2026-10-16T16:52:47.927485636Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginReplayDoesNotCloseToolsets","Output":"--- PASS: TestPluginReplayDoesNotCloseToolsets (0.00s)\n"}
+{"Time":"2026-10-16T16:52:47.928188803Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/googleadk","Test":"TestPluginReplayDoesNotCloseToolsets","Elapsed":0}
+{"Time":"2026-10-16T16:52:47.928196428Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Output":"PASS\n"}
+{"Time":"2026-10-16T16:52:48.935486011Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk","Output":"ok  \tgo.temporal.io/sdk/contrib/googleadk\t1.123s\n"}
+{"Time":"2026-10-16T16:52:48.935516595Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/googleadk","Elapsed":1.124}
+{"Time":"2026-10-16T16:52:50.975877804Z","Action":"start","Package":"go.temporal.io/sdk/contrib/googleadk/internal/pluginwarn"}
+{"Time":"2026-10-16T16:52:51.001745054Z","Action":"run","Package":"go.temporal.io/sdk/contrib/googleadk/internal/pluginwarn","Test":"TestPluginWarnsOnRawGlobalProvider"}
+{"Time":"2026-10-16T16:52:51.001802262Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk/internal/pluginwarn","Test":"TestPluginWarnsOnRawGlobalProvider","Output":"=== RUN   TestPluginWarnsOnRawGlobalProvider\n"}
+{"Time":"2026-10-16T16:52:51.001976137Z","Action":"run","Package":"go.temporal.io/sdk/contrib/googleadk/internal/pluginwarn","Test":"TestPluginWarnsOnRawGlobalProvider/AtWorkerStart"}
+{"Time":"2026-10-16T16:52:51.001988054Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk/internal/pluginwarn","Test":"TestPluginWarnsOnRawGlobalProvider/AtWorkerStart","Output":"=== RUN   TestPluginWarnsOnRawGlobalProvider/AtWorkerStart\n"}
+{"Time":"2026-10-16T16:52:51.002234679Z","Action":"run","Package":"go.temporal.io/sdk/contrib/googleadk/internal/pluginwarn","Test":"TestPluginWarnsOnRawGlobalProvider/AtReplayerCreation"}
+{"Time":"2026-10-16T16:52:51.002249304Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk/internal/pluginwarn","Test":"TestPluginWarnsOnRawGlobalProvider/AtReplayerCreation","Output":"=== RUN   TestPluginWarnsOnRawGlobalProvider/AtReplayerCreation\n"}
+{"Time":"2026-10-16T16:52:51.002445762Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk/internal/pluginwarn","Test":"TestPluginWarnsOnRawGlobalProvider","Output":"--- PASS: TestPluginWarnsOnRawGlobalProvider (0.00s)\n"}
+{"Time":"2026-10-16T16:52:51.002454221Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk/internal/pluginwarn","Test":"TestPluginWarnsOnRawGlobalProvider/AtWorkerStart","Output":"    --- PASS: TestPluginWarnsOnRawGlobalProvider/AtWorkerStart (0.00s)\n"}
+{"Time":"2026-10-16T16:52:51.002456679Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/googleadk/internal/pluginwarn","Test":"TestPluginWarnsOnRawGlobalProvider/AtWorkerStart","Elapsed":0}
+{"Time":"2026-10-16T16:52:51.002460137Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk/internal/pluginwarn","Test":"TestPluginWarnsOnRawGlobalProvider/AtReplayerCreation","Output":"    --- PASS: TestPluginWarnsOnRawGlobalProvider/AtReplayerCreation (0.00s)\n"}
+{"Time":"2026-10-16T16:52:51.002462179Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/googleadk/internal/pluginwarn","Test":"TestPluginWarnsOnRawGlobalProvider/AtReplayerCreation","Elapsed":0}
+{"Time":"2026-10-16T16:52:51.002463721Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/googleadk/internal/pluginwarn","Test":"TestPluginWarnsOnRawGlobalProvider","Elapsed":0}
+{"Time":"2026-10-16T16:52:51.002464971Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk/internal/pluginwarn","Output":"PASS\n"}
+{"Time":"2026-10-16T16:52:52.005305263Z","Action":"output","Package":"go.temporal.io/sdk/contrib/googleadk/internal/pluginwarn","Output":"ok  \tgo.temporal.io/sdk/contrib/googleadk/internal/pluginwarn\t1.029s\n"}
+{"Time":"2026-10-16T16:52:52.005337513Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/googleadk/internal/pluginwarn","Elapsed":1.029}
+{"Time":"2026-10-16T16:52:53.02335768Z","Action":"start","Package":"go.temporal.io/sdk/contrib/opentracing"}
+{"Time":"2026-10-16T16:52:53.040578847Z","Action":"output","Package":"go.temporal.io/sdk/contrib/opentracing","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:53.040655513Z","Action":"output","Package":"go.temporal.io/sdk/contrib/opentracing","Output":"PASS\n"}
+{"Time":"2026-10-16T16:52:54.056503014Z","Action":"output","Package":"go.temporal.io/sdk/contrib/opentracing","Output":"ok  \tgo.temporal.io/sdk/contrib/opentracing\t1.032s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:54.056728639Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/opentracing","Elapsed":1.033}
+{"Time":"2026-10-16T16:53:02.661812545Z","Action":"start","Package":"go.temporal.io/sdk/contrib/sysinfo"}
+{"Time":"2026-10-16T16:53:02.680521086Z","Action":"output","Package":"go.temporal.io/sdk/contrib/sysinfo","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:53:02.680583461Z","Action":"output","Package":"go.temporal.io/sdk/contrib/sysinfo","Output":"PASS\n"}
+{"Time":"2026-10-16T16:53:03.687984253Z","Action":"output","Package":"go.temporal.io/sdk/contrib/sysinfo","Output":"ok  \tgo.temporal.io/sdk/contrib/sysinfo\t1.026s [no tests to run]\n"}
+{"Time":"2026-10-16T16:53:03.688060378Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/sysinfo","Elapsed":1.026}
+{"Time":"2026-10-16T16:53:04.861809921Z","Action":"start","Package":"go.temporal.io/sdk/contrib/workflowstreams"}
+{"Time":"2026-10-16T16:53:04.879991129Z","Action":"output","Package":"go.temporal.io/sdk/contrib/workflowstreams","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:53:04.880055337Z","Action":"output","Package":"go.temporal.io/sdk/contrib/workflowstreams","Output":"PASS\n"}
+{"Time":"2026-10-16T16:53:05.881774254Z","Action":"output","Package":"go.temporal.io/sdk/contrib/workflowstreams","Output":"ok  \tgo.temporal.io/sdk/contrib/workflowstreams\t1.020s [no tests to run]\n"}
+{"Time":"2026-10-16T16:53:05.881818629Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/workflowstreams","Elapsed":1.02}
+{"Time":"2026-10-16T16:51:00.836297255Z","Action":"start","Package":"go.temporal.io/sdk/activity"}
+{"Time":"2026-10-16T16:51:00.836375463Z","Action":"output","Package":"go.temporal.io/sdk/activity","Output":"?   \tgo.temporal.io/sdk/activity\t[no test files]\n"}
+{"Time":"2026-10-16T16:51:00.836384672Z","Action":"skip","Package":"go.temporal.io/sdk/activity","Elapsed":0}
+{"Time":"2026-10-16T16:51:00.882077463Z","Action":"start","Package":"go.temporal.io/sdk/client"}
+{"Time":"2026-10-16T16:51:00.88210063Z","Action":"output","Package":"go.temporal.io/sdk/client","Output":"?   \tgo.temporal.io/sdk/client\t[no test files]\n"}
+{"Time":"2026-10-16T16:51:00.882106963Z","Action":"skip","Package":"go.temporal.io/sdk/client","Elapsed":0}
+{"Time":"2026-10-16T16:51:01.878092589Z","Action":"start","Package":"go.temporal.io/sdk/converter"}
+{"Time":"2026-10-16T16:51:01.89521638Z","Action":"output","Package":"go.temporal.io/sdk/converter","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:51:01.895266422Z","Action":"output","Package":"go.temporal.io/sdk/converter","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:02.897071756Z","Action":"output","Package":"go.temporal.io/sdk/converter","Output":"ok  \tgo.temporal.io/sdk/converter\t1.019s [no tests to run]\n"}
+{"Time":"2026-10-16T16:51:02.897101881Z","Action":"pass","Package":"go.temporal.io/sdk/converter","Elapsed":1.019}
+{"Time":"2026-10-16T16:51:05.168979007Z","Action":"start","Package":"go.temporal.io/sdk/interceptor"}
+{"Time":"2026-10-16T16:51:05.186521049Z","Action":"output","Package":"go.temporal.io/sdk/interceptor","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:51:05.18659334Z","Action":"output","Package":"go.temporal.io/sdk/interceptor","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:06.191733716Z","Action":"output","Package":"go.temporal.io/sdk/interceptor","Output":"ok  \tgo.temporal.io/sdk/interceptor\t1.023s [no tests to run]\n"}
+{"Time":"2026-10-16T16:51:06.191767466Z","Action":"pass","Package":"go.temporal.io/sdk/interceptor","Elapsed":1.023}
+{"Time":"2026-10-16T16:51:06.911149633Z","Action":"start","Package":"go.temporal.io/sdk/interceptor/tracing"}
+{"Time":"2026-10-16T16:51:06.927069841Z","Action":"output","Package":"go.temporal.io/sdk/interceptor/tracing","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:51:06.927134508Z","Action":"output","Package":"go.temporal.io/sdk/interceptor/tracing","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:07.929185967Z","Action":"output","Package":"go.temporal.io/sdk/interceptor/tracing","Output":"ok  \tgo.temporal.io/sdk/interceptor/tracing\t1.018s [no tests to run]\n"}
+{"Time":"2026-10-16T16:51:07.929217883Z","Action":"pass","Package":"go.temporal.io/sdk/interceptor/tracing","Elapsed":1.018}
+{"Time":"2026-10-16T16:51:16.870836763Z","Action":"start","Package":"go.temporal.io/sdk/internal"}
+{"Time":"2026-10-16T16:51:16.897184638Z","Action":"run","Package":"go.temporal.io/sdk/internal","Test":"TestPayloadLimitOptionsToLimits"}
+{"Time":"2026-10-16T16:51:16.897236388Z","Action":"output","Package":"go.temporal.io/sdk/internal","Test":"TestPayloadLimitOptionsToLimits","Output":"=== RUN   TestPayloadLimitOptionsToLimits\n"}
+{"Time":"2026-10-16T16:51:16.897243429Z","Action":"run","Package":"go.temporal.io/sdk/internal","Test":"TestPayloadLimitOptionsToLimits/default_value_when_zero"}
+{"Time":"2026-10-16T16:51:16.897245054Z","Action":"output","Package":"go.temporal.io/sdk/internal","Test":"TestPayloadLimitOptionsToLimits/default_value_when_zero","Output":"=== RUN   TestPayloadLimitOptionsToLimits/default_value_when_zero\n"}
+{"Time":"2026-10-16T16:51:16.897473013Z","Action":"run","Package":"go.temporal.io/sdk/internal","Test":"TestPayloadLimitOptionsToLimits/custom_value"}
+{"Time":"2026-10-16T16:51:16.897483971Z","Action":"output","Package":"go.temporal.io/sdk/internal","Test":"TestPayloadLimitOptionsToLimits/custom_value","Output":"=== RUN   TestPayloadLimitOptionsToLimits/custom_value\n"}
+{"Time":"2026-10-16T16:51:16.897546721Z","Action":"run","Package":"go.temporal.io/sdk/internal","Test":"TestPayloadLimitOptionsToLimits/negative_value_returns_error"}
+{"Time":"2026-10-16T16:51:16.897558513Z","Action":"output","Package":"go.temporal.io/sdk/internal","Test":"TestPayloadLimitOptionsToLimits/negative_value_returns_error","Output":"=== RUN   TestPayloadLimitOptionsToLimits/negative_value_returns_error\n"}
+{"Time":"2026-10-16T16:51:16.897621721Z","Action":"run","Package":"go.temporal.io/sdk/internal","Test":"TestPayloadLimitOptionsToLimits/negative_memo_value_returns_error"}
+{"Time":"2026-10-16T16:51:16.897628346Z","Action":"output","Package":"go.temporal.io/sdk/internal","Test":"TestPayloadLimitOptionsToLimits/negative_memo_value_returns_error","Output":"=== RUN   TestPayloadLimitOptionsToLimits/negative_memo_value_returns_error\n"}
+{"Time":"2026-10-16T16:51:16.897696304Z","Action":"output","Package":"go.temporal.io/sdk/internal","Test":"TestPayloadLimitOptionsToLimits","Output":"--- PASS: TestPayloadLimitOptionsToLimits (0.00s)\n"}
+{"Time":"2026-10-16T16:51:16.897709971Z","Action":"output","Package":"go.temporal.io/sdk/internal","Test":"TestPayloadLimitOptionsToLimits/default_value_when_zero","Output":"    --- PASS: TestPayloadLimitOptionsToLimits/default_value_when_zero (0.00s)\n"}
+{"Time":"2026-10-16T16:51:16.897712513Z","Action":"pass","Package":"go.temporal.io/sdk/internal","Test":"TestPayloadLimitOptionsToLimits/default_value_when_zero","Elapsed":0}
+{"Time":"2026-10-16T16:51:16.897715221Z","Action":"output","Package":"go.temporal.io/sdk/internal","Test":"TestPayloadLimitOptionsToLimits/custom_value","Output":"    --- PASS: TestPayloadLimitOptionsToLimits/custom_value (0.00s)\n"}
+{"Time":"2026-10-16T16:51:16.897717679Z","Action":"pass","Package":"go.temporal.io/sdk/internal","Test":"TestPayloadLimitOptionsToLimits/custom_value","Elapsed":0}
+{"Time":"2026-10-16T16:51:16.897718721Z","Action":"output","Package":"go.temporal.io/sdk/internal","Test":"TestPayloadLimitOptionsToLimits/negative_value_returns_error","Output":"    --- PASS: TestPayloadLimitOptionsToLimits/negative_value_returns_error (0.00s)\n"}
+{"Time":"2026-10-16T16:51:16.897720013Z","Action":"pass","Package":"go.temporal.io/sdk/internal","Test":"TestPayloadLimitOptionsToLimits/negative_value_returns_error","Elapsed":0}
+{"Time":"2026-10-16T16:51:16.897721554Z","Action":"output","Package":"go.temporal.io/sdk/internal","Test":"TestPayloadLimitOptionsToLimits/negative_memo_value_returns_error","Output":"    --- PASS: TestPayloadLimitOptionsToLimits/negative_memo_value_returns_error (0.00s)\n"}
+{"Time":"2026-10-16T16:51:16.898461888Z","Action":"pass","Package":"go.temporal.io/sdk/internal","Test":"TestPayloadLimitOptionsToLimits/negative_memo_value_returns_error","Elapsed":0}
+{"Time":"2026-10-16T16:51:16.898469846Z","Action":"pass","Package":"go.temporal.io/sdk/internal","Test":"TestPayloadLimitOptionsToLimits","Elapsed":0}
+{"Time":"2026-10-16T16:51:16.898471429Z","Action":"run","Package":"go.temporal.io/sdk/internal","Test":"TestGetChildWorkflowOptions"}
+{"Time":"2026-10-16T16:51:16.898473929Z","Action":"output","Package":"go.temporal.io/sdk/internal","Test":"TestGetChildWorkflowOptions","Output":"=== RUN   TestGetChildWorkflowOptions\n"}
+{"Time":"2026-10-16T16:51:16.898908096Z","Action":"output","Package":"go.temporal.io/sdk/internal","Test":"TestGetChildWorkflowOptions","Output":"--- PASS: TestGetChildWorkflowOptions (0.00s)\n"}
+{"Time":"2026-10-16T16:51:16.898915471Z","Action":"pass","Package":"go.temporal.io/sdk/internal","Test":"TestGetChildWorkflowOptions","Elapsed":0}
+{"Time":"2026-10-16T16:51:16.898917138Z","Action":"run","Package":"go.temporal.io/sdk/internal","Test":"TestGetActivityOptions"}
+{"Time":"2026-10-16T16:51:16.898918429Z","Action":"output","Package":"go.temporal.io/sdk/internal","Test":"TestGetActivityOptions","Output":"=== RUN   TestGetActivityOptions\n"}
+{"Time":"2026-10-16T16:51:16.899049013Z","Action":"output","Package":"go.temporal.io/sdk/internal","Test":"TestGetActivityOptions","Output":"--- PASS: TestGetActivityOptions (0.00s)\n"}
+{"Time":"2026-10-16T16:51:16.899061429Z","Action":"pass","Package":"go.temporal.io/sdk/internal","Test":"TestGetActivityOptions","Elapsed":0}
+{"Time":"2026-10-16T16:51:16.899062929Z","Action":"run","Package":"go.temporal.io/sdk/internal","Test":"TestGetLocalActivityOptions"}
+{"Time":"2026-10-16T16:51:16.899064096Z","Action":"output","Package":"go.temporal.io/sdk/internal","Test":"TestGetLocalActivityOptions","Output":"=== RUN   TestGetLocalActivityOptions\n"}
+{"Time":"2026-10-16T16:51:16.899162679Z","Action":"output","Package":"go.temporal.io/sdk/internal","Test":"TestGetLocalActivityOptions","Output":"--- PASS: TestGetLocalActivityOptions (0.00s)\n"}
+{"Time":"2026-10-16T16:51:16.899821888Z","Action":"pass","Package":"go.temporal.io/sdk/internal","Test":"TestGetLocalActivityOptions","Elapsed":0}
+{"Time":"2026-10-16T16:51:16.899828638Z","Action":"output","Package":"go.temporal.io/sdk/internal","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:17.906060888Z","Action":"output","Package":"go.temporal.io/sdk/internal","Output":"ok  \tgo.temporal.io/sdk/internal\t1.035s\n"}
+{"Time":"2026-10-16T16:51:17.906104513Z","Action":"pass","Package":"go.temporal.io/sdk/internal","Elapsed":1.035}
+{"Time":"2026-10-16T16:51:17.98646393Z","Action":"start","Package":"go.temporal.io/sdk/internal/cmd/dummy"}
+{"Time":"2026-10-16T16:51:17.986490555Z","Action":"output","Package":"go.temporal.io/sdk/internal/cmd/dummy","Output":"?   \tgo.temporal.io/sdk/internal/cmd/dummy\t[no test files]\n"}
+{"Time":"2026-10-16T16:51:17.986496305Z","Action":"skip","Package":"go.temporal.io/sdk/internal/cmd/dummy","Elapsed":0}
+{"Time":"2026-10-16T16:51:18.224160763Z","Action":"start","Package":"go.temporal.io/sdk/internal/cmd/prepare-release"}
+{"Time":"2026-10-16T16:51:18.231435305Z","Action":"output","Package":"go.temporal.io/sdk/internal/cmd/prepare-release","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:51:18.23148068Z","Action":"output","Package":"go.temporal.io/sdk/internal/cmd/prepare-release","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:19.23247168Z","Action":"output","Package":"go.temporal.io/sdk/internal/cmd/prepare-release","Output":"ok  \tgo.temporal.io/sdk/internal/cmd/prepare-release\t1.008s [no tests to run]\n"}
+{"Time":"2026-10-16T16:51:19.232512222Z","Action":"pass","Package":"go.temporal.io/sdk/internal/cmd/prepare-release","Elapsed":1.008}
+{"Time":"2026-10-16T16:51:20.609287139Z","Action":"start","Package":"go.temporal.io/sdk/internal/cmd/tools/doclink"}
+{"Time":"2026-10-16T16:51:20.615707098Z","Action":"output","Package":"go.temporal.io/sdk/internal/cmd/tools/doclink","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:51:20.615770139Z","Action":"output","Package":"go.temporal.io/sdk/internal/cmd/tools/doclink","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:21.623746875Z","Action":"output","Package":"go.temporal.io/sdk/internal/cmd/tools/doclink","Output":"ok  \tgo.temporal.io/sdk/internal/cmd/tools/doclink\t1.016s [no tests to run]\n"}
+{"Time":"2026-10-16T16:51:21.623910458Z","Action":"pass","Package":"go.temporal.io/sdk/internal/cmd/tools/doclink","Elapsed":1.016}
+{"Time":"2026-10-16T16:51:22.046747917Z","Action":"start","Package":"go.temporal.io/sdk/internal/common/backoff"}
+{"Time":"2026-10-16T16:51:22.057925083Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/backoff","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:51:22.05797775Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/backoff","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:23.073201584Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/backoff","Output":"ok  \tgo.temporal.io/sdk/internal/common/backoff\t1.026s [no tests to run]\n"}
+{"Time":"2026-10-16T16:51:23.073270251Z","Action":"pass","Package":"go.temporal.io/sdk/internal/common/backoff","Elapsed":1.027}
+{"Time":"2026-10-16T16:51:23.290333792Z","Action":"start","Package":"go.temporal.io/sdk/internal/common/cache"}
+{"Time":"2026-10-16T16:51:23.297475834Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/cache","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:51:23.297544126Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/cache","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:24.300641168Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/cache","Output":"ok  \tgo.temporal.io/sdk/internal/common/cache\t1.010s [no tests to run]\n"}
+{"Time":"2026-10-16T16:51:24.300675543Z","Action":"pass","Package":"go.temporal.io/sdk/internal/common/cache","Elapsed":1.01}
+{"Time":"2026-10-16T16:51:24.66114946Z","Action":"start","Package":"go.temporal.io/sdk/internal/common/metrics"}
+{"Time":"2026-10-16T16:51:24.674031585Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/metrics","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:51:24.674096835Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/metrics","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:25.675379252Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/metrics","Output":"ok  \tgo.temporal.io/sdk/internal/common/metrics\t1.013s [no tests to run]\n"}
+{"Time":"2026-10-16T16:51:25.67541446Z","Action":"pass","Package":"go.temporal.io/sdk/internal/common/metrics","Elapsed":1.014}
+{"Time":"2026-10-16T16:51:26.03178821Z","Action":"start","Package":"go.temporal.io/sdk/internal/common/retry"}
+{"Time":"2026-10-16T16:51:26.042716294Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/retry","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:51:26.042778877Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/retry","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:27.046084794Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/retry","Output":"ok  \tgo.temporal.io/sdk/internal/common/retry\t1.014s [no tests to run]\n"}
+{"Time":"2026-10-16T16:51:27.046119461Z","Action":"pass","Package":"go.temporal.io/sdk/internal/common/retry","Elapsed":1.014}
+{"Time":"2026-10-16T16:51:27.047254669Z","Action":"start","Package":"go.temporal.io/sdk/internal/common/serializer"}
+{"Time":"2026-10-16T16:51:27.047272669Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/serializer","Output":"?   \tgo.temporal.io/sdk/internal/common/serializer\t[no test files]\n"}
+{"Time":"2026-10-16T16:51:27.047275377Z","Action":"skip","Package":"go.temporal.io/sdk/internal/common/serializer","Elapsed":0}
+{"Time":"2026-10-16T16:51:27.372342003Z","Action":"start","Package":"go.temporal.io/sdk/internal/common/util"}
+{"Time":"2026-10-16T16:51:27.382675253Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/util","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:51:27.382722211Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/util","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:28.387327295Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/util","Output":"ok  \tgo.temporal.io/sdk/internal/common/util\t1.015s [no tests to run]\n"}
+{"Time":"2026-10-16T16:51:28.387358545Z","Action":"pass","Package":"go.temporal.io/sdk/internal/common/util","Elapsed":1.015}
+{"Time":"2026-10-16T16:51:28.388146711Z","Action":"start","Package":"go.temporal.io/sdk/internal/converter"}
+{"Time":"2026-10-16T16:51:28.388172795Z","Action":"output","Package":"go.temporal.io/sdk/internal/converter","Output":"?   \tgo.temporal.io/sdk/internal/converter\t[no test files]\n"}
+{"Time":"2026-10-16T16:51:28.388179378Z","Action":"skip","Package":"go.temporal.io/sdk/internal/converter","Elapsed":0}
+{"Time":"2026-10-16T16:51:28.947098628Z","Action":"start","Package":"go.temporal.io/sdk/internal/extstore"}
+{"Time":"2026-10-16T16:51:28.964814003Z","Action":"output","Package":"go.temporal.io/sdk/internal/extstore","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:51:28.964880837Z","Action":"output","Package":"go.temporal.io/sdk/internal/extstore","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:29.966409254Z","Action":"output","Package":"go.temporal.io/sdk/internal/extstore","Output":"ok  \tgo.temporal.io/sdk/internal/extstore\t1.019s [no tests to run]\n"}
+{"Time":"2026-10-16T16:51:29.966441504Z","Action":"pass","Package":"go.temporal.io/sdk/internal/extstore","Elapsed":1.019}
+{"Time":"2026-10-16T16:51:30.889787921Z","Action":"start","Package":"go.temporal.io/sdk/internal/interceptortest"}
+{"Time":"2026-10-16T16:51:30.906764171Z","Action":"output","Package":"go.temporal.io/sdk/internal/interceptortest","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:51:30.906824463Z","Action":"output","Package":"go.temporal.io/sdk/internal/interceptortest","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:31.911801921Z","Action":"output","Package":"go.temporal.io/sdk/internal/interceptortest","Output":"ok  \tgo.temporal.io/sdk/internal/interceptortest\t1.022s [no tests to run]\n"}
+{"Time":"2026-10-16T16:51:31.911832546Z","Action":"pass","Package":"go.temporal.io/sdk/internal/interceptortest","Elapsed":1.022}
+{"Time":"2026-10-16T16:51:32.134496463Z","Action":"start","Package":"go.temporal.io/sdk/internal/log"}
+{"Time":"2026-10-16T16:51:32.142329921Z","Action":"output","Package":"go.temporal.io/sdk/internal/log","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:51:32.142387213Z","Action":"output","Package":"go.temporal.io/sdk/internal/log","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:33.147343797Z","Action":"output","Package":"go.temporal.io/sdk/internal/log","Output":"ok  \tgo.temporal.io/sdk/internal/log\t1.013s [no tests to run]\n"}
+{"Time":"2026-10-16T16:51:33.147379297Z","Action":"pass","Package":"go.temporal.io/sdk/internal/log","Elapsed":1.013}
+{"Time":"2026-10-16T16:51:33.433032547Z","Action":"start","Package":"go.temporal.io/sdk/internal/protocol"}
+{"Time":"2026-10-16T16:51:33.444845672Z","Action":"output","Package":"go.temporal.io/sdk/internal/protocol","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:51:33.444900797Z","Action":"output","Package":"go.temporal.io/sdk/internal/protocol","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:34.465133839Z","Action":"output","Package":"go.temporal.io/sdk/internal/protocol","Output":"ok  \tgo.temporal.io/sdk/internal/protocol\t1.032s [no tests to run]\n"}
+{"Time":"2026-10-16T16:51:34.465172381Z","Action":"pass","Package":"go.temporal.io/sdk/internal/protocol","Elapsed":1.032}
+{"Time":"2026-10-16T16:51:35.06781884Z","Action":"start","Package":"go.temporal.io/sdk/internalbindings"}
+{"Time":"2026-10-16T16:51:35.084864048Z","Action":"output","Package":"go.temporal.io/sdk/internalbindings","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:51:35.084923673Z","Action":"output","Package":"go.temporal.io/sdk/internalbindings","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:36.086393965Z","Action":"output","Package":"go.temporal.io/sdk/internalbindings","Output":"ok  \tgo.temporal.io/sdk/internalbindings\t1.019s [no tests to run]\n"}
+{"Time":"2026-10-16T16:51:36.086428715Z","Action":"pass","Package":"go.temporal.io/sdk/internalbindings","Elapsed":1.019}
+{"Time":"2026-10-16T16:51:36.287014548Z","Action":"start","Package":"go.temporal.io/sdk/log"}
+{"Time":"2026-10-16T16:51:36.294246507Z","Action":"output","Package":"go.temporal.io/sdk/log","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:51:36.294300965Z","Action":"output","Package":"go.temporal.io/sdk/log","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:37.297352924Z","Action":"output","Package":"go.temporal.io/sdk/log","Output":"ok  \tgo.temporal.io/sdk/log\t1.010s [no tests to run]\n"}
+{"Time":"2026-10-16T16:51:37.297388632Z","Action":"pass","Package":"go.temporal.io/sdk/log","Elapsed":1.01}
+{"Time":"2026-10-16T16:51:38.152212383Z","Action":"start","Package":"go.temporal.io/sdk/mocks"}
+{"Time":"2026-10-16T16:51:38.170337674Z","Action":"output","Package":"go.temporal.io/sdk/mocks","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:51:38.170420924Z","Action":"output","Package":"go.temporal.io/sdk/mocks","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:39.175690592Z","Action":"output","Package":"go.temporal.io/sdk/mocks","Output":"ok  \tgo.temporal.io/sdk/mocks\t1.023s [no tests to run]\n"}
+{"Time":"2026-10-16T16:51:39.1757333Z","Action":"pass","Package":"go.temporal.io/sdk/mocks","Elapsed":1.024}
+{"Time":"2026-10-16T16:51:39.822852258Z","Action":"start","Package":"go.temporal.io/sdk/temporal"}
+{"Time":"2026-10-16T16:51:39.840281925Z","Action":"output","Package":"go.temporal.io/sdk/temporal","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:51:39.840350008Z","Action":"output","Package":"go.temporal.io/sdk/temporal","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:40.844264051Z","Action":"output","Package":"go.temporal.io/sdk/temporal","Output":"ok  \tgo.temporal.io/sdk/temporal\t1.021s [no tests to run]\n"}
+{"Time":"2026-10-16T16:51:40.844293592Z","Action":"pass","Package":"go.temporal.io/sdk/temporal","Elapsed":1.021}
+{"Time":"2026-10-16T16:51:42.521497968Z","Action":"start","Package":"go.temporal.io/sdk/temporalnexus"}
+{"Time":"2026-10-16T16:51:42.542254218Z","Action":"output","Package":"go.temporal.io/sdk/temporalnexus","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:51:42.542314843Z","Action":"output","Package":"go.temporal.io/sdk/temporalnexus","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:43.544140052Z","Action":"output","Package":"go.temporal.io/sdk/temporalnexus","Output":"ok  \tgo.temporal.io/sdk/temporalnexus\t1.023s [no tests to run]\n"}
+{"Time":"2026-10-16T16:51:43.544175552Z","Action":"pass","Package":"go.temporal.io/sdk/temporalnexus","Elapsed":1.023}
+{"Time":"2026-10-16T16:51:44.337955677Z","Action":"start","Package":"go.temporal.io/sdk/testsuite"}
+{"Time":"2026-10-16T16:51:44.355420094Z","Action":"output","Package":"go.temporal.io/sdk/testsuite","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:51:44.355481302Z","Action":"output","Package":"go.temporal.io/sdk/testsuite","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:45.357298136Z","Action":"output","Package":"go.temporal.io/sdk/testsuite","Output":"ok  \tgo.temporal.io/sdk/testsuite\t1.019s [no tests to run]\n"}
+{"Time":"2026-10-16T16:51:45.357331469Z","Action":"pass","Package":"go.temporal.io/sdk/testsuite","Elapsed":1.019}
+{"Time":"2026-10-16T16:51:45.926887261Z","Action":"start","Package":"go.temporal.io/sdk/worker"}
+{"Time":"2026-10-16T16:51:45.944708803Z","Action":"output","Package":"go.temporal.io/sdk/worker","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:51:45.944766428Z","Action":"output","Package":"go.temporal.io/sdk/worker","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:46.946352054Z","Action":"output","Package":"go.temporal.io/sdk/worker","Output":"ok  \tgo.temporal.io/sdk/worker\t1.019s [no tests to run]\n"}
+{"Time":"2026-10-16T16:51:46.946382554Z","Action":"pass","Package":"go.temporal.io/sdk/worker","Elapsed":1.019}
+{"Time":"2026-10-16T16:51:47.424093345Z","Action":"start","Package":"go.temporal.io/sdk/workflow"}
+{"Time":"2026-10-16T16:51:47.441840429Z","Action":"output","Package":"go.temporal.io/sdk/workflow","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:51:47.441895262Z","Action":"output","Package":"go.temporal.io/sdk/workflow","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:48.443221096Z","Action":"output","Package":"go.temporal.io/sdk/workflow","Output":"ok  \tgo.temporal.io/sdk/workflow\t1.019s [no tests to run]\n"}
+{"Time":"2026-10-16T16:51:48.443257721Z","Action":"pass","Package":"go.temporal.io/sdk/workflow","Elapsed":1.019}
+{"Time":"2026-10-16T16:51:49.379541596Z","Action":"start","Package":"go.temporal.io/sdk/contrib/envconfig"}
+{"Time":"2026-10-16T16:51:49.397531513Z","Action":"output","Package":"go.temporal.io/sdk/contrib/envconfig","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:51:49.397600888Z","Action":"output","Package":"go.temporal.io/sdk/contrib/envconfig","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:50.404267222Z","Action":"output","Package":"go.temporal.io/sdk/contrib/envconfig","Output":"ok  \tgo.temporal.io/sdk/contrib/envconfig\t1.024s [no tests to run]\n"}
+{"Time":"2026-10-16T16:51:50.404305264Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/envconfig","Elapsed":1.025}
+{"Time":"2026-10-16T16:51:51.899669973Z","Action":"start","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel"}
+{"Time":"2026-10-16T16:51:51.917783973Z","Action":"run","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginDefaults"}
+{"Time":"2026-10-16T16:51:51.917829973Z","Action":"output","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginDefaults","Output":"=== RUN   TestPluginDefaults\n"}
+{"Time":"2026-10-16T16:51:51.917941389Z","Action":"output","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginDefaults","Output":"--- PASS: TestPluginDefaults (0.00s)\n"}
+{"Time":"2026-10-16T16:51:51.917963764Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginDefaults","Elapsed":0}
+{"Time":"2026-10-16T16:51:51.917968723Z","Action":"run","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginResolutionPrecedence"}
+{"Time":"2026-10-16T16:51:51.917970056Z","Action":"output","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginResolutionPrecedence","Output":"=== RUN   TestPluginResolutionPrecedence\n"}
+{"Time":"2026-10-16T16:51:51.918066473Z","Action":"output","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginResolutionPrecedence","Output":"--- PASS: TestPluginResolutionPrecedence (0.00s)\n"}
+{"Time":"2026-10-16T16:51:51.918117598Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginResolutionPrecedence","Elapsed":0}
+{"Time":"2026-10-16T16:51:51.918127306Z","Action":"run","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginIgnoresEmptyEnvironmentValues"}
+{"Time":"2026-10-16T16:51:51.918129056Z","Action":"output","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginIgnoresEmptyEnvironmentValues","Output":"=== RUN   TestPluginIgnoresEmptyEnvironmentValues\n"}
+{"Time":"2026-10-16T16:51:51.918211681Z","Action":"output","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginIgnoresEmptyEnvironmentValues","Output":"--- PASS: TestPluginIgnoresEmptyEnvironmentValues (0.00s)\n"}
+{"Time":"2026-10-16T16:51:51.918253681Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginIgnoresEmptyEnvironmentValues","Elapsed":0}
+{"Time":"2026-10-16T16:51:51.918266889Z","Action":"run","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginConfiguresClient"}
+{"Time":"2026-10-16T16:51:51.918268889Z","Action":"output","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginConfiguresClient","Output":"=== RUN   TestPluginConfiguresClient\n"}
+{"Time":"2026-10-16T16:51:51.918354931Z","Action":"output","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginConfiguresClient","Output":"--- PASS: TestPluginConfiguresClient (0.00s)\n"}
+{"Time":"2026-10-16T16:51:51.918414514Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginConfiguresClient","Elapsed":0}
+{"Time":"2026-10-16T16:51:51.918425348Z","Action":"run","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginForceFlushesProviders"}
+{"Time":"2026-10-16T16:51:51.918426764Z","Action":"output","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginForceFlushesProviders","Output":"=== RUN   TestPluginForceFlushesProviders\n"}
+{"Time":"2026-10-16T16:51:51.918609598Z","Action":"output","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginForceFlushesProviders","Output":"--- PASS: TestPluginForceFlushesProviders (0.00s)\n"}
+{"Time":"2026-10-16T16:51:51.918685181Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginForceFlushesProviders","Elapsed":0}
+{"Time":"2026-10-16T16:51:51.918693889Z","Action":"run","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginDefersWorkerStopFlushByDefault"}
+{"Time":"2026-10-16T16:51:51.918695514Z","Action":"output","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginDefersWorkerStopFlushByDefault","Output":"=== RUN   TestPluginDefersWorkerStopFlushByDefault\n"}
+{"Time":"2026-10-16T16:51:51.918775889Z","Action":"output","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginDefersWorkerStopFlushByDefault","Output":"--- PASS: TestPluginDefersWorkerStopFlushByDefault (0.00s)\n"}
+{"Time":"2026-10-16T16:51:51.918819306Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginDefersWorkerStopFlushByDefault","Elapsed":0}
+{"Time":"2026-10-16T16:51:51.918826973Z","Action":"run","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginCanFlushOnWorkerStop"}
+{"Time":"2026-10-16T16:51:51.918829264Z","Action":"output","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginCanFlushOnWorkerStop","Output":"=== RUN   TestPluginCanFlushOnWorkerStop\n"}
+{"Time":"2026-10-16T16:51:51.918894806Z","Action":"output","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginCanFlushOnWorkerStop","Output":"--- PASS: TestPluginCanFlushOnWorkerStop (0.00s)\n"}
+{"Time":"2026-10-16T16:51:51.918935389Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginCanFlushOnWorkerStop","Elapsed":0}
+{"Time":"2026-10-16T16:51:51.918938931Z","Action":"run","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginValidatesOptions"}
+{"Time":"2026-10-16T16:51:51.918940056Z","Action":"output","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginValidatesOptions","Output":"=== RUN   TestPluginValidatesOptions\n"}
+{"Time":"2026-10-16T16:51:51.918977723Z","Action":"output","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginValidatesOptions","Output":"--- PASS: TestPluginValidatesOptions (0.00s)\n"}
+{"Time":"2026-10-16T16:51:51.919032681Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginValidatesOptions","Elapsed":0}
+{"Time":"2026-10-16T16:51:51.919039639Z","Action":"run","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginFlushHookError"}
+{"Time":"2026-10-16T16:51:51.919041306Z","Action":"output","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginFlushHookError","Output":"=== RUN   TestPluginFlushHookError\n"}
+{"Time":"2026-10-16T16:51:51.919075223Z","Action":"output","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginFlushHookError","Output":"--- PASS: TestPluginFlushHookError (0.00s)\n"}
+{"Time":"2026-10-16T16:51:51.919113098Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Test":"TestPluginFlushHookError","Elapsed":0}
+{"Time":"2026-10-16T16:51:51.919121889Z","Action":"output","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:52.924357375Z","Action":"output","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Output":"ok  \tgo.temporal.io/sdk/contrib/gcp/cloudrun/otel\t1.022s\n"}
+{"Time":"2026-10-16T16:51:52.92439125Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/gcp/cloudrun/otel","Elapsed":1.023}
+{"Time":"2026-10-16T16:51:53.593158125Z","Action":"start","Package":"go.temporal.io/sdk/contrib/gcp/gcsdriver"}
+{"Time":"2026-10-16T16:51:53.610153667Z","Action":"output","Package":"go.temporal.io/sdk/contrib/gcp/gcsdriver","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:51:53.610220042Z","Action":"output","Package":"go.temporal.io/sdk/contrib/gcp/gcsdriver","Output":"PASS\n"}
+{"Time":"2026-10-16T16:51:54.614731834Z","Action":"output","Package":"go.temporal.io/sdk/contrib/gcp/gcsdriver","Output":"ok  \tgo.temporal.io/sdk/contrib/gcp/gcsdriver\t1.021s [no tests to run]\n"}
+{"Time":"2026-10-16T16:51:54.614768125Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/gcp/gcsdriver","Elapsed":1.022}
+{"Time":"2026-10-16T16:52:39.11765784Z","Action":"start","Package":"go.temporal.io/sdk/contrib/gcp/gcsdriver/gcssdk"}
+{"Time":"2026-10-16T16:52:39.154640548Z","Action":"output","Package":"go.temporal.io/sdk/contrib/gcp/gcsdriver/gcssdk","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:39.154695715Z","Action":"output","Package":"go.temporal.io/sdk/contrib/gcp/gcsdriver/gcssdk","Output":"PASS\n"}
+{"Time":"2026-10-16T16:52:40.159258757Z","Action":"output","Package":"go.temporal.io/sdk/contrib/gcp/gcsdriver/gcssdk","Output":"ok  \tgo.temporal.io/sdk/contrib/gcp/gcsdriver/gcssdk\t1.041s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:40.159294007Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/gcp/gcsdriver/gcssdk","Elapsed":1.042}
+{"Time":"2026-10-16T16:52:47.045623761Z","Action":"start","Package":"go.temporal.io/sdk/contrib/opentelemetry"}
+{"Time":"2026-10-16T16:52:47.062462594Z","Action":"output","Package":"go.temporal.io/sdk/contrib/opentelemetry","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:47.062520719Z","Action":"output","Package":"go.temporal.io/sdk/contrib/opentelemetry","Output":"PASS\n"}
+{"Time":"2026-10-16T16:52:48.067092053Z","Action":"output","Package":"go.temporal.io/sdk/contrib/opentelemetry","Output":"ok  \tgo.temporal.io/sdk/contrib/opentelemetry\t1.021s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:48.067201636Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/opentelemetry","Elapsed":1.022}
+{"Time":"2026-10-16T16:52:50.775419512Z","Action":"start","Package":"go.temporal.io/sdk/contrib/opentelemetry-v2"}
+{"Time":"2026-10-16T16:52:50.794177387Z","Action":"output","Package":"go.temporal.io/sdk/contrib/opentelemetry-v2","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:50.794234721Z","Action":"output","Package":"go.temporal.io/sdk/contrib/opentelemetry-v2","Output":"PASS\n"}
+{"Time":"2026-10-16T16:52:51.813306513Z","Action":"output","Package":"go.temporal.io/sdk/contrib/opentelemetry-v2","Output":"ok  \tgo.temporal.io/sdk/contrib/opentelemetry-v2\t1.038s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:51.813446971Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/opentelemetry-v2","Elapsed":1.038}
+{"Time":"2026-10-16T16:52:53.166179888Z","Action":"start","Package":"go.temporal.io/sdk/contrib/opentelemetry/otlpworker"}
+{"Time":"2026-10-16T16:52:53.18406918Z","Action":"output","Package":"go.temporal.io/sdk/contrib/opentelemetry/otlpworker","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:53.184136222Z","Action":"output","Package":"go.temporal.io/sdk/contrib/opentelemetry/otlpworker","Output":"PASS\n"}
+{"Time":"2026-10-16T16:52:54.187246306Z","Action":"output","Package":"go.temporal.io/sdk/contrib/opentelemetry/otlpworker","Output":"ok  \tgo.temporal.io/sdk/contrib/opentelemetry/otlpworker\t1.020s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:54.187287972Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/opentelemetry/otlpworker","Elapsed":1.021}
+{"Time":"2026-10-16T16:52:55.141654556Z","Action":"start","Package":"go.temporal.io/sdk/contrib/tally"}
+{"Time":"2026-10-16T16:52:55.158400139Z","Action":"output","Package":"go.temporal.io/sdk/contrib/tally","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:55.158462264Z","Action":"output","Package":"go.temporal.io/sdk/contrib/tally","Output":"PASS\n"}
+{"Time":"2026-10-16T16:52:56.162670291Z","Action":"output","Package":"go.temporal.io/sdk/contrib/tally","Output":"ok  \tgo.temporal.io/sdk/contrib/tally\t1.021s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:56.162706833Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/tally","Elapsed":1.021}
+{"Time":"2026-10-16T16:53:02.053516336Z","Action":"start","Package":"go.temporal.io/sdk/contrib/tools/workflowcheck"}
+{"Time":"2026-10-16T16:53:02.053584669Z","Action":"output","Package":"go.temporal.io/sdk/contrib/tools/workflowcheck","Output":"?   \tgo.temporal.io/sdk/contrib/tools/workflowcheck\t[no test files]\n"}
+{"Time":"2026-10-16T16:53:02.053592544Z","Action":"skip","Package":"go.temporal.io/sdk/contrib/tools/workflowcheck","Elapsed":0}
+{"Time":"2026-10-16T16:53:02.894651628Z","Action":"start","Package":"go.temporal.io/sdk/contrib/tools/workflowcheck/determinism"}
+{"Time":"2026-10-16T16:53:02.903414336Z","Action":"output","Package":"go.temporal.io/sdk/contrib/tools/workflowcheck/determinism","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:53:02.903466586Z","Action":"output","Package":"go.temporal.io/sdk/contrib/tools/workflowcheck/determinism","Output":"PASS\n"}
+{"Time":"2026-10-16T16:53:03.907182837Z","Action":"output","Package":"go.temporal.io/sdk/contrib/tools/workflowcheck/determinism","Output":"ok  \tgo.temporal.io/sdk/contrib/tools/workflowcheck/determinism\t1.012s [no tests to run]\n"}
+{"Time":"2026-10-16T16:53:03.907240045Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/tools/workflowcheck/determinism","Elapsed":1.013}
+{"Time":"2026-10-16T16:53:04.210753879Z","Action":"start","Package":"go.temporal.io/sdk/contrib/tools/workflowcheck/workflow"}
+{"Time":"2026-10-16T16:53:04.219132254Z","Action":"output","Package":"go.temporal.io/sdk/contrib/tools/workflowcheck/workflow","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:53:04.219188087Z","Action":"output","Package":"go.temporal.io/sdk/contrib/tools/workflowcheck/workflow","Output":"PASS\n"}
+{"Time":"2026-10-16T16:53:05.232518421Z","Action":"output","Package":"go.temporal.io/sdk/contrib/tools/workflowcheck/workflow","Output":"ok  \tgo.temporal.io/sdk/contrib/tools/workflowcheck/workflow\t1.022s [no tests to run]\n"}
+{"Time":"2026-10-16T16:53:05.232661587Z","Action":"pass","Package":"go.temporal.io/sdk/contrib/tools/workflowcheck/workflow","Elapsed":1.022}
+{"Time":"2026-10-16T16:53:27.394133583Z","Action":"start","Package":"go.temporal.io/sdk/internal/cmd/build"}
+{"Time":"2026-10-16T16:53:27.422732208Z","Action":"output","Package":"go.temporal.io/sdk/internal/cmd/build","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:53:27.422789833Z","Action":"output","Package":"go.temporal.io/sdk/internal/cmd/build","Output":"PASS\n"}
+{"Time":"2026-10-16T16:53:28.435472125Z","Action":"output","Package":"go.temporal.io/sdk/internal/cmd/build","Output":"ok  \tgo.temporal.io/sdk/internal/cmd/build\t1.041s [no tests to run]\n"}
+{"Time":"2026-10-16T16:53:28.435549917Z","Action":"pass","Package":"go.temporal.io/sdk/internal/cmd/build","Elapsed":1.041}
+{"Time":"2026-10-16T16:53:29.251815084Z","Action":"start","Package":"go.temporal.io/sdk/internal/cmd/build/cmd/testsuiteassertions"}
+{"Time":"2026-10-16T16:53:29.251841334Z","Action":"output","Package":"go.temporal.io/sdk/internal/cmd/build/cmd/testsuiteassertions","Output":"?   \tgo.temporal.io/sdk/internal/cmd/build/cmd/testsuiteassertions\t[no test files]\n"}
+{"Time":"2026-10-16T16:53:29.251846834Z","Action":"skip","Package":"go.temporal.io/sdk/internal/cmd/build/cmd/testsuiteassertions","Elapsed":0}
+{"Time":"2026-10-16T16:53:30.050547292Z","Action":"start","Package":"go.temporal.io/sdk/internal/cmd/build/testsuiteassertions"}
+{"Time":"2026-10-16T16:53:30.059253459Z","Action":"output","Package":"go.temporal.io/sdk/internal/cmd/build/testsuiteassertions","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:53:30.059297459Z","Action":"output","Package":"go.temporal.io/sdk/internal/cmd/build/testsuiteassertions","Output":"PASS\n"}
+{"Time":"2026-10-16T16:53:31.073560043Z","Action":"output","Package":"go.temporal.io/sdk/internal/cmd/build/testsuiteassertions","Output":"ok  \tgo.temporal.io/sdk/internal/cmd/build/testsuiteassertions\t1.023s [no tests to run]\n"}
+{"Time":"2026-10-16T16:53:31.073638418Z","Action":"pass","Package":"go.temporal.io/sdk/internal/cmd/build/testsuiteassertions","Elapsed":1.023}

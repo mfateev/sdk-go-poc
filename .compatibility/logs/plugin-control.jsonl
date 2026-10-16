@@ -1,0 +1,9 @@
+{"Time":"2026-10-16T16:50:39.952306177Z","Action":"start","Package":"github.com/mfateev/sdk-go-poc/.compatibility/probes"}
+{"Time":"2026-10-16T16:50:39.966259218Z","Action":"run","Package":"github.com/mfateev/sdk-go-poc/.compatibility/probes","Test":"TestPluginRegistrationControl"}
+{"Time":"2026-10-16T16:50:39.966969552Z","Action":"output","Package":"github.com/mfateev/sdk-go-poc/.compatibility/probes","Test":"TestPluginRegistrationControl","Output":"=== RUN   TestPluginRegistrationControl\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:50:40.353171844Z","Action":"output","Package":"github.com/mfateev/sdk-go-poc/.compatibility/probes","Test":"TestPluginRegistrationControl","Output":"    plugin_test.go:44: direct wrapper registered temporalbridge.Factory\n"}
+{"Time":"2026-10-16T16:50:40.353454594Z","Action":"output","Package":"github.com/mfateev/sdk-go-poc/.compatibility/probes","Test":"TestPluginRegistrationControl","Output":"--- PASS: TestPluginRegistrationControl (0.39s)\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:50:40.353613844Z","Action":"pass","Package":"github.com/mfateev/sdk-go-poc/.compatibility/probes","Test":"TestPluginRegistrationControl","Elapsed":0.39}
+{"Time":"2026-10-16T16:50:40.353834969Z","Action":"output","Package":"github.com/mfateev/sdk-go-poc/.compatibility/probes","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:50:40.354274344Z","Action":"output","Package":"github.com/mfateev/sdk-go-poc/.compatibility/probes","Output":"ok  \tgithub.com/mfateev/sdk-go-poc/.compatibility/probes\t0.401s\n"}
+{"Time":"2026-10-16T16:50:40.354745344Z","Action":"pass","Package":"github.com/mfateev/sdk-go-poc/.compatibility/probes","Elapsed":0.402}

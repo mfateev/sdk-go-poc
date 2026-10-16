@@ -1,0 +1,130 @@
+{"Time":"2026-10-16T16:52:26.320687209Z","Action":"start","Package":"go.temporal.io/sdk/activity"}
+{"Time":"2026-10-16T16:52:26.335620376Z","Action":"output","Package":"go.temporal.io/sdk/activity","Output":"?   \tgo.temporal.io/sdk/activity\t[no test files]\n"}
+{"Time":"2026-10-16T16:52:26.343503292Z","Action":"skip","Package":"go.temporal.io/sdk/activity","Elapsed":0.023}
+{"Time":"2026-10-16T16:52:26.346122959Z","Action":"start","Package":"go.temporal.io/sdk/client"}
+{"Time":"2026-10-16T16:52:26.347158334Z","Action":"output","Package":"go.temporal.io/sdk/client","Output":"?   \tgo.temporal.io/sdk/client\t[no test files]\n"}
+{"Time":"2026-10-16T16:52:26.349724167Z","Action":"skip","Package":"go.temporal.io/sdk/client","Elapsed":0.004}
+{"Time":"2026-10-16T16:52:26.349970167Z","Action":"start","Package":"go.temporal.io/sdk/converter"}
+{"Time":"2026-10-16T16:52:26.363398709Z","Action":"output","Package":"go.temporal.io/sdk/converter","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:26.367803251Z","Action":"output","Package":"go.temporal.io/sdk/converter","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:52:26.368871292Z","Action":"output","Package":"go.temporal.io/sdk/converter","Output":"ok  \tgo.temporal.io/sdk/converter\t0.017s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:26.372908584Z","Action":"pass","Package":"go.temporal.io/sdk/converter","Elapsed":0.023}
+{"Time":"2026-10-16T16:52:28.042199293Z","Action":"start","Package":"go.temporal.io/sdk/interceptor"}
+{"Time":"2026-10-16T16:52:28.04316546Z","Action":"start","Package":"go.temporal.io/sdk/interceptor/tracing"}
+{"Time":"2026-10-16T16:52:28.05678446Z","Action":"output","Package":"go.temporal.io/sdk/interceptor/tracing","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:28.058021418Z","Action":"output","Package":"go.temporal.io/sdk/interceptor/tracing","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:52:28.058640751Z","Action":"output","Package":"go.temporal.io/sdk/interceptor/tracing","Output":"ok  \tgo.temporal.io/sdk/interceptor/tracing\t0.015s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:28.062488543Z","Action":"output","Package":"go.temporal.io/sdk/interceptor","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:28.062918585Z","Action":"output","Package":"go.temporal.io/sdk/interceptor","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:52:28.06255471Z","Action":"pass","Package":"go.temporal.io/sdk/interceptor/tracing","Elapsed":0.019}
+{"Time":"2026-10-16T16:52:28.102747335Z","Action":"output","Package":"go.temporal.io/sdk/interceptor","Output":"ok  \tgo.temporal.io/sdk/interceptor\t0.060s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:28.104412793Z","Action":"pass","Package":"go.temporal.io/sdk/interceptor","Elapsed":0.062}
+{"Time":"2026-10-16T16:52:31.435377628Z","Action":"start","Package":"go.temporal.io/sdk/internal"}
+{"Time":"2026-10-16T16:52:31.435730628Z","Action":"start","Package":"go.temporal.io/sdk/internal/cmd/dummy"}
+{"Time":"2026-10-16T16:52:31.435961378Z","Action":"output","Package":"go.temporal.io/sdk/internal/cmd/dummy","Output":"?   \tgo.temporal.io/sdk/internal/cmd/dummy\t[no test files]\n"}
+{"Time":"2026-10-16T16:52:31.43616917Z","Action":"skip","Package":"go.temporal.io/sdk/internal/cmd/dummy","Elapsed":0}
+{"Time":"2026-10-16T16:52:31.436061336Z","Action":"start","Package":"go.temporal.io/sdk/internal/cmd/prepare-release"}
+{"Time":"2026-10-16T16:52:31.43654292Z","Action":"start","Package":"go.temporal.io/sdk/internal/cmd/tools/doclink"}
+{"Time":"2026-10-16T16:52:31.436758211Z","Action":"start","Package":"go.temporal.io/sdk/internal/common/backoff"}
+{"Time":"2026-10-16T16:52:31.437361086Z","Action":"start","Package":"go.temporal.io/sdk/internal/common/cache"}
+{"Time":"2026-10-16T16:52:31.437888211Z","Action":"start","Package":"go.temporal.io/sdk/internal/common/metrics"}
+{"Time":"2026-10-16T16:52:31.438400795Z","Action":"start","Package":"go.temporal.io/sdk/internal/common/retry"}
+{"Time":"2026-10-16T16:52:31.438562961Z","Action":"output","Package":"go.temporal.io/sdk/internal/cmd/prepare-release","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:31.44037667Z","Action":"output","Package":"go.temporal.io/sdk/internal/cmd/prepare-release","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:52:31.439023086Z","Action":"output","Package":"go.temporal.io/sdk/internal/cmd/tools/doclink","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:31.440037836Z","Action":"start","Package":"go.temporal.io/sdk/internal/common/serializer"}
+{"Time":"2026-10-16T16:52:31.44084517Z","Action":"output","Package":"go.temporal.io/sdk/internal/cmd/prepare-release","Output":"ok  \tgo.temporal.io/sdk/internal/cmd/prepare-release\t0.004s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:31.441869378Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/backoff","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:31.44218842Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/backoff","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:52:31.441425461Z","Action":"output","Package":"go.temporal.io/sdk/internal/cmd/tools/doclink","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:52:31.442728253Z","Action":"output","Package":"go.temporal.io/sdk/internal/cmd/tools/doclink","Output":"ok  \tgo.temporal.io/sdk/internal/cmd/tools/doclink\t0.006s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:31.441660795Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/serializer","Output":"?   \tgo.temporal.io/sdk/internal/common/serializer\t[no test files]\n"}
+{"Time":"2026-10-16T16:52:31.442160878Z","Action":"pass","Package":"go.temporal.io/sdk/internal/cmd/prepare-release","Elapsed":0.006}
+{"Time":"2026-10-16T16:52:31.442457086Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/cache","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:31.443584336Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/cache","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:52:31.443851836Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/cache","Output":"ok  \tgo.temporal.io/sdk/internal/common/cache\t0.006s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:31.443596211Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/backoff","Output":"ok  \tgo.temporal.io/sdk/internal/common/backoff\t0.006s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:31.444318378Z","Action":"pass","Package":"go.temporal.io/sdk/internal/common/cache","Elapsed":0.007}
+{"Time":"2026-10-16T16:52:31.44318442Z","Action":"pass","Package":"go.temporal.io/sdk/internal/cmd/tools/doclink","Elapsed":0.007}
+{"Time":"2026-10-16T16:52:31.443194378Z","Action":"skip","Package":"go.temporal.io/sdk/internal/common/serializer","Elapsed":0.003}
+{"Time":"2026-10-16T16:52:31.442663878Z","Action":"output","Package":"go.temporal.io/sdk/internal","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:31.443728878Z","Action":"start","Package":"go.temporal.io/sdk/internal/common/util"}
+{"Time":"2026-10-16T16:52:31.444436336Z","Action":"pass","Package":"go.temporal.io/sdk/internal/common/backoff","Elapsed":0.008}
+{"Time":"2026-10-16T16:52:31.444774503Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/metrics","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:31.44581717Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/metrics","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:52:31.445055961Z","Action":"output","Package":"go.temporal.io/sdk/internal","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:52:31.446256795Z","Action":"output","Package":"go.temporal.io/sdk/internal","Output":"ok  \tgo.temporal.io/sdk/internal\t0.010s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:31.445237003Z","Action":"start","Package":"go.temporal.io/sdk/internal/converter"}
+{"Time":"2026-10-16T16:52:31.446031128Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/metrics","Output":"ok  \tgo.temporal.io/sdk/internal/common/metrics\t0.008s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:31.446143586Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/retry","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:31.447051128Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/retry","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:52:31.447196128Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/retry","Output":"ok  \tgo.temporal.io/sdk/internal/common/retry\t0.007s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:31.446581336Z","Action":"output","Package":"go.temporal.io/sdk/internal/converter","Output":"?   \tgo.temporal.io/sdk/internal/converter\t[no test files]\n"}
+{"Time":"2026-10-16T16:52:31.447618836Z","Action":"skip","Package":"go.temporal.io/sdk/internal/converter","Elapsed":0.002}
+{"Time":"2026-10-16T16:52:31.446589711Z","Action":"start","Package":"go.temporal.io/sdk/internal/extstore"}
+{"Time":"2026-10-16T16:52:31.446627128Z","Action":"pass","Package":"go.temporal.io/sdk/internal","Elapsed":0.011}
+{"Time":"2026-10-16T16:52:31.44700517Z","Action":"pass","Package":"go.temporal.io/sdk/internal/common/metrics","Elapsed":0.009}
+{"Time":"2026-10-16T16:52:31.447551795Z","Action":"pass","Package":"go.temporal.io/sdk/internal/common/retry","Elapsed":0.009}
+{"Time":"2026-10-16T16:52:31.449080711Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/util","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:31.450263836Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/util","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:52:31.44912242Z","Action":"start","Package":"go.temporal.io/sdk/internal/interceptortest"}
+{"Time":"2026-10-16T16:52:31.450805503Z","Action":"start","Package":"go.temporal.io/sdk/internal/log"}
+{"Time":"2026-10-16T16:52:31.45123742Z","Action":"output","Package":"go.temporal.io/sdk/internal/common/util","Output":"ok  \tgo.temporal.io/sdk/internal/common/util\t0.006s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:31.451354045Z","Action":"start","Package":"go.temporal.io/sdk/internal/protocol"}
+{"Time":"2026-10-16T16:52:31.451856961Z","Action":"pass","Package":"go.temporal.io/sdk/internal/common/util","Elapsed":0.008}
+{"Time":"2026-10-16T16:52:31.452131961Z","Action":"start","Package":"go.temporal.io/sdk/internalbindings"}
+{"Time":"2026-10-16T16:52:31.452812336Z","Action":"start","Package":"go.temporal.io/sdk/log"}
+{"Time":"2026-10-16T16:52:31.453318045Z","Action":"start","Package":"go.temporal.io/sdk/mocks"}
+{"Time":"2026-10-16T16:52:31.453617836Z","Action":"start","Package":"go.temporal.io/sdk/temporal"}
+{"Time":"2026-10-16T16:52:31.454182295Z","Action":"output","Package":"go.temporal.io/sdk/internal/log","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:31.45457242Z","Action":"output","Package":"go.temporal.io/sdk/internal/log","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:52:31.454804295Z","Action":"output","Package":"go.temporal.io/sdk/internal/log","Output":"ok  \tgo.temporal.io/sdk/internal/log\t0.004s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:31.455304295Z","Action":"pass","Package":"go.temporal.io/sdk/internal/log","Elapsed":0.005}
+{"Time":"2026-10-16T16:52:31.455412086Z","Action":"output","Package":"go.temporal.io/sdk/internal/extstore","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:31.45592317Z","Action":"output","Package":"go.temporal.io/sdk/internal/extstore","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:52:31.455777961Z","Action":"start","Package":"go.temporal.io/sdk/temporalnexus"}
+{"Time":"2026-10-16T16:52:31.456952711Z","Action":"output","Package":"go.temporal.io/sdk/internal/protocol","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:31.458014045Z","Action":"output","Package":"go.temporal.io/sdk/internal/protocol","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:52:31.458574003Z","Action":"output","Package":"go.temporal.io/sdk/internal/protocol","Output":"ok  \tgo.temporal.io/sdk/internal/protocol\t0.007s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:31.459411711Z","Action":"pass","Package":"go.temporal.io/sdk/internal/protocol","Elapsed":0.008}
+{"Time":"2026-10-16T16:52:31.458417878Z","Action":"output","Package":"go.temporal.io/sdk/internal/interceptortest","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:31.458625586Z","Action":"output","Package":"go.temporal.io/sdk/internal/extstore","Output":"ok  \tgo.temporal.io/sdk/internal/extstore\t0.009s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:31.459904836Z","Action":"start","Package":"go.temporal.io/sdk/testsuite"}
+{"Time":"2026-10-16T16:52:31.460373253Z","Action":"output","Package":"go.temporal.io/sdk/internal/interceptortest","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:52:31.460801961Z","Action":"output","Package":"go.temporal.io/sdk/mocks","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:31.461170878Z","Action":"pass","Package":"go.temporal.io/sdk/internal/extstore","Elapsed":0.015}
+{"Time":"2026-10-16T16:52:31.461865878Z","Action":"output","Package":"go.temporal.io/sdk/internalbindings","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:31.462974378Z","Action":"output","Package":"go.temporal.io/sdk/internalbindings","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:52:31.46313967Z","Action":"output","Package":"go.temporal.io/sdk/internalbindings","Output":"ok  \tgo.temporal.io/sdk/internalbindings\t0.010s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:31.462984003Z","Action":"start","Package":"go.temporal.io/sdk/worker"}
+{"Time":"2026-10-16T16:52:31.463639545Z","Action":"pass","Package":"go.temporal.io/sdk/internalbindings","Elapsed":0.012}
+{"Time":"2026-10-16T16:52:31.462206545Z","Action":"output","Package":"go.temporal.io/sdk/internal/interceptortest","Output":"ok  \tgo.temporal.io/sdk/internal/interceptortest\t0.012s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:31.46240867Z","Action":"output","Package":"go.temporal.io/sdk/mocks","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:52:31.462749378Z","Action":"output","Package":"go.temporal.io/sdk/log","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:31.462120086Z","Action":"output","Package":"go.temporal.io/sdk/temporal","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:31.464186128Z","Action":"output","Package":"go.temporal.io/sdk/temporalnexus","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:31.468188295Z","Action":"output","Package":"go.temporal.io/sdk/testsuite","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:31.469181378Z","Action":"output","Package":"go.temporal.io/sdk/testsuite","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:52:31.468558211Z","Action":"output","Package":"go.temporal.io/sdk/mocks","Output":"ok  \tgo.temporal.io/sdk/mocks\t0.015s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:31.468571336Z","Action":"pass","Package":"go.temporal.io/sdk/internal/interceptortest","Elapsed":0.019}
+{"Time":"2026-10-16T16:52:31.468681461Z","Action":"output","Package":"go.temporal.io/sdk/log","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:52:31.469956045Z","Action":"output","Package":"go.temporal.io/sdk/log","Output":"ok  \tgo.temporal.io/sdk/log\t0.017s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:31.468898086Z","Action":"output","Package":"go.temporal.io/sdk/temporal","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:52:31.469067795Z","Action":"output","Package":"go.temporal.io/sdk/temporalnexus","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:52:31.469078461Z","Action":"start","Package":"go.temporal.io/sdk/workflow"}
+{"Time":"2026-10-16T16:52:31.469365461Z","Action":"output","Package":"go.temporal.io/sdk/testsuite","Output":"ok  \tgo.temporal.io/sdk/testsuite\t0.008s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:31.469712211Z","Action":"pass","Package":"go.temporal.io/sdk/mocks","Elapsed":0.016}
+{"Time":"2026-10-16T16:52:31.47096717Z","Action":"pass","Package":"go.temporal.io/sdk/testsuite","Elapsed":0.011}
+{"Time":"2026-10-16T16:52:31.470225211Z","Action":"output","Package":"go.temporal.io/sdk/temporal","Output":"ok  \tgo.temporal.io/sdk/temporal\t0.016s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:31.470307253Z","Action":"pass","Package":"go.temporal.io/sdk/log","Elapsed":0.017}
+{"Time":"2026-10-16T16:52:31.470406628Z","Action":"output","Package":"go.temporal.io/sdk/temporalnexus","Output":"ok  \tgo.temporal.io/sdk/temporalnexus\t0.014s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:31.471651961Z","Action":"pass","Package":"go.temporal.io/sdk/temporal","Elapsed":0.018}
+{"Time":"2026-10-16T16:52:31.47193942Z","Action":"pass","Package":"go.temporal.io/sdk/temporalnexus","Elapsed":0.016}
+{"Time":"2026-10-16T16:52:31.473424795Z","Action":"output","Package":"go.temporal.io/sdk/worker","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:31.473735086Z","Action":"output","Package":"go.temporal.io/sdk/worker","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:52:31.473989086Z","Action":"output","Package":"go.temporal.io/sdk/worker","Output":"ok  \tgo.temporal.io/sdk/worker\t0.010s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:31.474396586Z","Action":"pass","Package":"go.temporal.io/sdk/worker","Elapsed":0.011}
+{"Time":"2026-10-16T16:52:31.476276628Z","Action":"output","Package":"go.temporal.io/sdk/workflow","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-16T16:52:31.476480961Z","Action":"output","Package":"go.temporal.io/sdk/workflow","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:52:31.476687795Z","Action":"output","Package":"go.temporal.io/sdk/workflow","Output":"ok  \tgo.temporal.io/sdk/workflow\t0.006s [no tests to run]\n"}
+{"Time":"2026-10-16T16:52:31.47702617Z","Action":"pass","Package":"go.temporal.io/sdk/workflow","Elapsed":0.008}

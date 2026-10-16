@@ -1,0 +1,9 @@
+{"Time":"2026-10-16T16:50:44.133840012Z","Action":"start","Package":"github.com/mfateev/sdk-go-poc/.compatibility/probes"}
+{"Time":"2026-10-16T16:50:44.146912304Z","Action":"run","Package":"github.com/mfateev/sdk-go-poc/.compatibility/probes","Test":"TestPluginPanicPolicyMutation"}
+{"Time":"2026-10-16T16:50:44.14722072Z","Action":"output","Package":"github.com/mfateev/sdk-go-poc/.compatibility/probes","Test":"TestPluginPanicPolicyMutation","Output":"=== RUN   TestPluginPanicPolicyMutation\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:50:44.457188721Z","Action":"output","Package":"github.com/mfateev/sdk-go-poc/.compatibility/probes","Test":"TestPluginPanicPolicyMutation","Output":"    plugin_test.go:62: native registration accepted plugin-mutated FailWorkflow although wrapper rejects explicit FailWorkflow\n","OutputType":"error"}
+{"Time":"2026-10-16T16:50:44.457525054Z","Action":"output","Package":"github.com/mfateev/sdk-go-poc/.compatibility/probes","Test":"TestPluginPanicPolicyMutation","Output":"--- FAIL: TestPluginPanicPolicyMutation (0.31s)\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:50:44.457696762Z","Action":"fail","Package":"github.com/mfateev/sdk-go-poc/.compatibility/probes","Test":"TestPluginPanicPolicyMutation","Elapsed":0.31}
+{"Time":"2026-10-16T16:50:44.457811929Z","Action":"output","Package":"github.com/mfateev/sdk-go-poc/.compatibility/probes","Output":"FAIL\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:50:44.458697679Z","Action":"output","Package":"github.com/mfateev/sdk-go-poc/.compatibility/probes","Output":"FAIL\tgithub.com/mfateev/sdk-go-poc/.compatibility/probes\t0.324s\n","OutputType":"frame"}
+{"Time":"2026-10-16T16:50:44.458992887Z","Action":"fail","Package":"github.com/mfateev/sdk-go-poc/.compatibility/probes","Elapsed":0.325}

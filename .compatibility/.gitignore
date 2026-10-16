@@ -1,0 +1,9 @@
+# Intermediate scanner experiments and local checker executable.
+/baseline-inventory.json
+/candidate-inventory.json
+/baseline-expanded.json
+/candidate-expanded.json
+/baseline-final.json
+/candidate-verified.json
+/baseline-verified.json
+/dynamic-check

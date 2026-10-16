@@ -1,0 +1,17 @@
+{
+	"Path": "go.temporal.io/sdk",
+	"Version": "v1.49.0",
+	"Replace": {
+		"Path": "github.com/mfateev/temporal-go-sdk",
+		"Version": "v1.49.0-isolates.1.0.20261012175541-b87b0a1d5dda",
+		"Time": "2026-10-12T17:55:41Z",
+		"Dir": "/Users/maxim/go/pkg/mod/github.com/mfateev/temporal-go-sdk@v1.49.0-isolates.1.0.20261012175541-b87b0a1d5dda",
+		"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/mfateev/temporal-go-sdk/@v/v1.49.0-isolates.1.0.20261012175541-b87b0a1d5dda.mod",
+		"GoVersion": "1.26.0",
+		"Sum": "h1:6Of8OLy7hXV+XlqKwORrj2U0+T4RG/dWKOgSAsa4l18=",
+		"GoModSum": "h1:xP0FulN5JJSfisESUP60LlWsrKz2tLSStGjVdk8r5cc="
+	},
+	"Dir": "/Users/maxim/go/pkg/mod/github.com/mfateev/temporal-go-sdk@v1.49.0-isolates.1.0.20261012175541-b87b0a1d5dda",
+	"GoMod": "/Users/maxim/go/pkg/mod/cache/download/github.com/mfateev/temporal-go-sdk/@v/v1.49.0-isolates.1.0.20261012175541-b87b0a1d5dda.mod",
+	"GoVersion": "1.26.0"
+}

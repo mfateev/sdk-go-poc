@@ -1,0 +1,47 @@
+{
+  "baseline_items": 7826,
+  "candidate_items": 2389,
+  "baseline_ast_items": 7812,
+  "candidate_ast_items": 2308,
+  "statuses": {
+    "unverified": 6985,
+    "pending": 817,
+    "unsupported": 12,
+    "needs_decision": 12
+  },
+  "families": {
+    "options": {
+      "total": 2750,
+      "statuses": {
+        "unverified": 2281,
+        "pending": 451,
+        "unsupported": 8,
+        "needs_decision": 10
+      }
+    },
+    "worker": {
+      "total": 534,
+      "statuses": {
+        "unsupported": 4,
+        "unverified": 518,
+        "needs_decision": 12
+      }
+    },
+    "plugins": {
+      "total": 531,
+      "statuses": {
+        "unverified": 456,
+        "pending": 64,
+        "needs_decision": 11
+      }
+    },
+    "contrib": {
+      "total": 791,
+      "statuses": {
+        "pending": 681,
+        "unverified": 110
+      }
+    }
+  },
+  "external_types": 61
+}

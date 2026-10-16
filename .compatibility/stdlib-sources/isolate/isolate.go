@@ -1,0 +1,103 @@
+// Copyright 2026 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package isolate provides the host communication operations available to
+// code running inside an isolate. Functions marked //temporal:workflow are discovered
+// by go build and exposed as handles; legacy package main programs remain
+// available for runtime probes.
+//
+// This trusted POC offers opt-in deterministic native dispatch and host
+// suspension through Config.Deterministic. Marked builds enforce memory and
+// effect restrictions; arbitrary native execution is not contained.
+package isolate
+
+import "internal/isolatebridge"
+
+// Call sends one operation to the host and blocks until the host replies.
+// The boundary copies payload before handing it to the host and copies the
+// response before returning it. The operation number belongs to the
+// isolate's SDK; the runtime does not interpret it. An SDK can use an
+// operation such as NextRequest to wait for incoming host work.
+func Call(op uint32, payload []byte) ([]byte, error) {
+	if IsReadOnly() {
+		panic("isolate: read-only handlers cannot issue workflow calls")
+	}
+	return isolatebridge.Current().Call(op, payload)
+}
+
+// ControlCall is the SDK transport for task metadata on an inbound service.
+// It copies request/reply bytes like Call and uses fixed transport select order,
+// preserving the workflow's default random stream. It requires deterministic
+// execution in GoInbound or RunInbound and cannot be used by read-only handlers.
+// Application code should use Call; it cannot call ControlCall from a normal
+// workflow goroutine.
+func ControlCall(op uint32, payload []byte) ([]byte, error) {
+	return isolatebridge.Current().ControlCall(op, payload)
+}
+
+// Write sends observational output to the host without waiting for receipt or
+// acknowledgment. It copies payload into process-owned memory. The host reads
+// messages from Isolate.Writes; no response or delivery status enters the
+// isolate. SDKs can use it for logging, metrics, or tracing, including from
+// read-only handlers. Durable effects and external decisions must use Call.
+//
+// Delivery is best effort: the POC drops writes when the 64-message queue is
+// full or payload exceeds 64 KiB. The host can inspect Isolate.DroppedWrites.
+// Write order is independent of Call order. It panics outside an active isolate
+// and participates in normal isolate revocation.
+func Write(op uint32, payload []byte) {
+	isolatebridge.Current().Write(op, payload)
+}
+
+// ReadOnlyCall waits for host work on a dedicated read-only service goroutine.
+// After its first reply, allocations use a scratch heap. Existing workflow
+// memory can be read but never written, even by callbacks. The goroutine cannot
+// start children or perform blocking native channel operations. The host must
+// use ResumeReadOnly to admit these requests while workflow dispatch is fenced.
+func ReadOnlyCall(op uint32, payload []byte) ([]byte, error) {
+	return isolatebridge.Current().ReadOnlyCall(op, payload)
+}
+
+// IsReadOnly reports execution in a query or update validator.
+func IsReadOnly() bool { return isolatebridge.InReadOnly() }
+
+// IsActive reports execution inside an isolate, including initialization and
+// read-only services. It exposes no instance identity or host-owned memory.
+func IsActive() bool { return isolatebridge.Active() }
+
+// MarkServiceGoroutine excludes the calling SDK helper from workflow stack
+// traces without changing its scheduling. Children do not inherit this marker,
+// so application handlers started by a service remain visible. Read-only and
+// inbound services are already excluded. Application code should not call it.
+func MarkServiceGoroutine() { isolatebridge.MarkServiceGoroutine() }
+
+// GoInbound starts an SDK input-delivery service. In a deterministic instance,
+// the host can admit this goroutine and its children with ResumeInbound while
+// application continuations remain fenced. The service uses the workflow heap
+// and ordinary channels. Outside deterministic dispatch it is an ordinary go
+// statement. Application workflow code should use ordinary goroutines instead.
+func GoInbound(fn func()) { isolatebridge.StartInbound(fn) }
+
+// RunInbound invokes an SDK input hook in the delivery scope. Goroutines it
+// starts inherit the inbound role, including native channel adapters installed
+// by interceptors. The calling goroutine's previous role is restored on return.
+func RunInbound(fn func()) { isolatebridge.RunInbound(fn) }
+
+// Priority controls cooperative scheduling within a deterministic isolate.
+type Priority uint8
+
+const (
+	PriorityNormal Priority = iota
+	PriorityHigh
+)
+
+// GoWithPriority starts fn with the specified scheduling priority. Runnable
+// high-priority goroutines run before normal ones whenever an execution token
+// is released. Each priority preserves FIFO readiness order. Priority persists
+// across blocking and resumption, but children started with go use normal
+// priority. It does not preempt a running goroutine or bypass host admission
+// restrictions. Outside deterministic dispatch it is an ordinary go statement.
+func GoWithPriority(priority Priority, fn func()) {
+	isolatebridge.StartPriority(uint8(priority), fn)
+}
