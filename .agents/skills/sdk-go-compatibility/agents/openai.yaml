@@ -1,0 +1,4 @@
+interface:
+  display_name: "Go SDK Compatibility"
+  short_description: "Audit Go SDK options, workers, and plugin parity"
+  default_prompt: "Use $sdk-go-compatibility to audit sdk-go-poc against the pinned sdk-go baseline, including every options field, worker configuration, and plugin. Ask me about discrepancies that cannot be reconciled mechanically."
