@@ -1,0 +1,47 @@
+2026/10/16 20:32:31 Writing full test logs to /tmp/reset-sdk-integration-cache0-logs
+2026/10/16 20:32:31 Running /usr/local/go-bootstrap/bin/go in /Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/temporal-go-sdk/test with args [test -json -count 1 -race -v -timeout 15m -run ^TestWorkflowRandomTestSuite/TestReset ./... -- -using-cli-dev-server]
+
+============================== TEST FAILURE REPORT ==============================
+
+Failed tests (1):
+	go.temporal.io/sdk/test / TestWorkflowRandomTestSuite/TestResetReseedsSourceCreatedAfterResetPoint
+
+--- Go test output ---
+
+--- go.temporal.io/sdk/test / TestWorkflowRandomTestSuite/TestResetReseedsSourceCreatedAfterResetPoint ---
+=== RUN   TestWorkflowRandomTestSuite/TestResetReseedsSourceCreatedAfterResetPoint
+2026/10/16 20:32:37 INFO  Started Worker Namespace integration-test-namespace TaskQueue tq-dcb2f9dc-0608-499f-af3c-c3586e776c96-TestWorkflowRandomTestSuite/TestResetReseedsSourceCreatedAfterResetPoint WorkerID 2462891@modify-go-runtime-for-isolates@
+    workflow_random_test.go:233: 
+        	Error Trace:	/Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/temporal-go-sdk/test/workflow_random_test.go:233
+        	            				/usr/local/go-bootstrap/src/runtime/asm_arm64.s:1447
+        	Error:      	Received unexpected error:
+        	            	workflow execution error (type: , workflowID: TestWorkflowRandomTestSuite/TestResetReseedsSourceCreatedAfterResetPoint, runID: 57acd409-3eb3-4e96-9217-22f6ef0bd1d0): terminated
+        	Test:       	TestWorkflowRandomTestSuite/TestResetReseedsSourceCreatedAfterResetPoint
+2026/10/16 20:32:38 INFO  Stopped Worker Namespace integration-test-namespace TaskQueue tq-dcb2f9dc-0608-499f-af3c-c3586e776c96-TestWorkflowRandomTestSuite/TestResetReseedsSourceCreatedAfterResetPoint WorkerID 2462891@modify-go-runtime-for-isolates@
+    --- FAIL: TestWorkflowRandomTestSuite/TestResetReseedsSourceCreatedAfterResetPoint (0.12s)
+
+
+--- Related dev server output ---
+
+--- go.temporal.io/sdk/test / TestWorkflowRandomTestSuite/TestResetReseedsSourceCreatedAfterResetPoint ---
+Lines mentioning the failed test:
+time=2026-10-16T20:32:32.865 level=WARN msg="Transfer Task Processor: workflow mutable state not found, skip." shard-id=1 address=127.0.0.1:38437 component=transfer-queue-processor wf-namespace-id=01a12647-50a3-7401-a403-492765b4c61c wf-id=TestWorkflowRandomTestSuite/TestResetReseedsSourceCreatedAfterResetPoint wf-run-id=20abab89-c3a9-4bf8-b2a1-36cbf1429662 queue-task-key="{FireTime:1970-01-01 00:00:00 +0000 UTC TaskID:2097462}" queue-task-type=TransferWorkflowTask queue-task="WorkflowTask{WorkflowKey: 01a12647-50a3-7401-a403-492765b4c61c/TestWorkflowRandomTestSuite/TestResetReseedsSourceCreatedAfterResetPoint/20abab89-c3a9-4bf8-b2a1-36cbf1429662, VisibilityTimestamp: 2026-10-12 17:54:57.255997548 +0000 UTC, TaskID: 2097462, TaskQueue: tq-7ea3ac65-034d-4625-bfaf-d59c08e8676d-TestWorkflowRandomTestSuite/TestResetReseedsSourceCreatedAfterResetPoint, ScheduledEventID: 11, Version: 0}" wf-history-event-id=11
+time=2026-10-16T20:32:33.452 level=WARN msg="Transfer Task Processor: workflow mutable state not found, skip." shard-id=1 address=127.0.0.1:38437 component=transfer-queue-processor wf-namespace-id=01a12647-50a3-7401-a403-492765b4c61c wf-id=TestWorkflowRandomTestSuite/TestResetReseedsSourceCreatedAfterResetPoint wf-run-id=43f73749-511c-45fc-9168-3ebf192e75c2 queue-task-key="{FireTime:1970-01-01 00:00:00 +0000 UTC TaskID:3145952}" queue-task-type=TransferWorkflowTask queue-task="WorkflowTask{WorkflowKey: 01a12647-50a3-7401-a403-492765b4c61c/TestWorkflowRandomTestSuite/TestResetReseedsSourceCreatedAfterResetPoint/43f73749-511c-45fc-9168-3ebf192e75c2, VisibilityTimestamp: 2026-10-12 17:55:01.733190383 +0000 UTC, TaskID: 3145952, TaskQueue: tq-c6b4407e-e44d-4a2f-996b-0a044d203639-TestWorkflowRandomTestSuite/TestResetReseedsSourceCreatedAfterResetPoint, ScheduledEventID: 11, Version: 0}" wf-history-event-id=11
+time=2026-10-16T20:32:33.647 level=WARN msg="Transfer Task Processor: workflow mutable state not found, skip." shard-id=1 address=127.0.0.1:38437 component=transfer-queue-processor wf-namespace-id=01a12647-50a3-7401-a403-492765b4c61c wf-id=TestWorkflowRandomTestSuite/TestResetReseedsSourceCreatedAfterResetPoint wf-run-id=01a13140-ef7c-7f3d-aef3-e25d36eecac5 queue-task-key="{FireTime:1970-01-01 00:00:00 +0000 UTC TaskID:3145937}" queue-task-type=TransferWorkflowTask queue-task="WorkflowTask{WorkflowKey: 01a12647-50a3-7401-a403-492765b4c61c/TestWorkflowRandomTestSuite/TestResetReseedsSourceCreatedAfterResetPoint/01a13140-ef7c-7f3d-aef3-e25d36eecac5, VisibilityTimestamp: 2026-10-12 17:55:01.689627425 +0000 UTC, TaskID: 3145937, TaskQueue: tq-c6b4407e-e44d-4a2f-996b-0a044d203639-TestWorkflowRandomTestSuite/TestResetReseedsSourceCreatedAfterResetPoint, ScheduledEventID: 8, Version: 0}" wf-history-event-id=8
+time=2026-10-16T20:32:33.696 level=WARN msg="Transfer Task Processor: workflow mutable state not found, skip." shard-id=1 address=127.0.0.1:38437 component=transfer-queue-processor wf-namespace-id=01a12647-50a3-7401-a403-492765b4c61c wf-id=TestWorkflowRandomTestSuite/TestResetReseedsSourceCreatedAfterResetPoint wf-run-id=01a13140-ef7c-7f3d-aef3-e25d36eecac5 queue-task-key="{FireTime:1970-01-01 00:00:00 +0000 UTC TaskID:3145921}" queue-task-type=TransferWorkflowTask queue-task="WorkflowTask{WorkflowKey: 01a12647-50a3-7401-a403-492765b4c61c/TestWorkflowRandomTestSuite/TestResetReseedsSourceCreatedAfterResetPoint/01a13140-ef7c-7f3d-aef3-e25d36eecac5, VisibilityTimestamp: 2026-10-12 17:55:01.631350925 +0000 UTC, TaskID: 3145921, TaskQueue: tq-c6b4407e-e44d-4a2f-996b-0a044d203639-TestWorkflowRandomTestSuite/TestResetReseedsSourceCreatedAfterResetPoint, ScheduledEventID: 2, Version: 0}" wf-history-event-id=2
+time=2026-10-16T20:32:33.752 level=WARN msg="Transfer Task Processor: workflow mutable state not found, skip." shard-id=1 address=127.0.0.1:38437 component=transfer-queue-processor wf-namespace-id=01a12647-50a3-7401-a403-492765b4c61c wf-id=TestWorkflowRandomTestSuite/TestResetReseedsSourceCreatedAfterResetPoint wf-run-id=01a13140-dde0-7f07-a2d8-b0fe9714e168 queue-task-key="{FireTime:1970-01-01 00:00:00 +0000 UTC TaskID:2097445}" queue-task-type=TransferWorkflowTask queue-task="WorkflowTask{WorkflowKey: 01a12647-50a3-7401-a403-492765b4c61c/TestWorkflowRandomTestSuite/TestResetReseedsSourceCreatedAfterResetPoint/01a13140-dde0-7f07-a2d8-b0fe9714e168, VisibilityTimestamp: 2026-10-12 17:54:57.192338256 +0000 UTC, TaskID: 2097445, TaskQueue: modify-go-runtime-for-isolates:488042e8-e661-414f-b037-dfaaf5f85668, ScheduledEventID: 8, Version: 0}" wf-history-event-id=8
+time=2026-10-16T20:32:33.753 level=WARN msg="Transfer Task Processor: workflow mutable state not found, skip." shard-id=1 address=127.0.0.1:38437 component=transfer-queue-processor wf-namespace-id=01a12647-50a3-7401-a403-492765b4c61c wf-id=TestWorkflowRandomTestSuite/TestResetReseedsSourceCreatedAfterResetPoint wf-run-id=01a13140-dde0-7f07-a2d8-b0fe9714e168 queue-task-key="{FireTime:1970-01-01 00:00:00 +0000 UTC TaskID:2097428}" queue-task-type=TransferWorkflowTask queue-task="WorkflowTask{WorkflowKey: 01a12647-50a3-7401-a403-492765b4c61c/TestWorkflowRandomTestSuite/TestResetReseedsSourceCreatedAfterResetPoint/01a13140-dde0-7f07-a2d8-b0fe9714e168, VisibilityTimestamp: 2026-10-12 17:54:57.121245798 +0000 UTC, TaskID: 2097428, TaskQueue: tq-7ea3ac65-034d-4625-bfaf-d59c08e8676d-TestWorkflowRandomTestSuite/TestResetReseedsSourceCreatedAfterResetPoint, ScheduledEventID: 2, Version: 0}" wf-history-event-id=2
+
+--- Complete logs ---
+- Go test: /tmp/reset-sdk-integration-cache0-logs/go-test.log
+- Go test JSON: /tmp/reset-sdk-integration-cache0-logs/go-test.json
+- Combined Go and dev server: /tmp/reset-sdk-integration-cache0-logs/combined.log
+- Dev server: /tmp/reset-sdk-integration-cache0-logs/dev-server.log
+
+--- Rerun failed tests ---
+From internal/cmd/build:
+	go run . integration-test -dev-server -run "^TestWorkflowRandomTestSuite/TestResetReseedsSourceCreatedAfterResetPoint$"
+
+============================ END TEST FAILURE REPORT ============================
+2026/10/16 20:32:38 integration test failed: exit status 1
+exit status 1

@@ -204,7 +204,7 @@ func checkCanceledResetBatch() {
 		panic("cancel/reset fixture did not suspend")
 	}
 	e.cancel()
-	e.info.OriginalRunID = "reset"
+	e.reset(bindings.WorkflowResetInfo{BaseRunID: "original", NewRunID: "reset", EventID: 10})
 	e.activity(e.input, nil)
 	d.OnWorkflowTaskStarted(5 * time.Second)
 	must(e.err)

@@ -30,7 +30,8 @@ type environment struct {
 	now      time.Time
 }
 
-func (*environment) RegisterCancelHandler(func()) {}
+func (*environment) RegisterResetHandler(func(bindings.WorkflowResetInfo)) {}
+func (*environment) RegisterCancelHandler(func())                          {}
 func (e *environment) RegisterSignalHandler(h func(string, *commonpb.Payloads, *commonpb.Header) error) {
 	e.signal = h
 }

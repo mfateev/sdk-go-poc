@@ -54,7 +54,8 @@ func (*environment) GetLogger() log.Logger       { return nil }
 func (*environment) GetDataConverter() converter.DataConverter {
 	return converter.GetDefaultDataConverter()
 }
-func (*environment) RegisterCancelHandler(func()) {}
+func (*environment) RegisterResetHandler(func(bindings.WorkflowResetInfo)) {}
+func (*environment) RegisterCancelHandler(func())                          {}
 func (e *environment) RegisterUpdateHandler(fn func(string, string, *commonpb.Payloads, *commonpb.Header, bindings.UpdateCallbacks)) {
 	e.update = fn
 }

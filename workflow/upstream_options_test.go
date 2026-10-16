@@ -7,7 +7,9 @@ import (
 	"time"
 
 	enumspb "go.temporal.io/api/enums/v1"
+	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/temporal"
+	sdkworker "go.temporal.io/sdk/worker"
 )
 
 // Ports internal/workflow_test.go's all-fields checks. A new SDK option must
@@ -49,7 +51,8 @@ func TestUpstreamGetChildWorkflowOptions(t *testing.T) {
 		Memo: map[string]any{"memo": "value"}, SearchAttributes: map[string]any{"CustomKeywordField": "value"},
 		TypedSearchAttributes: temporal.NewSearchAttributes(temporal.NewSearchAttributeKeyInt64("CustomIntField").ValueSet(7)),
 		ParentClosePolicy:     enumspb.PARENT_CLOSE_POLICY_REQUEST_CANCEL, VersioningIntent: temporal.VersioningIntentDefault,
-		StaticSummary: "summary", StaticDetails: "details", Priority: Priority{PriorityKey: 1, FairnessKey: "key", FairnessWeight: 3.14},
+		VersioningOverride: &client.PinnedVersioningOverride{Version: sdkworker.WorkerDeploymentVersion{DeploymentName: "deployment", BuildID: "build"}},
+		StaticSummary:      "summary", StaticDetails: "details", Priority: Priority{PriorityKey: 1, FairnessKey: "key", FairnessWeight: 3.14},
 	}
 	assertOptionFieldsPopulated(t, options)
 	got := GetChildWorkflowOptions(WithChildWorkflowOptions(context.Background(), options))

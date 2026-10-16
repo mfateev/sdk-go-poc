@@ -43,6 +43,7 @@ type environment struct {
 
 func (*environment) RegisterUpdateHandler(func(string, string, *commonpb.Payloads, *commonpb.Header, bindings.UpdateCallbacks)) {
 }
+func (*environment) RegisterResetHandler(func(bindings.WorkflowResetInfo))                          {}
 func (*environment) RegisterCancelHandler(func())                                                   {}
 func (*environment) RegisterSignalHandler(func(string, *commonpb.Payloads, *commonpb.Header) error) {}
 func (e *environment) RegisterQueryHandler(h func(string, *commonpb.Payloads, *commonpb.Header) (*commonpb.Payloads, error)) {

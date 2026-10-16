@@ -1,0 +1,22 @@
+--- FAIL: TestNamedRandomStreamHistoryReplay (4.52s)
+    streams_test.go:31: checker build completed in 1.516286376s
+    streams_test.go:45: checker execution budget 2m0s: /tmp/isolate-checkers-2714309083/0-named-streams-replay [-streams-history /Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/sdk-go-poc/example/random/testdata/distributions-cache-0.json]
+    streams_test.go:45: checker execution budget 2m0s: /tmp/isolate-checkers-2714309083/0-named-streams-replay [-streams-history /Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/sdk-go-poc/example/random/testdata/distributions-cache-1000.json]
+    streams_test.go:45: checker execution budget 2m0s: /tmp/isolate-checkers-2714309083/0-named-streams-replay [-streams-history /Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/sdk-go-poc/example/random/testdata/named-cache-0.json]
+    streams_test.go:45: checker execution budget 2m0s: /tmp/isolate-checkers-2714309083/0-named-streams-replay [-streams-history /Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/sdk-go-poc/example/random/testdata/named-cache-1000.json]
+    streams_test.go:45: checker execution budget 2m0s: /tmp/isolate-checkers-2714309083/0-named-streams-replay [-streams-history /Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/sdk-go-poc/example/random/testdata/parent-cache-0.json]
+    streams_test.go:45: checker execution budget 2m0s: /tmp/isolate-checkers-2714309083/0-named-streams-replay [-streams-history /Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/sdk-go-poc/example/random/testdata/parent-cache-1000.json]
+    streams_test.go:45: checker execution budget 2m0s: /tmp/isolate-checkers-2714309083/0-named-streams-replay [-streams-history /Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/sdk-go-poc/example/random/testdata/reset-late-false-cache-0.json]
+    streams_test.go:48: named stream replay ../testdata/reset-late-false-cache-0.json procs=1: exit status 2
+        panic: reset or continue stream outputs changed on replay
+        
+        goroutine 1 [running]:
+        github.com/mfateev/sdk-go-poc/example/random/check.must(...)
+        	/Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/sdk-go-poc/example/random/check/main.go:87
+        github.com/mfateev/sdk-go-poc/example/random/check.main()
+        	/Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/sdk-go-poc/example/random/check/main.go:137 +0x4fc
+        main.main()
+        	_isolate_main.go:532 +0x1c
+FAIL
+FAIL	github.com/mfateev/sdk-go-poc/example/random/check	4.540s
+FAIL

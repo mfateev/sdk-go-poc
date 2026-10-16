@@ -1,6 +1,8 @@
 # Temporal SDK unit-test porting checklist
 
-Source checkout: `b87b0a1d5dda22d68ddb97237fdc42cd2492043f`. Runtime dependency: `go.temporal.io/sdk v1.49.0`, replaced by `github.com/mfateev/temporal-go-sdk v1.49.0-isolates.1.0.20261012175541-b87b0a1d5dda`.
+Source checkout: `b87b0a1d5dda22d68ddb97237fdc42cd2492043f`. Runtime dependency: `go.temporal.io/sdk v1.50.0`, replaced by `../temporal-go-sdk`.
+
+The source-test ledger remains a v1.49.0 baseline. Runtime validation uses v1.50.0; this ledger does not inventory new or changed tests on that newer SDK. Compare source tests against the baseline checkout above. Full compatibility with the newer SDK requires a separate inventory and behavioral review.
 
 This list inventories every named unit test and suite test method in the source checkout, including nested contrib modules. The separate `test/` integration module, testdata, generated non-test helpers, and build directories are excluded. Live dev-server scenarios found in contrib test files are listed and marked out of scope.
 

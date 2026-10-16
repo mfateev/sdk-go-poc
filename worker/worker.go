@@ -15,6 +15,7 @@ import (
 	"github.com/mfateev/sdk-go-poc/temporalbridge"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
+	"go.temporal.io/sdk/internalbindings"
 	goWorker "go.temporal.io/sdk/worker"
 	goWorkflow "go.temporal.io/sdk/workflow"
 )
@@ -33,11 +34,13 @@ type WorkflowReplayerOptions = goWorker.WorkflowReplayerOptions
 
 // New constructs a normal Temporal worker with isolate-aware registration.
 func New(c client.Client, taskQueue string, options Options) Worker {
-	return &isolateWorker{Worker: goWorker.New(c, taskQueue, options), workflows: activityAliases{disabled: options.DisableRegistrationAliasing}, activities: activityAliases{disabled: options.DisableRegistrationAliasing}, failWorkflowOnPanic: options.WorkflowPanicPolicy == goWorker.FailWorkflow}
+	return Wrap(goWorker.New(c, taskQueue, options), options)
 }
 
 // Wrap adds isolate registration to an existing worker. All lifecycle,
 // activity and service methods retain their SDK behavior.
+// Call before Start or Run. SDK worker plugins receive the wrapper as their
+// registry; custom worker implementations retain their own plugin wiring.
 // Pass the options used to construct the worker if they differ from defaults.
 // Isolate workflows require BlockWorkflow panic policy. Ordinary registrations
 // keep the underlying worker's policy and converter.
@@ -52,7 +55,9 @@ func Wrap(w Worker, options ...Options) Worker {
 	if len(options) == 1 {
 		opts = options[0]
 	}
-	return &isolateWorker{Worker: w, workflows: activityAliases{disabled: opts.DisableRegistrationAliasing}, activities: activityAliases{disabled: opts.DisableRegistrationAliasing}, failWorkflowOnPanic: opts.WorkflowPanicPolicy == goWorker.FailWorkflow}
+	wrapped := &isolateWorker{Worker: w, workflows: activityAliases{disabled: opts.DisableRegistrationAliasing}, activities: activityAliases{disabled: opts.DisableRegistrationAliasing}, failWorkflowOnPanic: opts.WorkflowPanicPolicy == goWorker.FailWorkflow}
+	internalbindings.SetWorkerPluginRegistry(w, wrapped)
+	return wrapped
 }
 
 type isolateWorker struct {
@@ -225,7 +230,11 @@ func (r *isolateReplayer) GetWorkflowResult(id string, result any) error {
 }
 
 func NewWorkflowReplayer() WorkflowReplayer {
-	return &isolateReplayer{WorkflowReplayer: goWorker.NewWorkflowReplayer()}
+	r, err := NewWorkflowReplayerWithOptions(WorkflowReplayerOptions{})
+	if err != nil {
+		panic(err)
+	}
+	return r
 }
 
 func NewWorkflowReplayerWithOptions(options WorkflowReplayerOptions) (WorkflowReplayer, error) {
@@ -233,7 +242,9 @@ func NewWorkflowReplayerWithOptions(options WorkflowReplayerOptions) (WorkflowRe
 	if err != nil {
 		return nil, err
 	}
-	return &isolateReplayer{WorkflowReplayer: r, workflows: activityAliases{disabled: options.DisableRegistrationAliasing}, activities: activityAliases{disabled: options.DisableRegistrationAliasing}}, nil
+	wrapped := &isolateReplayer{WorkflowReplayer: r, workflows: activityAliases{disabled: options.DisableRegistrationAliasing}, activities: activityAliases{disabled: options.DisableRegistrationAliasing}}
+	internalbindings.SetReplayerPluginRegistry(r, wrapped)
+	return wrapped, nil
 }
 
 func InterruptCh() <-chan any { return goWorker.InterruptCh() }

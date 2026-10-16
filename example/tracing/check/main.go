@@ -44,7 +44,8 @@ type environment struct {
 	signal             func(string, *commonpb.Payloads, *commonpb.Header) error
 }
 
-func (*environment) RegisterCancelHandler(func()) {}
+func (*environment) RegisterResetHandler(func(bindings.WorkflowResetInfo)) {}
+func (*environment) RegisterCancelHandler(func())                          {}
 func (e *environment) RegisterQueryHandler(fn func(string, *commonpb.Payloads, *commonpb.Header) (*commonpb.Payloads, error)) {
 	e.query = fn
 }

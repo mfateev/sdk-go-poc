@@ -33,12 +33,13 @@ type Feature struct {
 	Request     string `json:"request"`
 }
 type Manifest struct {
-	SourceCommit   string             `json:"source_commit"`
-	SDKVersion     string             `json:"sdk_version"`
-	SDKReplacement string             `json:"sdk_replacement"`
-	Files          map[string]string  `json:"files"`
-	Features       map[string]Feature `json:"features"`
-	Tests          []Entry            `json:"tests"`
+	SourceCommit     string             `json:"source_commit"`
+	SourceSDKVersion string             `json:"source_sdk_version,omitempty"`
+	SDKVersion       string             `json:"sdk_version"`
+	SDKReplacement   string             `json:"sdk_replacement"`
+	Files            map[string]string  `json:"files"`
+	Features         map[string]Feature `json:"features"`
+	Tests            []Entry            `json:"tests"`
 }
 
 func Load() (Manifest, error) {
@@ -155,8 +156,8 @@ func Audit(m Manifest, root, upstream string, requireNoBlocked bool) (map[string
 			if len(fields) >= 3 && fields[0] == "require" && fields[1] == "go.temporal.io/sdk" {
 				version = fields[2]
 			}
-			if len(fields) >= 5 && fields[0] == "replace" && fields[1] == "go.temporal.io/sdk" && fields[2] == "=>" {
-				replacement = strings.Join(fields[3:5], " ")
+			if len(fields) >= 4 && fields[0] == "replace" && fields[1] == "go.temporal.io/sdk" && fields[2] == "=>" {
+				replacement = strings.Join(fields[3:], " ")
 			}
 		}
 		if version != m.SDKVersion || replacement != m.SDKReplacement {

@@ -1,0 +1,2 @@
+2026/10/16 20:33:35 Writing full test logs to /tmp/reset-sdk-fresh-default/logs
+2026/10/16 20:33:35 Running /usr/local/go-bootstrap/bin/go in /Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/temporal-go-sdk/test with args [test -json -count 1 -race -v -timeout 15m -run ^TestWorkflowRandomTestSuite/TestReset ./... -- -using-cli-dev-server]

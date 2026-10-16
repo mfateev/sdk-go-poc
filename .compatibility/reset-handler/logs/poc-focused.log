@@ -1,0 +1,5 @@
+ok  	github.com/mfateev/sdk-go-poc/temporalbridge	(cached)
+ok  	github.com/mfateev/sdk-go-poc/workflow	0.018s
+ok  	github.com/mfateev/sdk-go-poc/worker	(cached)
+ok  	github.com/mfateev/sdk-go-poc/testsuite	4.413s
+ok  	github.com/mfateev/sdk-go-poc/internal/testports	0.137s

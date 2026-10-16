@@ -41,6 +41,7 @@ type environment struct {
 	info          sdkwf.Info
 	replay        bool
 	cancel        func()
+	reset         func(bindings.WorkflowResetInfo)
 	update        func(string, string, *commonpb.Payloads, *commonpb.Header, bindings.UpdateCallbacks)
 	query         func(string, *commonpb.Payloads, *commonpb.Header) (*commonpb.Payloads, error)
 	activity      bindings.ResultHandler
@@ -49,7 +50,8 @@ type environment struct {
 	completes     int
 }
 
-func (e *environment) RegisterCancelHandler(fn func()) { e.cancel = fn }
+func (e *environment) RegisterResetHandler(fn func(bindings.WorkflowResetInfo)) { e.reset = fn }
+func (e *environment) RegisterCancelHandler(fn func())                          { e.cancel = fn }
 func (e *environment) RegisterQueryHandler(fn func(string, *commonpb.Payloads, *commonpb.Header) (*commonpb.Payloads, error)) {
 	e.query = fn
 }

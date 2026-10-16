@@ -3,12 +3,12 @@ package temporalbridge
 import (
 	"fmt"
 	"isolate"
+	"strconv"
 
 	"github.com/mfateev/sdk-go-poc/internal/failurecodec"
 	"github.com/mfateev/sdk-go-poc/internal/failurewire"
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/converter"
-	bindings "go.temporal.io/sdk/internalbindings"
 	"go.temporal.io/sdk/temporal"
 	"google.golang.org/protobuf/proto"
 )
@@ -99,7 +99,7 @@ func (d *definition) prepareChildID(id string) string {
 	if _, contextAware := d.rootDataConverter().(converter.DataConverterWithSerializationContext); !contextAware {
 		return id
 	}
-	return bindings.GenerateChildWorkflowID(d.env)
+	return d.randomRunID + "_" + strconv.FormatInt(d.env.GenerateSequence(), 10)
 }
 
 // Convert every payload in the failure tree, including encrypted common

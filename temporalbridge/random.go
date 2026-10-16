@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/mfateev/sdk-go-poc/workflow"
-	bindings "go.temporal.io/sdk/internalbindings"
 
 	goWorkflow "go.temporal.io/sdk/workflow"
 )
@@ -30,14 +29,6 @@ func workflowRandomRunID(info *goWorkflow.Info) string {
 	return info.WorkflowExecution.RunID
 }
 
-func (d *definition) currentRandomRunID() string {
-	if runID := bindings.GetCurrentRunID(d.env); runID != "" {
-		return runID
-	}
-	// Synthetic environments may omit the SDK's private task identity.
-	return workflowRandomRunID(d.env.WorkflowInfo())
-}
-
 func (d *definition) controlBytes() []byte {
 	raw, err := json.Marshal(workflow.WorkflowControl{RandomRunID: d.randomRunID, Canceled: d.canceled})
 	if err != nil {
@@ -47,7 +38,7 @@ func (d *definition) controlBytes() []byte {
 }
 
 func (d *definition) updateRandomIdentity() {
-	runID := d.currentRandomRunID()
+	runID := d.pendingRandomRunID
 	if !d.started {
 		d.randomRunID = runID
 		return

@@ -1,0 +1,3 @@
+ok  	github.com/mfateev/sdk-go-poc/example/random/check	21.009s
+ok  	github.com/mfateev/sdk-go-poc/example/plugins/check	3.573s
+ok  	github.com/mfateev/sdk-go-poc/example/child/check	2.597s

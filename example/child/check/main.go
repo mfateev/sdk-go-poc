@@ -35,12 +35,14 @@ func (*environment) RegisterUpdateHandler(func(string, string, *commonpb.Payload
 func (*environment) RegisterQueryHandler(func(string, *commonpb.Payloads, *commonpb.Header) (*commonpb.Payloads, error)) {
 }
 func (*environment) RegisterSignalHandler(func(string, *commonpb.Payloads, *commonpb.Header) error) {}
+func (*environment) RegisterResetHandler(func(bindings.WorkflowResetInfo))                          {}
 func (e *environment) RegisterCancelHandler(fn func())                                              { e.cancelHandler = fn }
 func (*environment) WorkflowInfo() *goWorkflow.Info {
-	return &goWorkflow.Info{Namespace: "default", TaskQueueName: "child-check"}
+	return &goWorkflow.Info{Namespace: "default", TaskQueueName: "child-check", OriginalRunID: "synthetic-run"}
 }
-func (*environment) Now() time.Time        { return time.Date(2025, 1, 2, 0, 0, 0, 0, time.UTC) }
-func (*environment) GetLogger() log.Logger { return nil }
+func (e *environment) GenerateSequence() int64 { return int64(e.schedules + 1) }
+func (*environment) Now() time.Time            { return time.Date(2025, 1, 2, 0, 0, 0, 0, time.UTC) }
+func (*environment) GetLogger() log.Logger     { return nil }
 func (*environment) GetDataConverter() converter.DataConverter {
 	return converter.GetDefaultDataConverter()
 }

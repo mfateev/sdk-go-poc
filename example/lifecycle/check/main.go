@@ -40,7 +40,8 @@ type environment struct {
 func (e *environment) GetDataConverter() converter.DataConverter {
 	return converter.GetDefaultDataConverter()
 }
-func (e *environment) RegisterCancelHandler(fn func()) { e.cancel = fn }
+func (*environment) RegisterResetHandler(func(bindings.WorkflowResetInfo)) {}
+func (e *environment) RegisterCancelHandler(fn func())                     { e.cancel = fn }
 func (e *environment) RegisterSignalHandler(fn func(string, *commonpb.Payloads, *commonpb.Header) error) {
 	e.signal = fn
 }

@@ -169,6 +169,7 @@ type callState struct {
 
 type definition struct {
 	randomRunID          string
+	pendingRandomRunID   string
 	cancelDelivered      bool
 	dynamic              bool
 	dynamicQuery         *workflow.QueryHandlerOptions
@@ -236,6 +237,12 @@ func (d *definition) Execute(env bindings.WorkflowEnvironment, header *commonpb.
 		return
 	}
 	d.env, d.input = env, input
+	d.pendingRandomRunID = workflowRandomRunID(env.WorkflowInfo())
+	env.RegisterResetHandler(func(info bindings.WorkflowResetInfo) {
+		if !d.completed && !d.closed {
+			d.pendingRandomRunID = info.NewRunID
+		}
+	})
 	var headerErr error
 	d.header, headerErr = headerwire.Encode(header)
 	if headerErr != nil {

@@ -46,12 +46,13 @@ type environment struct {
 func (*environment) WorkflowInfo() *sdkwf.Info {
 	return &sdkwf.Info{WorkflowType: sdkwf.Type{Name: "Workflow"}, WorkflowExecution: sdkwf.Execution{ID: "typed-signals", RunID: "run"}, OriginalRunID: "run", TaskQueueName: "typed-signals"}
 }
-func (*environment) Now() time.Time                              { return time.Unix(1700000000, 0) }
-func (e *environment) GetDataConverter() converter.DataConverter { return e.dc }
-func (e *environment) IsReplaying() bool                         { return e.replay }
-func (e *environment) GetLogger() log.Logger                     { return e.diagnostics }
-func (e *environment) GetMetricsHandler() client.MetricsHandler  { return e.diagnostics }
-func (e *environment) RegisterCancelHandler(fn func())           { e.cancel = fn }
+func (*environment) Now() time.Time                                        { return time.Unix(1700000000, 0) }
+func (e *environment) GetDataConverter() converter.DataConverter           { return e.dc }
+func (e *environment) IsReplaying() bool                                   { return e.replay }
+func (e *environment) GetLogger() log.Logger                               { return e.diagnostics }
+func (e *environment) GetMetricsHandler() client.MetricsHandler            { return e.diagnostics }
+func (*environment) RegisterResetHandler(func(bindings.WorkflowResetInfo)) {}
+func (e *environment) RegisterCancelHandler(fn func())                     { e.cancel = fn }
 func (*environment) RegisterQueryHandler(func(string, *commonpb.Payloads, *commonpb.Header) (*commonpb.Payloads, error)) {
 }
 func (*environment) RegisterUpdateHandler(func(string, string, *commonpb.Payloads, *commonpb.Header, bindings.UpdateCallbacks)) {

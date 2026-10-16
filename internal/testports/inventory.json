@@ -1,6 +1,6 @@
 {
   "source_commit": "b87b0a1d5dda22d68ddb97237fdc42cd2492043f",
-  "sdk_version": "v1.49.0",
+  "sdk_version": "v1.50.0",
   "files": {
     "contrib/aws/lambdaworker/defaults_test.go": "d6fd4a3c28cfd4816980aca57afce45f4ebebc092be2a16beb9232192c44af03",
     "contrib/aws/lambdaworker/options_test.go": "7555f7410af6aa1e1c7b0ffeea0b0c0c791867bfe3bc819a812b94bb4cfc9958",
@@ -10595,5 +10595,6 @@
       "reason": "The host SDK still owns this implementation and its unit tests; worker.Worker/Options alias and embed upstream types, and temporalbridge delegates through WorkflowEnvironment. No duplicate native implementation to port."
     }
   ],
-  "sdk_replacement": "github.com/mfateev/temporal-go-sdk v1.49.0-isolates.1.0.20261012175541-b87b0a1d5dda"
+  "sdk_replacement": "../temporal-go-sdk",
+  "source_sdk_version": "v1.49.0"
 }

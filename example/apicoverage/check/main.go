@@ -37,7 +37,8 @@ func (*environment) RegisterUpdateHandler(func(string, string, *commonpb.Payload
 }
 func (*environment) RegisterQueryHandler(func(string, *commonpb.Payloads, *commonpb.Header) (*commonpb.Payloads, error)) {
 }
-func (*environment) RegisterCancelHandler(func()) {}
+func (*environment) RegisterResetHandler(func(bindings.WorkflowResetInfo)) {}
+func (*environment) RegisterCancelHandler(func())                          {}
 func (e *environment) RegisterSignalHandler(fn func(string, *commonpb.Payloads, *commonpb.Header) error) {
 	e.signal = fn
 }

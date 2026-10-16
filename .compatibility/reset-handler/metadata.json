@@ -1,0 +1,51 @@
+{
+  "upstream": "e43cbba8d80f064ca93e4a8ebd9cc2e6dd15d024",
+  "sdk_revision": "d9ed5863862197c5b490c43cd4ba7b8f6b586153",
+  "compiler_revision": "10678846d0c1763458a4e0c6bcb996bb740288d9",
+  "poc_parent": "9568519add8d7e2050d6cd31ce1ddc9cb189644b",
+  "source_state": "POC changes uncommitted at test execution; SDK/compiler commit only their tested source changes",
+  "sdk_source": {
+    "Path": "go.temporal.io/sdk",
+    "Version": "v1.50.0",
+    "Replace": {
+      "Path": "../temporal-go-sdk",
+      "Dir": "/Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/temporal-go-sdk",
+      "GoMod": "/Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/temporal-go-sdk/go.mod",
+      "GoVersion": "1.26.0"
+    },
+    "Dir": "/Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/temporal-go-sdk",
+    "GoMod": "/Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/temporal-go-sdk/go.mod",
+    "GoVersion": "1.26.0"
+  },
+  "exit_codes": {
+    "poc_all": 0,
+    "poc_focused": 0,
+    "native_live": 0,
+    "sdk_check": 0,
+    "sdk_unit": 0,
+    "sdk_multiple_resets": 0,
+    "sdk_integration_default": 0,
+    "sdk_integration_cache0": 0,
+    "compiler_policy": 0,
+    "negative_control": 1,
+    "strict_compatibility_gate": 1
+  },
+  "log_sha256": {
+    "logs/poc-all.log": "394cb31ca716e8caf403b20ad7620bacd5f7a36782784f2f48cfacbbc3614ff8",
+    "logs/poc-focused.log": "360bdd04a9f345755359e6bd0b9f67cc85779b273391444a8d078362b34107f2",
+    "logs/native-live.log": "647d44d3f2ece62878f226308183706c67ee6afef5395c97124c768e20782139",
+    "logs/sdk-check.log": "978d080a10d4d94ed55050c7b6ccda47fefaa969fc8bcb477884558800fe0ec5",
+    "logs/sdk-unit.log": "cb333754247069dd1f1a4216dd2974b8e05ed002eef23fd9e1fbc27b055aa5d9",
+    "logs/sdk-reset-multiple.log": "324218871fdb6cd25629985136c6addaf5ba8307ca588b313e8ee308da3314bb",
+    "logs/sdk-integration-default.jsonl": "fc1ec5e8de0a74e00cc772c10244a9708ead0a92616ea626e2cfc1b8a9d5d101",
+    "logs/sdk-integration-cache0.jsonl": "19b1a3cb3b07f4a281232a4db653f2452168031d2245ce0832f70f570239ab83",
+    "logs/sdk-integration-default.log": "254b8ff5add0806cf8b97f55e6e9544e99dbb735f6c6683e12bd57f00203f56d",
+    "logs/sdk-integration-cache0.log": "370b59827ef939ecede37488a79ed5bfd4c09fdd7a20202d83e6fdf2c97f8e27",
+    "logs/compiler-policy.log": "6be5bac12c1bb7e0f0392202de6a8633c8b5db9b4c1222af9f147c8571a8b911",
+    "logs/negative-control.log": "ea7f754c07fe1f9eb91a7a31157f1cfbdee6cc9eae6310fff066e0308c2f0d68",
+    "logs/initial-sdk-integration-collision-default.log": "5cffcf743056e2902c37692d34c923c0982fe74eb149be1c934ade89b96dadbf",
+    "logs/initial-sdk-integration-collision-cache0.log": "9fe161c2544cb12414a5144f796f65050d7040b58e1b344453f1f23cd4b0c3d2",
+    "logs/strict-gate.log": "cb19bcfe1eb80d07224fa70820fe84f94ef46202b6e74f1341d661841a01698d",
+    "logs/strict-gate.exit": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+  }
+}

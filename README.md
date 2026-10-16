@@ -38,6 +38,11 @@ git clone --branch task/modify-go-runtime-for-isolates https://github.com/mfatee
 cd sdk-go-poc
 ```
 
+This development branch uses a sibling `../temporal-go-sdk` checkout synchronized
+with official upstream main and containing the bridge integration changes.
+Unmodified upstream does not yet contain those additions. The repository's local
+module replacement selects that checkout.
+
 Choose a tgo release compatible with the SDK version you use. For changes on
 the development branch that are newer than the latest release, use the source
 setup guide above.
@@ -82,7 +87,7 @@ For more examples, follow the
 From your application's Go module, use these dependency versions together:
 
 ```sh
-tgo mod edit -replace=go.temporal.io/sdk=github.com/mfateev/temporal-go-sdk@v1.49.0-isolates.1.0.20261012175541-b87b0a1d5dda
+tgo mod edit -replace=go.temporal.io/sdk=/absolute/path/to/temporal-go-sdk
 tgo get github.com/mfateev/sdk-go-poc@task/modify-go-runtime-for-isolates
 ```
 

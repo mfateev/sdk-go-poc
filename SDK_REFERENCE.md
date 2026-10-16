@@ -767,6 +767,23 @@ Marked workflow builds make the compiler heap checks mandatory. The supported
 default converter and native workflow operations have ownership regression
 coverage; custom serializers are constructed under the isolate owner as described below.
 
+## Plugin workflow registration
+
+`worker.New` supplies its native registration wrapper to worker plugins,
+including worker plugins inherited from `client.Options.Plugins`. Registrations
+made through `PluginStartWorkerOptions.WorkerRegistry` follow the same native
+adaptation and alias bookkeeping as direct calls on the returned worker. Host
+registration callbacks observe the adapted registration once.
+
+`worker.Wrap` installs the same registry routing on SDK-created workers. Call it
+before `Start` or `Run`; custom worker implementations retain their own plugin
+wiring. Replayers created by this package similarly supply their native wrapper
+through `PluginReplayWorkflowOptions.WorkflowReplayRegistry`.
+
+The [plugin checker](example/plugins/README.md) exercises inherited and explicit
+plugins, named and dynamic native workflows, live execution and replay with
+workflow cache sizes 1000 and 0.
+
 ## Workflow effects and logging
 
 Isolate workflows reject environment/configuration reads, file and network I/O,
@@ -1445,17 +1462,26 @@ internal transport metadata and does not add history events or alter Payloads.
 Host and workflow code must be rebuilt together; mixing an old unversioned bridge
 with a versioned workflow is rejected.
 
-The SDK dependency is upstream `go.temporal.io/sdk v1.49.0`, replaced by the
-audited [`mfateev/temporal-go-sdk`](https://github.com/mfateev/temporal-go-sdk/tree/task/modify-go-runtime-for-isolates)
-revision **`v1.49.0-isolates.1.0.20261012175541-b87b0a1d5dda`**. Go downloads it
-automatically; a fourth local checkout
-is unnecessary. The compiler accepts only this exact replacement or the original
-upstream baseline. Other versions, local replacements, nested modules and vendor
-sources require a source audit before receiving metadata privileges. The fork's
-binding contract is **1** and exposes previous failures, reset-aware task run
-identity and child IDs,
-memo converter policy and copied typed search-attribute updates, including unset
-markers. Ordinary SDK workflows keep their existing execution path.
+The SDK dependency is `go.temporal.io/sdk v1.50.0`, using the sibling
+`../temporal-go-sdk` development checkout synchronized with official upstream main.
+That checkout carries the proposed bridge integration changes; unmodified
+upstream does not yet expose all of them. Application modules must also replace
+`go.temporal.io/sdk` with that checkout. The compiler accepts official SDK module
+revisions and filesystem checkouts, while retaining the owning-module check and
+rejecting replacement modules, nested modules and vendored sources. Protobuf,
+Temporal API and telemetry metadata dependencies retain their separate version
+checks. The additional binding contract is **1** and exposes previous failures,
+memo converter policy, copied typed search-attribute updates and plugin registry
+overrides. Ordinary SDK workflows keep their existing execution path.
+
+The bridge registers `WorkflowEnvironment.RegisterResetHandler` during startup.
+Copied reset metadata contains `NewRunID`, `BaseRunID` and `EventID`. The SDK calls
+the handler when history processing encounters a reset, after updating its own
+identity and random streams. The bridge queues the identity and delivers it to
+the isolate at the next workflow-task boundary. Initialization uses OriginalRunID;
+the public execution RunID can already identify the reset execution while replay
+is still before the reset point. Named streams and generated child IDs use this
+tracked identity without reading private SDK fields.
 
 `worker.GetIntegrationInfo()` reports these contracts, the toolchain, actual SDK
 module/version/checksum and application VCS revision when embedded by Go.

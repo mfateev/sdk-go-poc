@@ -1,0 +1,39 @@
+2026/10/16 20:32:31 Writing full test logs to /Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/temporal-go-sdk/.build/test-logs
+2026/10/16 20:32:31 Running /usr/local/go-bootstrap/bin/go in /Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/temporal-go-sdk/test with args [test -json -count 1 -race -v -timeout 15m -run ^TestWorkflowRandomTestSuite/TestReset ./... -- -using-cli-dev-server]
+
+============================== TEST FAILURE REPORT ==============================
+
+Failed tests (1):
+	go.temporal.io/sdk/test / TestWorkflowRandomTestSuite/TestResetReproducesValues
+
+--- Go test output ---
+
+--- go.temporal.io/sdk/test / TestWorkflowRandomTestSuite/TestResetReproducesValues ---
+=== RUN   TestWorkflowRandomTestSuite/TestResetReproducesValues
+2026/10/16 20:32:37 INFO  Started Worker Namespace integration-test-namespace TaskQueue tq-22cb8de1-64d9-4572-b78a-b0c58c1b5721-TestWorkflowRandomTestSuite/TestResetReproducesValues WorkerID 2462907@modify-go-runtime-for-isolates@
+    workflow_random_test.go:194: 
+        	Error Trace:	/Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/temporal-go-sdk/test/workflow_random_test.go:194
+        	            				/usr/local/go-bootstrap/src/runtime/asm_arm64.s:1447
+        	Error:      	Received unexpected error:
+        	            	workflow execution error (type: , workflowID: TestWorkflowRandomTestSuite/TestResetReproducesValues, runID: 48771ba0-2c36-4df7-a1ff-c05785ab69c1): terminated
+        	Test:       	TestWorkflowRandomTestSuite/TestResetReproducesValues
+2026/10/16 20:32:37 INFO  Stopped Worker Namespace integration-test-namespace TaskQueue tq-22cb8de1-64d9-4572-b78a-b0c58c1b5721-TestWorkflowRandomTestSuite/TestResetReproducesValues WorkerID 2462907@modify-go-runtime-for-isolates@
+    --- FAIL: TestWorkflowRandomTestSuite/TestResetReproducesValues (0.23s)
+
+
+--- Related dev server output ---
+None.
+
+--- Complete logs ---
+- Go test: /Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/temporal-go-sdk/.build/test-logs/go-test.log
+- Go test JSON: /Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/temporal-go-sdk/.build/test-logs/go-test.json
+- Combined Go and dev server: /Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/temporal-go-sdk/.build/test-logs/combined.log
+- Dev server: /Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/temporal-go-sdk/.build/test-logs/dev-server.log
+
+--- Rerun failed tests ---
+From internal/cmd/build:
+	go run . integration-test -dev-server -run "^TestWorkflowRandomTestSuite/TestResetReproducesValues$"
+
+============================ END TEST FAILURE REPORT ============================
+2026/10/16 20:32:38 integration test failed: exit status 1
+exit status 1

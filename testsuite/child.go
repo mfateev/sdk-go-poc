@@ -2,6 +2,7 @@ package testsuite
 
 import (
 	"errors"
+	"strconv"
 	"sync"
 
 	commonpb "go.temporal.io/api/common/v1"
@@ -78,7 +79,7 @@ func (h testHost) ExecuteChildWorkflow(params bindings.ExecuteWorkflowParams, ca
 		return
 	}
 	if params.WorkflowID == "" {
-		params.WorkflowID = bindings.GenerateChildWorkflowID(h.WorkflowEnvironment)
+		params.WorkflowID = h.WorkflowInfo().OriginalRunID + "_" + strconv.FormatInt(h.GenerateSequence(), 10)
 	}
 	start := &childStart{callback: started}
 	h.owner.mu.Lock()

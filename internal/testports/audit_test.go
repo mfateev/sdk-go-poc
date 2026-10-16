@@ -27,6 +27,22 @@ func TestTemporalUnitTestMigrationList(t *testing.T) {
 	t.Logf("Temporal test dispositions: %v", counts)
 }
 
+func TestAuditTracksLocalSDKReplacement(t *testing.T) {
+	root := t.TempDir()
+	mod := "module example.org/probe\n\ngo 1.26\n\nrequire go.temporal.io/sdk v1.50.0\nreplace go.temporal.io/sdk => ../temporal-go-sdk\n"
+	if err := os.WriteFile(filepath.Join(root, "go.mod"), []byte(mod), 0600); err != nil {
+		t.Fatal(err)
+	}
+	m := Manifest{SourceCommit: "baseline", SDKVersion: "v1.50.0", SDKReplacement: "../temporal-go-sdk", Files: map[string]string{"source_test.go": "hash"}, Tests: []Entry{{Source: "source_test.go", Name: "TestSource", Status: "retained", Reason: "baseline assertion"}}}
+	if _, err := Audit(m, root, "", false); err != nil {
+		t.Fatal(err)
+	}
+	m.SDKReplacement = "../another-sdk"
+	if _, err := Audit(m, root, "", false); err == nil || !strings.Contains(err.Error(), "SDK dependency changed") {
+		t.Fatalf("replacement drift accepted: %v", err)
+	}
+}
+
 func TestAuditRejectsUnfinishedOrBrokenCoverage(t *testing.T) {
 	root := t.TempDir()
 	m := Manifest{SourceCommit: "revision", SDKVersion: "version", Files: map[string]string{"source_test.go": "hash"}}

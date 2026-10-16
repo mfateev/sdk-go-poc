@@ -52,6 +52,7 @@ func TestLifecycleFailuresDoNotCompleteExecution(t *testing.T) {
 type lifecycleEnvironment struct {
 	activityEnvironment
 	cancelHandler func()
+	resetHandler  func(bindings.WorkflowResetInfo)
 	signalHandler func(string, *commonpb.Payloads, *commonpb.Header) error
 	queryHandler  func(string, *commonpb.Payloads, *commonpb.Header) (*commonpb.Payloads, error)
 }
@@ -77,6 +78,9 @@ func TestEarlyQueryReturnsErrorWithoutWorkflowTaskFailure(t *testing.T) {
 }
 
 func (e *lifecycleEnvironment) RegisterCancelHandler(fn func()) { e.cancelHandler = fn }
+func (e *lifecycleEnvironment) RegisterResetHandler(fn func(bindings.WorkflowResetInfo)) {
+	e.resetHandler = fn
+}
 func (e *lifecycleEnvironment) RegisterSignalHandler(fn func(string, *commonpb.Payloads, *commonpb.Header) error) {
 	e.signalHandler = fn
 }

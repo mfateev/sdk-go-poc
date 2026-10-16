@@ -32,10 +32,11 @@ func (*resourceEnvironment) Now() time.Time { return time.Unix(1700000000, 0) }
 func (*resourceEnvironment) WorkflowInfo() *goWorkflow.Info {
 	return &goWorkflow.Info{WorkflowExecution: goWorkflow.Execution{ID: "resource-test", RunID: "run"}, WorkflowType: goWorkflow.Type{Name: "ResourceWorkflow"}}
 }
-func (*resourceEnvironment) IsReplaying() bool                    { return false }
-func (*resourceEnvironment) GetLogger() log.Logger                { return resourceLogger{} }
-func (e *resourceEnvironment) Complete(*commonpb.Payloads, error) { e.completes++ }
-func (e *resourceEnvironment) RegisterCancelHandler(fn func())    { e.cancel = fn }
+func (*resourceEnvironment) IsReplaying() bool                                     { return false }
+func (*resourceEnvironment) GetLogger() log.Logger                                 { return resourceLogger{} }
+func (e *resourceEnvironment) Complete(*commonpb.Payloads, error)                  { e.completes++ }
+func (*resourceEnvironment) RegisterResetHandler(func(bindings.WorkflowResetInfo)) {}
+func (e *resourceEnvironment) RegisterCancelHandler(fn func())                     { e.cancel = fn }
 func (e *resourceEnvironment) RegisterSignalHandler(fn func(string, *commonpb.Payloads, *commonpb.Header) error) {
 	e.signal = fn
 }
