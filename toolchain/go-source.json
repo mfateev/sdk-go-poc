@@ -1,0 +1,5 @@
+{
+  "repository": "https://github.com/mfateev/golang-go.git",
+  "revision": "0bba55122e",
+  "bootstrap": "1.26.7"
+}
