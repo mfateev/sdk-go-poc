@@ -1,0 +1,96 @@
+name: Native workflow integration
+
+on:
+  push:
+    branches: [task/modify-go-runtime-for-isolates]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: isolate-integration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-replay:
+    strategy:
+      fail-fast: true
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm, macos-15, macos-15-intel]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: sdk-go-poc
+      - name: Read matching source revisions
+        id: sources
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, os
+          pin = json.load(open('sdk-go-poc/toolchain/go-source.json'))
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              for key in ('revision', 'temporal_sdk_revision', 'samples_revision'):
+                  print(f'{key}={pin[key]}', file=output)
+          PY
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: mfateev/golang-go
+          ref: ${{ steps.sources.outputs.revision }}
+          path: golang-go
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: mfateev/temporal-go-sdk
+          ref: ${{ steps.sources.outputs.temporal_sdk_revision }}
+          path: temporal-go-sdk
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: mfateev/samples-go-poc
+          ref: ${{ steps.sources.outputs.samples_revision }}
+          path: samples-go-poc
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: '1.26.7'
+          cache: false
+      - name: Build the pinned compiler and SDK driver
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GOROOT_BOOTSTRAP="$(GOEXPERIMENT= go env GOROOT)"
+          export GOCACHE="$RUNNER_TEMP/isolate-go-cache"
+          echo "GOCACHE=$GOCACHE" >> "$GITHUB_ENV"
+          echo "TGO_GOROOT=$GITHUB_WORKSPACE/golang-go" >> "$GITHUB_ENV"
+          python3 sdk-go-poc/toolchain/build.py --source golang-go --local
+      - name: Core conformance, race and lock order
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd golang-go
+          ./bin/go test -failfast -short runtime isolate internal/isolatebridge internal/isolatepolicy go/build internal/trace context time sync iter reflect internal/runtime/maps math math/rand math/rand/v2
+          ./bin/go test -failfast -race runtime isolate internal/isolatebridge -run 'TestIsolate|TestLifecycle|TestKill|TestDeterministic|TestOwnershipFault' -count=1
+          GOEXPERIMENT=isolates,staticlockranking ./bin/go test -failfast -short runtime isolate internal/isolatebridge -run 'TestIsolate|TestLifecycle|TestKill|TestDeterministic|TestOwnershipFault' -count=1
+          ./bin/go test -failfast -timeout=15m cmd/go -run 'TestIsolate|TestScript/.*isolate' -count=1
+      - name: SDK, saved histories and samples
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd sdk-go-poc
+          ../golang-go/bin/tgo test -failfast -timeout=20m ./...
+          ../golang-go/bin/tgo build -o "$RUNNER_TEMP/isolate-driver" ./example/driver
+          "$RUNNER_TEMP/isolate-driver"
+          for probe in protobufvalues converter query update child apicoverage tracing; do
+            ../golang-go/bin/tgo test -race -failfast -count=1 -timeout=5m "./example/$probe/check"
+          done
+          ../golang-go/bin/tgo build -o "$RUNNER_TEMP/isolate-replay" ./example/determinism/check
+          for procs in 1 2 8; do
+            for cpu in default disabled; do
+              if [ "$cpu" = disabled ]; then export GODEBUG=cpu.all=off; else unset GODEBUG; fi
+              GOMAXPROCS="$procs" TZ=America/Los_Angeles "$RUNNER_TEMP/isolate-replay"
+            done
+          done
+          cd ../samples-go-poc
+          ../golang-go/bin/tgo test -failfast -timeout=20m ./...

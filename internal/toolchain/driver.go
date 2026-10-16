@@ -20,6 +20,7 @@ type Module struct {
 }
 
 type Package struct {
+	overlay                        map[string]string
 	ImportPath, Name, Dir, ForTest string
 	Standard, DepOnly              bool
 	GoFiles, CgoFiles, Imports     []string
@@ -102,8 +103,23 @@ func Main(args []string) int {
 		}
 		args = args[1:]
 	}
+	if len(args) > 2 && args[1] == "-C" {
+		if err := os.Chdir(args[2]); err != nil {
+			return fail(err)
+		}
+		args = append([]string{args[0]}, args[3:]...)
+	} else if len(args) > 1 && strings.HasPrefix(args[1], "-C=") {
+		if err := os.Chdir(strings.TrimPrefix(args[1], "-C=")); err != nil {
+			return fail(err)
+		}
+		args = append([]string{args[0]}, args[2:]...)
+	}
 	if len(args) == 0 || args[0] != "build" && args[0] != "test" && args[0] != "run" {
 		return execute(goCommand, args, env)
+	}
+	env, err = selectExperiment(goCommand, env)
+	if err != nil {
+		return fail(err)
 	}
 	listArgs, err := listArguments(args)
 	if err != nil {
@@ -122,6 +138,13 @@ func Main(args []string) int {
 	packages, err := decodePackages(&output)
 	if err != nil {
 		return fail(err)
+	}
+	overlay, err := readOverlay(goCommand, args, env)
+	if err != nil {
+		return fail(err)
+	}
+	for _, p := range packages {
+		p.overlay = overlay
 	}
 	functions, err := discoverIsolateFunctions(packages)
 	if err != nil {
@@ -361,4 +384,117 @@ func packageKey(p *Package) string {
 		return p.ImportPath + " [" + p.ForTest + ".test]"
 	}
 	return p.ImportPath
+}
+
+// Select the coordinated compiler/runtime experiment for both installed and
+// local-source toolchains. A missing compiler feature fails before discovery.
+func selectExperiment(goCommand string, env []string) ([]string, error) {
+	if slices.Contains(strings.Split(os.Getenv("GOEXPERIMENT"), ","), "noisolates") {
+		return nil, errors.New("isolate builds require GOEXPERIMENT=isolates; remove noisolates")
+	}
+	query := exec.Command(goCommand, "env", "GOEXPERIMENT")
+	query.Env = env
+	output, err := query.Output()
+	if err != nil {
+		return nil, fmt.Errorf("cannot inspect isolate toolchain experiments: %w", err)
+	}
+	var experiments []string
+	for _, entry := range strings.Split(strings.TrimSpace(string(output)), ",") {
+		if entry != "" && entry != "isolates" && entry != "noisolates" {
+			experiments = append(experiments, entry)
+		}
+	}
+	experiments = append(experiments, "isolates")
+	env = append(env, "GOEXPERIMENT="+strings.Join(experiments, ","))
+	query = exec.Command(goCommand, "env", "GOEXPERIMENT")
+	query.Env = env
+	output, err = query.CombinedOutput()
+	if err != nil || !slices.Contains(strings.Split(strings.TrimSpace(string(output)), ","), "isolates") {
+		return nil, fmt.Errorf("toolchain does not support GOEXPERIMENT=isolates; rebuild the pinned Go fork: %s", strings.TrimSpace(string(output)))
+	}
+	return env, nil
+}
+
+func (p *Package) readSource(path string) ([]byte, error) {
+	if replacement, ok := p.overlay[path]; ok {
+		return os.ReadFile(replacement)
+	}
+	return os.ReadFile(path)
+}
+
+func readOverlay(goCommand string, args, env []string) (map[string]string, error) {
+	command := exec.Command(goCommand, "env", "GOFLAGS")
+	command.Env = env
+	output, err := command.Output()
+	if err != nil {
+		return nil, err
+	}
+	// Overlay filenames in GOFLAGS follow Go's quoted flag-list syntax.
+	flags, err := splitQuoted(strings.TrimSpace(string(output)))
+	if err != nil {
+		return nil, err
+	}
+	flags = append(flags, args[1:]...)
+	filename := ""
+	for i := 0; i < len(flags); i++ {
+		if flags[i] == "-overlay" && i+1 < len(flags) {
+			i++
+			filename = flags[i]
+		} else if strings.HasPrefix(flags[i], "-overlay=") {
+			filename = strings.TrimPrefix(flags[i], "-overlay=")
+		}
+	}
+	if filename == "" {
+		return nil, nil
+	}
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	var config struct{ Replace map[string]string }
+	if err := json.Unmarshal(data, &config); err != nil {
+		return nil, err
+	}
+	result := make(map[string]string, len(config.Replace))
+	for original, replacement := range config.Replace {
+		original, err = filepath.Abs(original)
+		if err != nil {
+			return nil, err
+		}
+		if replacement != "" {
+			replacement, err = filepath.Abs(replacement)
+			if err != nil {
+				return nil, err
+			}
+		}
+		result[original] = replacement
+	}
+	return result, nil
+}
+
+func splitQuoted(input string) ([]string, error) {
+	var result []string
+	for len(input) > 0 {
+		input = strings.TrimLeft(input, " \t\r\n")
+		if input == "" {
+			break
+		}
+		if input[0] == '\'' || input[0] == '"' {
+			quote := input[0]
+			end := strings.IndexByte(input[1:], quote)
+			if end < 0 {
+				return nil, errors.New("unterminated quote in GOFLAGS")
+			}
+			result = append(result, input[1:end+1])
+			input = input[end+2:]
+		} else {
+			end := strings.IndexAny(input, " \t\r\n")
+			if end < 0 {
+				end = len(input)
+			}
+			result = append(result, input[:end])
+			input = input[end:]
+		}
+	}
+	return result, nil
 }

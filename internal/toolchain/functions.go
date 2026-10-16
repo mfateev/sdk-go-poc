@@ -15,8 +15,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-
-	"os"
 )
 
 type isolateFunction struct {
@@ -42,7 +40,7 @@ func discoverIsolateFunctions(hosts []*Package) ([]isolateFunction, error) {
 		}
 		for _, file := range slices.Concat(p.GoFiles, p.CgoFiles) {
 			path := filepath.Join(p.Dir, file)
-			data, err := os.ReadFile(path)
+			data, err := p.readSource(path)
 			if err != nil {
 				return nil, err
 			}

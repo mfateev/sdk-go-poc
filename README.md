@@ -16,12 +16,12 @@ supports macOS and Linux on arm64 and amd64 and does not require an existing
 Go installation.
 
 The download commands require a published
-[tgo release](https://github.com/mfateev/golang-go/releases). Until the first
+[tgo release](https://github.com/mfateev/sdk-go-poc/releases). Until the first
 release is available, follow the
 [source setup guide](https://github.com/mfateev/samples-go-poc/blob/task/modify-go-runtime-for-isolates/README.md#1-install-tgo-on-linux-or-macos).
 
 ```sh
-curl -fsSL https://github.com/mfateev/golang-go/releases/latest/download/install.sh -o install-tgo.sh
+curl -fsSL https://github.com/mfateev/sdk-go-poc/releases/latest/download/install.sh -o install-tgo.sh
 sh install-tgo.sh
 export PATH="$HOME/.local/bin:$PATH"
 tgo version
@@ -29,7 +29,7 @@ tgo version
 
 Add the PATH line to your shell startup file so new terminals can find `tgo`.
 For a specific version, a custom installation directory, or Homebrew, see the
-[installation guide](https://github.com/mfateev/golang-go/blob/task/modify-go-runtime-for-isolates/misc/tgo/README.md).
+[installation guide](https://github.com/mfateev/sdk-go-poc/blob/task/modify-go-runtime-for-isolates/toolchain/DISTRIBUTION.md).
 
 ### Get the SDK
 
@@ -43,9 +43,18 @@ with official upstream main and containing the bridge integration changes.
 Unmodified upstream does not yet contain those additions. The repository's local
 module replacement selects that checkout.
 
-Choose a tgo release compatible with the SDK version you use. For changes on
-the development branch that are newer than the latest release, use the source
-setup guide above.
+The SDK owns the `tgo` driver, source pin, installers and release jobs. To build
+from source with Go 1.26.7 or newer and Python 3.11+:
+
+```sh
+GOROOT_BOOTSTRAP=/path/to/bootstrap/go python3 toolchain/build.py --output /path/to/new-toolchain
+export PATH="/path/to/new-toolchain/bin:$PATH"
+```
+
+The output directory must be empty. To build a local Go fork checkout in place,
+use `python3 toolchain/build.py --source /path/to/golang-go --local` instead.
+See [toolchain development](toolchain/README.md) for the build contract and source
+revision selection. The driver selects and verifies `GOEXPERIMENT=isolates`.
 
 ### Run your first workflow
 

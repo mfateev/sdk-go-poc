@@ -1,6 +1,7 @@
 package toolchain
 
 import (
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -97,4 +98,87 @@ func TestMetadataSources(t *testing.T) {
 			t.Fatalf("%s: %v\n%s", line, err, output)
 		}
 	}
+}
+
+func TestDistributionCLI(t *testing.T) {
+	root := os.Getenv("TGO_GOROOT")
+	if root == "" {
+		t.Skip("set TGO_GOROOT to run toolchain integration checks")
+	}
+	root, err := filepath.Abs(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	executable, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	directory := filepath.Join(t.TempDir(), "application with spaces")
+	fixture := "../../toolchain/testdata/distribution"
+	err = filepath.WalkDir(fixture, func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		relative, err := filepath.Rel(fixture, path)
+		if err != nil {
+			return err
+		}
+		target := filepath.Join(directory, relative)
+		if entry.IsDir() {
+			return os.MkdirAll(target, 0755)
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(target, data, 0600)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	run := func(args ...string) string {
+		t.Helper()
+		command := exec.Command(executable, append([]string{"-test.run=^TestDriverHelper$", "--"}, args...)...)
+		command.Env = append(os.Environ(), "TGO_TEST_DRIVER_HELPER=1", "TGO_GOROOT="+root, "GOROOT=/does-not-exist", "GOWORK=off", "GOFLAGS=")
+		output, err := command.CombinedOutput()
+		if err != nil {
+			t.Fatalf("%v: %v\n%s", args, err, output)
+		}
+		return string(output)
+	}
+	output := run("-C", directory, "run", "./host")
+	if !strings.Contains(output, "tgo distribution works") {
+		t.Fatal(output)
+	}
+	if output := run("-C", directory, "env", "GOROOT"); strings.TrimSpace(output) != root {
+		t.Fatalf("forwarded GOROOT = %q, want %s", output, root)
+	}
+	jobFile := filepath.Join(directory, "jobs", "jobs.go")
+	original, err := os.ReadFile(jobFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	replacement := filepath.Join(directory, "overlay source.txt")
+	if err := os.WriteFile(replacement, original, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(jobFile, []byte(strings.ReplaceAll(string(original), "//temporal:workflow", "// entry supplied by overlay")), 0600); err != nil {
+		t.Fatal(err)
+	}
+	overlay, err := json.Marshal(map[string]any{"Replace": map[string]string{jobFile: replacement}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	filename := filepath.Join(directory, "overlay.json")
+	if err := os.WriteFile(filename, overlay, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if output := run("run", "-C", directory, "-overlay="+filename, "./host"); !strings.Contains(output, "tgo distribution works") {
+		t.Fatal(output)
+	}
+	if err := os.WriteFile(jobFile, original, 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	run("-C", directory, "test", "./...")
 }

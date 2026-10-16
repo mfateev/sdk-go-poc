@@ -46,6 +46,9 @@ type environment struct {
 }
 
 func (e *environment) RegisterCancelHandler(handler func()) { e.cancel = handler }
+
+// This fixture never resets a cached workflow execution.
+func (e *environment) RegisterResetHandler(func(bindings.WorkflowResetInfo)) {}
 func (e *environment) RequestCancelActivity(_ bindings.ActivityID) {
 	e.canceledActivities++
 	if e.activity != nil {
