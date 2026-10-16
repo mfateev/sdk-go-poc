@@ -9,7 +9,86 @@ Use standard `go` for ordinary tools such as linters and code generators.
 Use `tgo` to build, test, or run workflow and worker programs: their host code
 and workflows are linked with the same modified Go runtime. Tools that load
 workflow packages need support for the custom toolchain.
-The installed POC command is `bin/tgo`; it does not install a `go` alias.
+The installed command is `tgo`. The examples below assume it is on `PATH`.
+
+## Install tgo
+
+The precompiled installer supports macOS and Linux on arm64 and amd64. It
+installs the complete compiler and runtime without an existing Go installation.
+Choose a toolchain release compatible with the SDK revision you are using;
+if the development branch needs newer compiler changes, build from source below.
+
+**Release availability:** these download commands require a published
+[tgo release](https://github.com/mfateev/golang-go/releases). Until the first
+release is published, use the source build instructions below.
+
+### Install the latest release
+
+```sh
+curl -fsSL https://github.com/mfateev/golang-go/releases/latest/download/install.sh -o install-tgo.sh
+sh install-tgo.sh
+export PATH="$HOME/.local/bin:$PATH"
+tgo version
+tgo env GOTOOLCHAIN
+```
+
+The installer detects the platform, verifies the archive's SHA-256 checksum,
+and installs under `$HOME/.local/lib/tgo/<tag>/go`, with a launcher at
+`$HOME/.local/bin/tgo`. Add the PATH line to your shell startup file so new
+terminals can find `tgo`. The launcher selects the bundled runtime and sets
+`GOTOOLCHAIN=local`; the last command should print `local`.
+
+### Select a version or installation directory
+
+Choose a published tag from Releases; `tgo-v0.1.0` below is an example.
+For prereleases, download the installer from that tag because `latest` selects
+stable releases.
+
+```sh
+TGO_VERSION=tgo-v0.1.0
+curl -fsSL "https://github.com/mfateev/golang-go/releases/download/$TGO_VERSION/install.sh" -o install-tgo.sh
+sh install-tgo.sh --version "$TGO_VERSION"
+```
+
+Pass `--prefix "$HOME/tools"` to install elsewhere, then add `$HOME/tools/bin`
+to PATH. Installing a new tag updates the launcher and retains older versions.
+To reinstall the same tag, remove its directory under your prefix's `lib/tgo`
+first. For Homebrew or offline installation, see the
+[toolchain installation guide](https://github.com/mfateev/golang-go/blob/task/modify-go-runtime-for-isolates/misc/tgo/README.md).
+
+### Build tgo from source
+
+For compiler development or before binary releases are available, build the
+[`mfateev/golang-go` fork](https://github.com/mfateev/golang-go/tree/task/modify-go-runtime-for-isolates)
+with a Go 1.26.0 or newer bootstrap toolchain and a C compiler:
+
+```sh
+git clone --branch task/modify-go-runtime-for-isolates https://github.com/mfateev/golang-go.git
+cd golang-go/src
+GOROOT_BOOTSTRAP="$(go env GOROOT)" ./make.bash
+cd ..
+export PATH="$PWD/bin:$PATH"
+export GOTOOLCHAIN=local
+tgo version
+cd ..
+```
+
+For complete bootstrap installation instructions on a new Linux or macOS
+machine, see the
+[samples setup guide](https://github.com/mfateev/samples-go-poc/blob/task/modify-go-runtime-for-isolates/README.md#1-install-tgo-on-linux-or-macos).
+
+## Get the SDK and build an example
+
+```sh
+git clone --branch task/modify-go-runtime-for-isolates https://github.com/mfateev/sdk-go-poc.git
+cd sdk-go-poc
+tgo build -o worker ./example/worker
+```
+
+The binary installer lets you build the SDK without a compiler source checkout.
+For a local Temporal server, run `temporal server start-dev --headless` in
+another terminal, then `./worker` here. See the example worker section below
+for registered workflows and commands to start them.
 
 ## Determinism regression corpus
 
@@ -59,8 +138,8 @@ Its checker validates the recorded completion as well as query isolation,
 eviction and GOMAXPROCS 1/2/8 in fresh processes:
 
 ```sh
-../golang-go/bin/tgo test ./example/random/check
-../golang-go/bin/tgo build -o /tmp/isolate-random-check ./example/random/check
+tgo test ./example/random/check
+tgo build -o /tmp/isolate-random-check ./example/random/check
 /tmp/isolate-random-check -history example/random/testdata/history.json
 ```
 
@@ -113,8 +192,8 @@ deliver `WorkflowControl` through the existing `OpWorkflowCancel` service for
 reset transitions.
 
 ```sh
-../golang-go/bin/tgo test ./workflow ./example/random/check
-RANDOM_STREAMS_DEV_SERVER=1 ../golang-go/bin/tgo test -count=1 ./example/random/check -run TestLiveNamedRandomStreams
+tgo test ./workflow ./example/random/check
+RANDOM_STREAMS_DEV_SERVER=1 tgo test -count=1 ./example/random/check -run TestLiveNamedRandomStreams
 ```
 
 ### Determinism history checks
@@ -123,7 +202,7 @@ Build the checker with the custom toolchain and replay the saved history in
 fresh processes from this repository:
 
 ```sh
-../golang-go/bin/tgo build -o /tmp/isolate-determinism-replay ./example/determinism/check
+tgo build -o /tmp/isolate-determinism-replay ./example/determinism/check
 GOMAXPROCS=1 /tmp/isolate-determinism-replay
 GOMAXPROCS=2 /tmp/isolate-determinism-replay
 GOMAXPROCS=8 GODEBUG=cpu.all=off TZ=America/Los_Angeles /tmp/isolate-determinism-replay
@@ -149,31 +228,17 @@ same fixture on native Linux and macOS arm64/amd64, alongside runtime/compiler,
 SDK/sample, and repeated race tests. During POC development, fixtures track the
 current implementation and can be regenerated when intended behavior changes.
 
+## Example worker
+
 This module adapts statically linked Go isolates to the Temporal Go SDK's
 `WorkflowDefinitionFactory` boundary, the same level used by the Go bridge for
-Temporal's PHP SDK. It needs the compiler and runtime from the
-[`mfateev/golang-go` fork](https://github.com/mfateev/golang-go/tree/task/modify-go-runtime-for-isolates).
-Clone that fork and this repository as siblings, then build with the fork's
-`bin/tgo`:
-
-```sh
-git clone --branch task/modify-go-runtime-for-isolates https://github.com/mfateev/golang-go.git
-git clone --branch task/modify-go-runtime-for-isolates https://github.com/mfateev/sdk-go-poc.git
-cd golang-go/src && ./make.bash && cd ../../sdk-go-poc
-export GOCACHE="$(cd .. && pwd)/go-build-cache"
-mkdir -p "$GOCACHE"
-```
-
-The Go fork needs a Go 1.26 or newer bootstrap toolchain. The
-[`samples-go-poc` README](https://github.com/mfateev/samples-go-poc/tree/task/modify-go-runtime-for-isolates)
-has complete setup instructions for a new Linux or macOS machine. The source
-build manages its own bootstrap cache; `GOCACHE` keeps subsequent POC builds
-separate from your usual Go cache for targeted cleanup.
+Temporal's PHP SDK. It uses the compiler and runtime installed in the setup
+above. Go downloads the pinned Temporal SDK dependency automatically.
 
 Build the example from this directory:
 
 ```sh
-../golang-go/bin/tgo build -o worker ./example/worker
+tgo build -o worker ./example/worker
 ```
 
 Run `./worker` against a local Temporal server (or set `TEMPORAL_ADDRESS`). It
@@ -220,7 +285,7 @@ temporal workflow execute --workflow-id isolate-poc-concurrent --type IsolateCon
 Export and replay a completed history with a fresh isolate process:
 
 ```sh
-../golang-go/bin/tgo build -o replay ./example/replay
+tgo build -o replay ./example/replay
 temporal workflow show --workflow-id isolate-poc-order --output json > /tmp/isolate-order-history.json
 ./replay IsolateOrder /tmp/isolate-order-history.json
 temporal workflow show --workflow-id isolate-poc-clock --output json > /tmp/isolate-clock-history.json
@@ -230,7 +295,7 @@ temporal workflow show --workflow-id isolate-poc-clock --output json > /tmp/isol
 Run the local bridge driver without a server:
 
 ```sh
-../golang-go/bin/tgo build -o /tmp/isolate-temporal-driver ./example/driver
+tgo build -o /tmp/isolate-temporal-driver ./example/driver
 /tmp/isolate-temporal-driver
 ```
 
@@ -366,7 +431,7 @@ ports cover blocking, select, nonblocking and closed-channel reads, late
 registration, `NextSignal`, malformed envelopes, and replay counter suppression:
 
 ```sh
-../golang-go/bin/tgo test ./example/signals/check
+tgo test ./example/signals/check
 ```
 
 The local-server check also sends durable signal batches before worker polling,
@@ -374,7 +439,7 @@ verifies Continue-As-New carryover and corrupt-signal skipping, and replays the
 recorded histories:
 
 ```sh
-SIGNALS_DEV_SERVER=1 ../golang-go/bin/tgo test -count=1 ./example/signals/check
+SIGNALS_DEV_SERVER=1 tgo test -count=1 ./example/signals/check
 ```
 
 Activities use the current Go SDK API: `WithActivityOptions`,
@@ -527,8 +592,8 @@ cover ordinary and isolate children, structured failures, retries and
 continue-as-new. Build and run with the isolate toolchain:
 
 ```sh
-../golang-go/bin/tgo test ./example/child/check
-../golang-go/bin/tgo build -race -o /tmp/isolate-child-check ./example/child/check
+tgo test ./example/child/check
+tgo build -race -o /tmp/isolate-child-check ./example/child/check
 GOGC=1 /tmp/isolate-child-check -history-dir example/child/testdata
 # Optional: with a Temporal development server on localhost:7233
 /tmp/isolate-child-check -address localhost:7233
@@ -614,7 +679,7 @@ its checked-in live update history; `-address localhost:7233` records a fresh ru
 Run the local-server update and recorded-history replay checks with:
 
 ```sh
-UPDATES_DEV_SERVER=1 ../golang-go/bin/tgo test -count=1 ./example/update/check
+UPDATES_DEV_SERVER=1 tgo test -count=1 ./example/update/check
 ```
 
 ### Dynamic workflows and handlers
@@ -682,9 +747,9 @@ serialization, compression codecs, inbound interceptors, cache eviction and save
 history replay at GOMAXPROCS 1/2/8:
 
 ```sh
-../golang-go/bin/tgo test ./example/dynamic/check -run 'TestDynamic|TestNativeDynamic'
-../golang-go/bin/tgo test ./example/dynamic/check
-DYNAMIC_DEV_SERVER=1 ../golang-go/bin/tgo test -count=1 ./example/dynamic/check
+tgo test ./example/dynamic/check -run 'TestDynamic|TestNativeDynamic'
+tgo test ./example/dynamic/check
+DYNAMIC_DEV_SERVER=1 tgo test -count=1 ./example/dynamic/check
 ```
 
 ### Continue-as-new and workflow versioning
@@ -721,8 +786,8 @@ including its context-aware or per-context converter.
 histories, including the unsupported-version negative case:
 
 ```bash
-../golang-go/bin/tgo test ./example/continuation/check
-../golang-go/bin/tgo build -o /tmp/isolate-continuation-check ./example/continuation/check
+tgo test ./example/continuation/check
+tgo build -o /tmp/isolate-continuation-check ./example/continuation/check
 /tmp/isolate-continuation-check -history-dir example/continuation/testdata
 # Optional: record new fixtures against a local Temporal development server.
 /tmp/isolate-continuation-check -live 127.0.0.1:7233 -history-dir /tmp/continuation-histories
@@ -889,7 +954,7 @@ violations, and recorded-history replay. Run it from this repository with the
 fork's compiler:
 
 ```sh
-../golang-go/bin/tgo build -o /tmp/isolate-effects-check ./example/effects/check
+tgo build -o /tmp/isolate-effects-check ./example/effects/check
 /tmp/isolate-effects-check
 ```
 
@@ -953,7 +1018,7 @@ Run compiled lifecycle and replay conformance, optionally against a development
 server (the checker terminates its own negative-test executions):
 
 ```sh
-../golang-go/bin/tgo build -o /tmp/isolate-lifecycle-check ./example/lifecycle/check
+tgo build -o /tmp/isolate-lifecycle-check ./example/lifecycle/check
 /tmp/isolate-lifecycle-check
 /tmp/isolate-lifecycle-check live 127.0.0.1:7242
 ```
@@ -1032,7 +1097,7 @@ panic path and disables that observer during cleanup.
 Run the compiled resource integration checks with the fork:
 
 ```bash
-../golang-go/bin/tgo test ./example/resources/check
+tgo test ./example/resources/check
 ```
 
 ## Worker-configured isolate data converters
@@ -1122,7 +1187,7 @@ Current restrictions and follow-ups:
 Run the compiled converter checks, optionally with a Temporal development server:
 
 ```sh
-../golang-go/bin/tgo build -o /tmp/isolate-converter-check ./example/converter/check
+tgo build -o /tmp/isolate-converter-check ./example/converter/check
 /tmp/isolate-converter-check -history-dir ./example/converter/testdata
 /tmp/isolate-converter-check -address 127.0.0.1:7233
 /tmp/isolate-converter-check -history /tmp/feature8-Workflow-history.json
@@ -1183,8 +1248,8 @@ child mocks, local activities, context-aware masking, per-context formats, repea
 queries/updates, and saved live-history replay at GOMAXPROCS 1/2/8:
 
 ```sh
-../golang-go/bin/tgo test ./example/contextpropagation/check ./workflow ./worker
-../golang-go/bin/tgo build -o /tmp/native-context-check ./example/contextpropagation/check
+tgo test ./example/contextpropagation/check ./workflow ./worker
+tgo build -o /tmp/native-context-check ./example/contextpropagation/check
 /tmp/native-context-check -address 127.0.0.1:7233 -cache-size 1000
 /tmp/native-context-check -address 127.0.0.1:7233 -cache-size 0
 ```
@@ -1239,8 +1304,8 @@ serializers, copied configuration, factory failures and saved compressed-history
 replay at GOMAXPROCS 1/2/8:
 
 ```sh
-../golang-go/bin/tgo test ./example/failureconversion/check
-../golang-go/bin/tgo build -o /tmp/custom-failure-check ./example/failureconversion/check
+tgo test ./example/failureconversion/check
+tgo build -o /tmp/custom-failure-check ./example/failureconversion/check
 /tmp/custom-failure-check -address 127.0.0.1:7233 -cache-size 1000
 /tmp/custom-failure-check -address 127.0.0.1:7233 -cache-size 0
 ```
@@ -1414,7 +1479,7 @@ recreation/failure, Nexus execution/result separation, cancellation and late
 callbacks after eviction. Saved histories include ordinary SDK interoperability.
 
 ```sh
-../golang-go/bin/tgo build -o /tmp/isolate-api-check ./example/apicoverage/check
+tgo build -o /tmp/isolate-api-check ./example/apicoverage/check
 /tmp/isolate-api-check -history-dir ./example/apicoverage/testdata
 # With a development server; creates/deletes a temporary Nexus endpoint.
 /tmp/isolate-api-check -address 127.0.0.1:7233 -history-dir /tmp/isolate-api-histories
@@ -1489,7 +1554,7 @@ Run the complete SDK suite with the custom toolchain:
 
 ```sh
 export GOCACHE="$(cd .. && pwd)/go-build-cache"
-../golang-go/bin/tgo test -timeout=20m ./...
+tgo test -timeout=20m ./...
 ```
 
 Compiled workflow fixtures use `internal/checktest.Main` from their `TestMain`.

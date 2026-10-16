@@ -82,11 +82,11 @@ codecs configured on the Temporal client/worker apply once to the signal/update
 envelope. The handler namespace `__temporal_workflow_stream_` is permitted for
 signals, updates and queries; other reserved names remain rejected.
 
-Run with the custom toolchain:
+From the repository root, with [tgo installed](../../README.md#install-tgo) and on PATH:
 
 ```sh
-../golang-go/bin/tgo test ./contrib/workflowstreams ./workflow ./example/workflowstreams/check
-STREAMS_DEV_SERVER=1 ../golang-go/bin/tgo test -count=1 ./example/workflowstreams/check -run TestLiveWorkflowStreams
+tgo test ./contrib/workflowstreams ./workflow ./example/workflowstreams/check
+STREAMS_DEV_SERVER=1 tgo test -count=1 ./example/workflowstreams/check -run TestLiveWorkflowStreams
 ```
 
 The live checker covers subscription through rollover, truncation recovery,

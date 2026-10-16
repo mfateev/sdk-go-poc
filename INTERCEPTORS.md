@@ -228,11 +228,11 @@ The audited OpenTracing API version is 1.2.0.
 
 ## Verification
 
-From this repository, using the custom compiler/runtime:
+From this repository, with [tgo installed](README.md#install-tgo) and on PATH:
 
 ```sh
-../golang-go/bin/tgo test ./example/interceptors/check ./example/tracing/check
-../golang-go/bin/tgo build -o /tmp/isolate-tracing-check ./example/tracing/check
+tgo test ./example/interceptors/check ./example/tracing/check
+tgo build -o /tmp/isolate-tracing-check ./example/tracing/check
 /tmp/isolate-tracing-check -history example/tracing/testdata/v1.json
 /tmp/isolate-tracing-check -history example/tracing/testdata/v2.json
 /tmp/isolate-tracing-check -history example/tracing/testdata/datadog.json
@@ -315,7 +315,7 @@ temporal operator search-attribute create --name CustomKeywordField --type Keywo
 Then run:
 
 ```sh
-../golang-go/bin/tgo test ./example/workflowmetadata/check
-../golang-go/bin/tgo build -o /tmp/isolate-metadata-check ./example/workflowmetadata/check
+tgo test ./example/workflowmetadata/check
+tgo build -o /tmp/isolate-metadata-check ./example/workflowmetadata/check
 /tmp/isolate-metadata-check -live localhost:7233 -output /tmp/isolate-metadata-history.json
 ```
