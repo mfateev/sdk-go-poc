@@ -1,0 +1,2 @@
+# Preserve test output bytes, including assertion-library whitespace.
+logs/*.log -whitespace
