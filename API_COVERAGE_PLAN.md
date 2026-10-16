@@ -125,7 +125,7 @@ chain. Dynamic updates retain acceptance ordering, failure conversion and
 unfinished-handler policies. `example/dynamic/check/native_test.go` ports `TestDynamicWorkflows`
 and covers arbitrary handler names, replacement and completed queries.
 `example/dynamic/check` verifies compressed live histories and saved replay with
-workflow cache sizes 1000 and 0. See [dynamic workflows and handlers](README.md#dynamic-workflows-and-handlers).
+workflow cache sizes 1000 and 0. See [dynamic workflows and handlers](SDK_REFERENCE.md#dynamic-workflows-and-handlers).
 
 `workflow.GetRandomStream(ctx, name)` implements upstream's `WorkflowRandomStream`
 (Source and Reader) with exact seed/byte/Uint64 goldens and stable unaligned
