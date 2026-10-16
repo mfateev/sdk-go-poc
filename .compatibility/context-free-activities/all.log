@@ -1,0 +1,91 @@
+ok  	github.com/mfateev/sdk-go-poc/contrib/datadog/exporter	(cached)
+ok  	github.com/mfateev/sdk-go-poc/contrib/datadog/tracing	(cached)
+ok  	github.com/mfateev/sdk-go-poc/contrib/opentelemetry	0.017s
+ok  	github.com/mfateev/sdk-go-poc/contrib/opentelemetry/exporter	(cached)
+ok  	github.com/mfateev/sdk-go-poc/contrib/opentelemetry-v2	(cached)
+ok  	github.com/mfateev/sdk-go-poc/contrib/opentracing	(cached)
+ok  	github.com/mfateev/sdk-go-poc/contrib/workflowstreams	0.763s
+?   	github.com/mfateev/sdk-go-poc/example/apicoverage	[no test files]
+ok  	github.com/mfateev/sdk-go-poc/example/apicoverage/check	9.838s
+?   	github.com/mfateev/sdk-go-poc/example/cancellation	[no test files]
+?   	github.com/mfateev/sdk-go-poc/example/child	[no test files]
+ok  	github.com/mfateev/sdk-go-poc/example/child/check	3.819s
+?   	github.com/mfateev/sdk-go-poc/example/clock	[no test files]
+?   	github.com/mfateev/sdk-go-poc/example/concurrent	[no test files]
+ok  	github.com/mfateev/sdk-go-poc/example/contextfree	0.407s
+ok  	github.com/mfateev/sdk-go-poc/example/contextfree/check	0.013s
+?   	github.com/mfateev/sdk-go-poc/example/contextpropagation	[no test files]
+ok  	github.com/mfateev/sdk-go-poc/example/contextpropagation/check	10.876s
+?   	github.com/mfateev/sdk-go-poc/example/contextpropagation/support	[no test files]
+?   	github.com/mfateev/sdk-go-poc/example/continuation	[no test files]
+ok  	github.com/mfateev/sdk-go-poc/example/continuation/check	(cached)
+?   	github.com/mfateev/sdk-go-poc/example/converter	[no test files]
+ok  	github.com/mfateev/sdk-go-poc/example/converter/check	3.770s
+?   	github.com/mfateev/sdk-go-poc/example/converter/custom	[no test files]
+?   	github.com/mfateev/sdk-go-poc/example/determinism	[no test files]
+ok  	github.com/mfateev/sdk-go-poc/example/determinism/check	4.404s
+?   	github.com/mfateev/sdk-go-poc/example/driver	[no test files]
+?   	github.com/mfateev/sdk-go-poc/example/dynamic	[no test files]
+ok  	github.com/mfateev/sdk-go-poc/example/dynamic/check	5.428s
+?   	github.com/mfateev/sdk-go-poc/example/effects	[no test files]
+ok  	github.com/mfateev/sdk-go-poc/example/effects/check	3.880s
+?   	github.com/mfateev/sdk-go-poc/example/failureconversion	[no test files]
+ok  	github.com/mfateev/sdk-go-poc/example/failureconversion/check	5.263s
+?   	github.com/mfateev/sdk-go-poc/example/failureconversion/support	[no test files]
+?   	github.com/mfateev/sdk-go-poc/example/interceptors	[no test files]
+ok  	github.com/mfateev/sdk-go-poc/example/interceptors/check	5.236s
+?   	github.com/mfateev/sdk-go-poc/example/lifecycle	[no test files]
+ok  	github.com/mfateev/sdk-go-poc/example/lifecycle/check	4.686s
+?   	github.com/mfateev/sdk-go-poc/example/metadata	[no test files]
+?   	github.com/mfateev/sdk-go-poc/example/metadata/probe	[no test files]
+?   	github.com/mfateev/sdk-go-poc/example/order	[no test files]
+ok  	github.com/mfateev/sdk-go-poc/example/plugins/check	0.013s
+?   	github.com/mfateev/sdk-go-poc/example/protobufvalues	[no test files]
+ok  	github.com/mfateev/sdk-go-poc/example/protobufvalues/check	8.053s
+?   	github.com/mfateev/sdk-go-poc/example/protobufvalues/model	[no test files]
+?   	github.com/mfateev/sdk-go-poc/example/query	[no test files]
+ok  	github.com/mfateev/sdk-go-poc/example/query/check	3.396s
+?   	github.com/mfateev/sdk-go-poc/example/random	[no test files]
+ok  	github.com/mfateev/sdk-go-poc/example/random/check	20.121s
+?   	github.com/mfateev/sdk-go-poc/example/replay	[no test files]
+?   	github.com/mfateev/sdk-go-poc/example/resources	[no test files]
+ok  	github.com/mfateev/sdk-go-poc/example/resources/check	(cached)
+?   	github.com/mfateev/sdk-go-poc/example/signal	[no test files]
+?   	github.com/mfateev/sdk-go-poc/example/signals	[no test files]
+ok  	github.com/mfateev/sdk-go-poc/example/signals/check	(cached)
+?   	github.com/mfateev/sdk-go-poc/example/tracing	[no test files]
+ok  	github.com/mfateev/sdk-go-poc/example/tracing/check	8.572s
+?   	github.com/mfateev/sdk-go-poc/example/update	[no test files]
+ok  	github.com/mfateev/sdk-go-poc/example/update/check	4.091s
+?   	github.com/mfateev/sdk-go-poc/example/upstream	[no test files]
+ok  	github.com/mfateev/sdk-go-poc/example/upstream/check	8.174s
+ok  	github.com/mfateev/sdk-go-poc/example/worker	0.018s
+?   	github.com/mfateev/sdk-go-poc/example/workflowmetadata	[no test files]
+ok  	github.com/mfateev/sdk-go-poc/example/workflowmetadata/check	4.019s
+?   	github.com/mfateev/sdk-go-poc/example/workflowstreams	[no test files]
+ok  	github.com/mfateev/sdk-go-poc/example/workflowstreams/check	17.093s
+ok  	github.com/mfateev/sdk-go-poc/interceptor	(cached)
+ok  	github.com/mfateev/sdk-go-poc/interceptor/tracing	(cached)
+ok  	github.com/mfateev/sdk-go-poc/internal/activityref	0.006s
+ok  	github.com/mfateev/sdk-go-poc/internal/checktest	(cached)
+?   	github.com/mfateev/sdk-go-poc/internal/cmd/testports	[no test files]
+?   	github.com/mfateev/sdk-go-poc/internal/ddtracewire	[no test files]
+ok  	github.com/mfateev/sdk-go-poc/internal/failurecodec	(cached)
+ok  	github.com/mfateev/sdk-go-poc/internal/failurewire	(cached)
+ok  	github.com/mfateev/sdk-go-poc/internal/headerwire	(cached)
+ok  	github.com/mfateev/sdk-go-poc/internal/integrationcontract	(cached)
+?   	github.com/mfateev/sdk-go-poc/internal/interceptorscope	[no test files]
+?   	github.com/mfateev/sdk-go-poc/internal/otelcontext	[no test files]
+?   	github.com/mfateev/sdk-go-poc/internal/otelwire	[no test files]
+ok  	github.com/mfateev/sdk-go-poc/internal/payloadwire	(cached)
+ok  	github.com/mfateev/sdk-go-poc/internal/searchattrwire	(cached)
+?   	github.com/mfateev/sdk-go-poc/internal/sinkop	[no test files]
+ok  	github.com/mfateev/sdk-go-poc/internal/testports	0.271s
+?   	github.com/mfateev/sdk-go-poc/internal/testrefwire	[no test files]
+?   	github.com/mfateev/sdk-go-poc/internal/tracecontext	[no test files]
+?   	github.com/mfateev/sdk-go-poc/internal/tracingheader	[no test files]
+ok  	github.com/mfateev/sdk-go-poc/temporalbridge	0.052s
+ok  	github.com/mfateev/sdk-go-poc/testref	(cached)
+ok  	github.com/mfateev/sdk-go-poc/testsuite	4.539s
+ok  	github.com/mfateev/sdk-go-poc/worker	0.385s
+ok  	github.com/mfateev/sdk-go-poc/workflow	0.029s

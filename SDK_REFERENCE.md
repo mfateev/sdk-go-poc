@@ -362,11 +362,13 @@ Activities use the current Go SDK API: `WithActivityOptions`,
 The earlier typed activity helpers are commented out and retained in
 `workflow/typed_activity.go` for future API work.
 
-Every isolate workflow and every POC activity takes standard `context.Context`
-as its first parameter. The SDK creates the workflow's context inside its
-isolate and injects it before decoding the ordinary input payloads. Contexts
-are never serialized or passed as host pointers. Existing ordinary Temporal
-workflows retain the standard SDK's `workflow.Context` API.
+Every isolate workflow takes standard `context.Context` as its first parameter.
+Activities run on the host and may optionally take `context.Context` first,
+matching sdk-go for both remote and local activities. The SDK creates the
+workflow's context inside its isolate and injects it before decoding ordinary
+input payloads. Contexts are never serialized or passed as host pointers.
+Existing ordinary Temporal workflows retain the standard SDK's
+`workflow.Context` API.
 
 ```go
 func FormatNumber(ctx context.Context, input int) (string, error) {
@@ -720,8 +722,8 @@ use explicit names, matching the standard SDK. `worker.New` honors
 When replaying aliased function references, supply the same aliases with
 `replayer.RegisterActivityWithOptions(fn, options)`. Replay registrations are
 metadata only and never execute activities. Unaliased functions need no replay
-activity registration. Registration rejects POC activities and marked workflows
-that omit the required standard context parameter.
+activity registration. Marked workflows require a standard context parameter;
+activity context parameters are optional.
 
 Arguments/results use the isolate-owned default or worker-configured serializer
 and cross `Call` as protobuf-serialized `Payloads`. Default supported values are

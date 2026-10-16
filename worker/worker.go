@@ -144,17 +144,11 @@ func (w *isolateWorker) RegisterActivity(fn any) {
 }
 
 func (w *isolateWorker) RegisterActivityWithOptions(fn any, options activity.RegisterOptions) {
-	if err := activityref.ValidateContext(fn); err != nil {
-		panic(err)
-	}
 	w.Worker.RegisterActivityWithOptions(fn, options)
 	w.activities.register(fn, options)
 }
 
 func (w *isolateWorker) RegisterDynamicActivity(fn any, options activity.DynamicRegisterOptions) {
-	if err := activityref.ValidateContext(fn); err != nil {
-		panic(err)
-	}
 	w.Worker.RegisterDynamicActivity(fn, options)
 }
 
@@ -218,9 +212,6 @@ func (r *isolateReplayer) RegisterActivity(fn any) {
 }
 
 func (r *isolateReplayer) RegisterActivityWithOptions(fn any, options activity.RegisterOptions) {
-	if err := activityref.ValidateContext(fn); err != nil {
-		panic(err)
-	}
 	r.activities.register(fn, options)
 }
 

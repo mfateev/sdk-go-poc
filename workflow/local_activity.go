@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"isolate"
 	"reflect"
 	"slices"
@@ -70,20 +69,12 @@ func executeLocalActivity(ctx context.Context, activity any, args ...any) Future
 		if err != nil {
 			return failOperation(f, err)
 		}
-		if err = activityref.ValidateContext(activity); err != nil {
-			return failOperation(f, err)
-		}
 		t := reflect.TypeOf(activity)
 		if t.NumOut() < 1 || t.NumOut() > 2 || !t.Out(t.NumOut()-1).Implements(reflect.TypeFor[error]()) {
 			return failOperation(f, errors.New("workflow: local activity must return error or (result, error)"))
 		}
-		if len(args) != t.NumIn()-1 {
-			return failOperation(f, fmt.Errorf("workflow: local activity got %d arguments, want %d", len(args), t.NumIn()-1))
-		}
-		for i, arg := range args {
-			if arg != nil && !reflect.TypeOf(arg).AssignableTo(t.In(i+1)) {
-				return failOperation(f, fmt.Errorf("workflow: local argument %d has incompatible type", i))
-			}
+		if err := activityref.ValidateArgs(activity, args); err != nil {
+			return failOperation(f, err)
 		}
 	}
 	if name == "" {

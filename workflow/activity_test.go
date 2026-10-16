@@ -40,7 +40,7 @@ func TestExecuteActivityValidatesReferencesAndArguments(t *testing.T) {
 	}{
 		{nilActivity, []any{5}}, {func(context.Context, int) (string, error) { panic("host only") }, nil},
 		{func(context.Context, int) (string, error) { panic("host only") }, []any{"wrong"}},
-		{func(int) (string, error) { panic("host only") }, []any{1}}, {"", nil},
+		{func(int) (string, error) { panic("host only") }, []any{"wrong"}}, {"", nil},
 	} {
 		f := ExecuteActivity(ctx, tc.fn, tc.args...)
 		if !f.IsReady() || f.Get(ctx, nil) == nil {

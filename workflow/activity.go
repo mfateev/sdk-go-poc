@@ -221,22 +221,12 @@ func executeActivity(ctx context.Context, activity any, args ...any) Future {
 		if err != nil {
 			return fail(err)
 		}
-		if err := activityref.ValidateContext(activity); err != nil {
-			return fail(err)
-		}
 		typ := reflect.TypeOf(activity)
 		if typ.NumOut() < 1 || typ.NumOut() > 2 || !typ.Out(typ.NumOut()-1).Implements(reflect.TypeFor[error]()) {
 			return fail(errors.New("workflow: activity must return (result, error) or error"))
 		}
-		want := typ.NumIn() - 1
-		if len(args) != want {
-			return fail(fmt.Errorf("workflow: activity got %d arguments, want %d", len(args), want))
-		}
-		for i, arg := range args {
-			target := typ.In(i + 1)
-			if arg != nil && !reflect.TypeOf(arg).AssignableTo(target) {
-				return fail(fmt.Errorf("workflow: activity argument %d is %T, want %v", i, arg, target))
-			}
+		if err := activityref.ValidateArgs(activity, args); err != nil {
+			return fail(err)
 		}
 	}
 	options := GetActivityOptions(ctx)

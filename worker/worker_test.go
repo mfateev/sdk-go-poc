@@ -2,10 +2,13 @@ package worker
 
 import (
 	"context"
-	"go.temporal.io/sdk/activity"
+	"fmt"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+	"go.temporal.io/sdk/activity"
+	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/converter"
 	"go.temporal.io/sdk/testsuite"
 	goWorker "go.temporal.io/sdk/worker"
@@ -107,23 +110,25 @@ func TestReplayActivityAliasesAndDisabledAliasing(t *testing.T) {
 	}
 }
 
-func TestRejectsActivityWithoutStandardContext(t *testing.T) {
-	for _, fn := range []any{func(int) (string, error) { return "", nil }, func() {}, (*contextlessActivities)(nil)} {
-		r := NewWorkflowReplayer()
-		func() {
-			defer func() {
-				if recover() == nil {
-					t.Errorf("accepted contextless activity %T", fn)
-				}
-			}()
-			r.RegisterActivity(fn)
-		}()
+func TestAcceptsActivitiesWithoutContext(t *testing.T) {
+	c, err := client.NewLazyClient(client.Options{})
+	require.NoError(t, err)
+	defer c.Close()
+	for _, fn := range []any{contextlessActivity, func() error { return nil }, &contextlessActivities{}, (*contextlessActivities)(nil).Echo} {
+		t.Run(fmt.Sprintf("%T", fn), func(t *testing.T) {
+			w := New(c, "context-free", Options{})
+			require.NotPanics(t, func() { w.RegisterActivity(fn) })
+			require.NotPanics(t, func() { NewWorkflowReplayer().RegisterActivity(fn) })
+		})
 	}
+	require.Panics(t, func() { New(c, "invalid-activity", Options{}).RegisterActivity(func() {}) })
 }
+
+func contextlessActivity(input string) (string, error) { return input, nil }
 
 type contextlessActivities struct{}
 
-func (*contextlessActivities) Wrong(string) error { return nil }
+func (*contextlessActivities) Echo(input string) (string, error) { return input, nil }
 
 func TestWorkflowAliasesTrackOrdinaryRegistrations(t *testing.T) {
 	var suite testsuite.WorkflowTestSuite

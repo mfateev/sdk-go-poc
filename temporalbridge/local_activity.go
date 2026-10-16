@@ -8,6 +8,7 @@ import (
 	"isolate"
 	"reflect"
 
+	"github.com/mfateev/sdk-go-poc/internal/activityref"
 	"github.com/mfateev/sdk-go-poc/internal/headerwire"
 	"github.com/mfateev/sdk-go-poc/workflow"
 	commonpb "go.temporal.io/api/common/v1"
@@ -21,15 +22,16 @@ import (
 // function's exact types, preserving integer precision and custom converters.
 func localArguments(fn any, p *commonpb.Payloads, dc converter.DataConverter) ([]any, error) {
 	t := reflect.TypeOf(fn)
-	if t == nil || t.Kind() != reflect.Func || t.NumIn() == 0 || t.In(0) != reflect.TypeFor[context.Context]() {
-		return nil, errors.New("local activity must take context.Context first")
+	if t == nil || t.Kind() != reflect.Func {
+		return nil, errors.New("local activity must be a function")
 	}
-	if len(p.Payloads) != t.NumIn()-1 {
-		return nil, fmt.Errorf("local activity got %d payloads, want %d", len(p.Payloads), t.NumIn()-1)
+	offset := activityref.InputOffset(t)
+	if len(p.GetPayloads()) != t.NumIn()-offset {
+		return nil, fmt.Errorf("local activity got %d payloads, want %d", len(p.GetPayloads()), t.NumIn()-offset)
 	}
-	args, pointers := make([]any, len(p.Payloads)), make([]any, len(p.Payloads))
+	args, pointers := make([]any, len(p.GetPayloads())), make([]any, len(p.GetPayloads()))
 	for i := range pointers {
-		pointers[i] = reflect.New(t.In(i + 1)).Interface()
+		pointers[i] = reflect.New(t.In(i + offset)).Interface()
 	}
 	if err := dc.FromPayloads(p, pointers...); err != nil {
 		return nil, err

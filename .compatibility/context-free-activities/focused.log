@@ -1,0 +1,6 @@
+ok  	github.com/mfateev/sdk-go-poc/example/contextfree	0.374s
+ok  	github.com/mfateev/sdk-go-poc/internal/activityref	0.004s
+ok  	github.com/mfateev/sdk-go-poc/worker	0.364s
+ok  	github.com/mfateev/sdk-go-poc/workflow	0.020s
+ok  	github.com/mfateev/sdk-go-poc/temporalbridge	0.038s
+ok  	github.com/mfateev/sdk-go-poc/testsuite	4.441s

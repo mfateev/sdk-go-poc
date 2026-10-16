@@ -64,6 +64,7 @@ func (p *nativeRegistrationPlugin) ConfigureWorkflowReplayer(_ context.Context, 
 func (p *nativeRegistrationPlugin) StartWorker(_ context.Context, o sdkworker.PluginStartWorkerOptions, _ func(context.Context, sdkworker.PluginStartWorkerOptions) error) error {
 	require.Same(p.t, p.registry, o.WorkerRegistry)
 	o.WorkerRegistry.RegisterActivityWithOptions(testActivity, activity.RegisterOptions{Name: "plugin-activity"})
+	o.WorkerRegistry.RegisterActivityWithOptions(contextlessActivity, activity.RegisterOptions{Name: "plugin-context-free"})
 	o.WorkerRegistry.RegisterWorkflowWithOptions(order.EchoWorkflow, sdkwf.RegisterOptions{Name: "plugin-workflow"})
 	o.WorkerRegistry.RegisterDynamicWorkflow(dynamic.Workflow, sdkwf.DynamicRegisterOptions{})
 	return errPluginRegistrationStop
@@ -102,6 +103,7 @@ func TestPluginNativeRegistrations(t *testing.T) {
 				require.Equal(t, 1, p.named)
 				require.Equal(t, 1, p.dynamic)
 				require.Equal(t, "plugin-activity", w.(*isolateWorker).activities.resolve("testActivity"))
+				require.Equal(t, "plugin-context-free", w.(*isolateWorker).activities.resolve("contextlessActivity"))
 				require.Equal(t, "plugin-workflow", w.(*isolateWorker).workflows.resolve("EchoWorkflow"))
 			})
 		}

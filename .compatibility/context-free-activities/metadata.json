@@ -1,0 +1,21 @@
+{
+  "poc_parent": "4ff99f1264b15930a75a68b52861bd606e6b8b35",
+  "sdk": "6570fab47a9f3d49969e5febce1a9736c9db7952",
+  "runtime": "10678846d0c1763458a4e0c6bcb996bb740288d9",
+  "sdk_module": "go.temporal.io/sdk v1.50.0 => ../temporal-go-sdk",
+  "official_source_reference": "e43cbba8d80f064ca93e4a8ebd9cc2e6dd15d024",
+  "logs": {
+    "focused.log": {
+      "exit_code": 0,
+      "sha256": "e1f86a09eb19c5d1c954ca571cf38cc1d3776a52285e0b0954e3132f0a7a194a"
+    },
+    "live.log": {
+      "exit_code": 0,
+      "sha256": "51feb031974d3ac89f3a83d4fe691744320f4a04c783790e522a1625f5ebfa4b"
+    },
+    "all.log": {
+      "exit_code": 0,
+      "sha256": "412938423ac7c69458cce0e39f6ed33c4a00328b2ee112402f6d7ec9ce115e89"
+    }
+  }
+}

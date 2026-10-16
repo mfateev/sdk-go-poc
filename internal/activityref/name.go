@@ -24,30 +24,31 @@ func Name(fn any) (string, error) {
 	return strings.TrimSuffix(name[strings.LastIndex(name, ".")+1:], "-fm"), nil
 }
 
-// ValidateContext enforces the POC's activity context contract at registration.
-func ValidateContext(fn any) error {
+// InputOffset follows sdk-go internal.isActivityContext and skips an optional
+// activity context. It accepts context implementations, as the SDK does.
+func InputOffset(typ reflect.Type) int {
+	if typ.NumIn() > 0 && typ.In(0).Implements(reflect.TypeFor[context.Context]()) {
+		return 1
+	}
+	return 0
+}
+
+// ValidateArgs adapts sdk-go internal.validateFunctionArgs for activity function
+// references. The caller has already checked that fn is a non-nil function.
+// Adapted from Temporal SDK v1.50.0 internal/internal_activity.go (MIT; see LICENSE).
+func ValidateArgs(fn any, args []any) error {
 	typ := reflect.TypeOf(fn)
-	if typ == nil {
-		return fmt.Errorf("activity must be a non-nil function or pointer to struct")
+	offset := InputOffset(typ)
+	if typ.NumIn()-offset != len(args) {
+		name, _ := Name(fn)
+		return fmt.Errorf("expected %d args for function: %v but found %v", typ.NumIn()-offset, name, len(args))
 	}
-	validate := func(typ reflect.Type, receiver int) error {
-		if typ.NumIn() <= receiver || typ.In(receiver) != reflect.TypeFor[context.Context]() {
-			return fmt.Errorf("activity must take context.Context first")
-		}
-		return nil
-	}
-	if typ.Kind() == reflect.Func {
-		return validate(typ, 0)
-	}
-	if typ.Kind() == reflect.Pointer && typ.Elem().Kind() == reflect.Struct {
-		for i := 0; i < typ.NumMethod(); i++ {
-			method := typ.Method(i)
-			if method.PkgPath == "" {
-				if err := validate(method.Type, 1); err != nil {
-					return fmt.Errorf("%s: %w", method.Name, err)
-				}
-			}
+	for i, arg := range args {
+		target := typ.In(i + offset)
+		argType := reflect.TypeOf(arg)
+		if argType != nil && !argType.AssignableTo(target) {
+			return fmt.Errorf("cannot assign function argument: %d from type: %s to type: %s", i+offset+1, argType, target)
 		}
 	}
-	return nil // SDK validates other registration forms.
+	return nil
 }
