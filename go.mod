@@ -8,6 +8,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/nexus-rpc/sdk-go v0.7.0
 	github.com/opentracing/opentracing-go v1.2.0
+	github.com/shirou/gopsutil/v4 v4.26.2
 	go.opentelemetry.io/otel v1.44.0
 	go.opentelemetry.io/otel/sdk v1.44.0
 	go.opentelemetry.io/otel/trace v1.44.0
@@ -71,7 +72,6 @@ require (
 	github.com/puzpuzpuz/xsync/v3 v3.5.1 // indirect
 	github.com/robfig/cron v1.2.0 // indirect
 	github.com/secure-systems-lab/go-securesystemslib v0.10.0 // indirect
-	github.com/shirou/gopsutil/v4 v4.26.2 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/stretchr/testify v1.11.1
 	github.com/tinylib/msgp v1.6.3 // indirect

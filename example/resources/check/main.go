@@ -19,6 +19,9 @@ import (
 type resourceEnvironment struct {
 	bindings.WorkflowEnvironment
 	completes, cancels int
+	result             *commonpb.Payloads
+	err                error
+	timer              bindings.ResultHandler
 	hostCalls          int
 	hostDelay          time.Duration
 	signal             func(string, *commonpb.Payloads, *commonpb.Header) error
@@ -32,16 +35,20 @@ func (*resourceEnvironment) Now() time.Time { return time.Unix(1700000000, 0) }
 func (*resourceEnvironment) WorkflowInfo() *goWorkflow.Info {
 	return &goWorkflow.Info{WorkflowExecution: goWorkflow.Execution{ID: "resource-test", RunID: "run"}, WorkflowType: goWorkflow.Type{Name: "ResourceWorkflow"}}
 }
-func (*resourceEnvironment) IsReplaying() bool                                     { return false }
-func (*resourceEnvironment) GetLogger() log.Logger                                 { return resourceLogger{} }
-func (e *resourceEnvironment) Complete(*commonpb.Payloads, error)                  { e.completes++ }
+func (*resourceEnvironment) IsReplaying() bool     { return false }
+func (*resourceEnvironment) GetLogger() log.Logger { return resourceLogger{} }
+func (e *resourceEnvironment) Complete(p *commonpb.Payloads, err error) {
+	e.completes++
+	e.result, e.err = p, err
+}
 func (*resourceEnvironment) RegisterResetHandler(func(bindings.WorkflowResetInfo)) {}
 func (e *resourceEnvironment) RegisterCancelHandler(fn func())                     { e.cancel = fn }
 func (e *resourceEnvironment) RegisterSignalHandler(fn func(string, *commonpb.Payloads, *commonpb.Header) error) {
 	e.signal = fn
 }
-func (*resourceEnvironment) NewTimer(time.Duration, goWorkflow.TimerOptions, bindings.ResultHandler) *bindings.TimerID {
-	return nil
+func (e *resourceEnvironment) NewTimer(_ time.Duration, _ goWorkflow.TimerOptions, cb bindings.ResultHandler) *bindings.TimerID {
+	e.timer = cb
+	return &bindings.TimerID{}
 }
 func (e *resourceEnvironment) RequestCancelTimer(bindings.TimerID) { e.cancels++ }
 
@@ -253,6 +260,10 @@ func (t *check) Fatalf(format string, args ...any) {
 }
 func (t *check) Run(name string, fn func(*check)) { fn(&check{name: t.name + "/" + name}) }
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "-stress" {
+		runStress(os.Args[2:])
+		return
+	}
 	checkWorkflowLimits(&check{name: "admission"})
 	checkDispatchBudgets(&check{name: "dispatch budgets"})
 	checkWatchdogs(&check{name: "watchdogs"})

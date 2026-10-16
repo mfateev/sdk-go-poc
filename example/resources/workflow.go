@@ -19,6 +19,8 @@ type Input struct {
 //temporal:workflow
 func ResourceWorkflow(ctx context.Context, input Input) (uint64, error) {
 	switch input.Mode {
+	case "stress":
+		return stressWorkflow(ctx, input.Iterations)
 	case "host-roundtrips":
 		for range input.Iterations {
 			if _, err := isolate.Call(testrefwire.Operation, nil); err != nil {
