@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/mfateev/sdk-go-poc/example/dynamic"
@@ -114,4 +115,135 @@ func TestPluginNativeReplayRegistrations(t *testing.T) {
 	require.ErrorIs(t, r.ReplayWorkflowHistory(nil, &historypb.History{}), errPluginRegistrationStop)
 	require.Equal(t, 1, p.named)
 	require.Equal(t, 1, p.dynamic)
+}
+
+// configurationMutationPlugin tests the options that the POC consumes during
+// registration, including registrations made through the SDK's startup chain.
+type configurationMutationPlugin struct {
+	clientPluginBase
+	workerPluginBase
+	policy          sdkworker.WorkflowPanicPolicy
+	disableAliasing bool
+	register        func(sdkworker.PluginStartWorkerOptions)
+}
+
+func (*configurationMutationPlugin) Name() string { return "configuration-mutation" }
+func (p *configurationMutationPlugin) ConfigureWorker(_ context.Context, o sdkworker.PluginConfigureWorkerOptions) error {
+	o.WorkerOptions.WorkflowPanicPolicy = p.policy
+	o.WorkerOptions.DisableRegistrationAliasing = p.disableAliasing
+	return nil
+}
+func (p *configurationMutationPlugin) StartWorker(_ context.Context, o sdkworker.PluginStartWorkerOptions, _ func(context.Context, sdkworker.PluginStartWorkerOptions) error) error {
+	p.register(o)
+	return errPluginRegistrationStop
+}
+
+func TestPluginEffectiveWorkerConfiguration(t *testing.T) {
+	for _, inherited := range []bool{false, true} {
+		for _, wrap := range []bool{false, true} {
+			for _, fail := range []bool{false, true} {
+				for _, startup := range []bool{false, true} {
+					for _, dynamicRegistration := range []bool{false, true} {
+						name := fmt.Sprintf("inherited=%t/wrap=%t/fail=%t/startup=%t/dynamic=%t", inherited, wrap, fail, startup, dynamicRegistration)
+						t.Run(name, func(t *testing.T) {
+							p := &configurationMutationPlugin{disableAliasing: fail}
+							wo := Options{DisableRegistrationAliasing: !fail}
+							if fail {
+								p.policy = sdkworker.FailWorkflow
+							} else {
+								wo.WorkflowPanicPolicy = sdkworker.FailWorkflow
+							}
+							co := client.Options{}
+							if inherited {
+								co.Plugins = []client.Plugin{p}
+							} else {
+								wo.Plugins = []sdkworker.Plugin{p}
+							}
+							c, err := client.NewLazyClient(co)
+							require.NoError(t, err)
+							defer c.Close()
+							var w Worker
+							if wrap {
+								// Deliberately supply the stale original options.
+								w = Wrap(sdkworker.New(c, "configuration-test", wo), wo)
+							} else {
+								w = New(c, "configuration-test", wo)
+							}
+							provider, ok := w.(WorkerConfigurationProvider)
+							require.True(t, ok)
+							cfg := provider.GetConfiguration()
+							require.Equal(t, p.policy, cfg.WorkflowPanicPolicy)
+							require.Equal(t, fail, cfg.DisableRegistrationAliasing)
+							cfg.WorkflowPanicPolicy = sdkworker.FailWorkflow
+							require.Equal(t, p.policy, provider.GetConfiguration().WorkflowPanicPolicy)
+
+							register := func(registry sdkworker.Registry) {
+								if dynamicRegistration {
+									registry.RegisterDynamicWorkflow(dynamic.Workflow, sdkwf.DynamicRegisterOptions{})
+								} else {
+									registry.RegisterWorkflowWithOptions(order.EchoWorkflow, sdkwf.RegisterOptions{Name: "configured-workflow"})
+								}
+							}
+							attempt := func() {
+								if startup {
+									p.register = func(o sdkworker.PluginStartWorkerOptions) {
+										require.Same(t, w, o.WorkerRegistry)
+										// The plugin registry intentionally exposes fewer methods.
+										if dynamicRegistration {
+											o.WorkerRegistry.RegisterDynamicWorkflow(dynamic.Workflow, sdkwf.DynamicRegisterOptions{})
+										} else {
+											o.WorkerRegistry.RegisterWorkflowWithOptions(order.EchoWorkflow, sdkwf.RegisterOptions{Name: "configured-workflow"})
+										}
+									}
+									require.ErrorIs(t, w.Start(), errPluginRegistrationStop)
+								} else {
+									register(w)
+								}
+							}
+							if fail {
+								require.PanicsWithValue(t, "worker: isolate workflows require BlockWorkflow panic policy", attempt)
+							} else {
+								require.NotPanics(t, attempt)
+							}
+
+							w.RegisterActivityWithOptions(testActivity, activity.RegisterOptions{Name: "configured-activity"})
+							expected := "configured-activity"
+							if fail {
+								expected = "testActivity"
+							}
+							require.Equal(t, expected, w.(*isolateWorker).activities.resolve("testActivity"))
+							if !dynamicRegistration && !fail {
+								require.Equal(t, "configured-workflow", w.(*isolateWorker).workflows.resolve("EchoWorkflow"))
+							}
+							// FailWorkflow remains valid for ordinary host workflows.
+							require.NotPanics(t, func() { w.RegisterWorkflow(hostConfigurationWorkflow) })
+						})
+					}
+				}
+			}
+		}
+	}
+}
+
+func hostConfigurationWorkflow(sdkwf.Context) error { return nil }
+
+func TestPluginEffectiveRegistrationAliasing(t *testing.T) {
+	for _, disabled := range []bool{false, true} {
+		t.Run(fmt.Sprint(disabled), func(t *testing.T) {
+			p := &configurationMutationPlugin{disableAliasing: disabled}
+			c, err := client.NewLazyClient(client.Options{Plugins: []client.Plugin{p}})
+			require.NoError(t, err)
+			defer c.Close()
+			w := New(c, "alias-configuration", Options{DisableRegistrationAliasing: !disabled})
+			w.RegisterWorkflowWithOptions(order.EchoWorkflow, sdkwf.RegisterOptions{Name: "configured-workflow"})
+			w.RegisterActivityWithOptions(testActivity, activity.RegisterOptions{Name: "configured-activity"})
+			expectedWorkflow, expectedActivity := "configured-workflow", "configured-activity"
+			if disabled {
+				expectedWorkflow, expectedActivity = "EchoWorkflow", "testActivity"
+			}
+			wrapped := w.(*isolateWorker)
+			require.Equal(t, expectedWorkflow, wrapped.workflows.resolve("EchoWorkflow"))
+			require.Equal(t, expectedActivity, wrapped.activities.resolve("testActivity"))
+		})
+	}
 }

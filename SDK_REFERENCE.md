@@ -716,7 +716,7 @@ Function names and bound methods follow Temporal's short-name convention.
 `activity.RegisterOptions{Name: ...}` aliases resolve on the host, including
 registrations made after the workflow registration. Prefixed struct methods
 use explicit names, matching the standard SDK. `worker.New` honors
-`DisableRegistrationAliasing`; `worker.Wrap` assumes default SDK aliasing.
+`DisableRegistrationAliasing`; `worker.Wrap` reads the effective SDK configuration.
 When replaying aliased function references, supply the same aliases with
 `replayer.RegisterActivityWithOptions(fn, options)`. Replay registrations are
 metadata only and never execute activities. Unaliased functions need no replay
@@ -780,6 +780,13 @@ before `Start` or `Run`; custom worker implementations retain their own plugin
 wiring. Replayers created by this package similarly supply their native wrapper
 through `PluginReplayWorkflowOptions.WorkflowReplayRegistry`.
 
+SDK workers expose `worker.WorkerConfigurationProvider.GetConfiguration()`.
+The POC wrapper forwards this optional capability and uses the effective
+post-plugin, defaulted configuration for panic-policy validation and aliasing.
+Mutable snapshot containers are copied; referenced components remain shared.
+For custom workers without the capability, `Wrap` uses its supplied options
+(or defaults); its configuration getter reports those supplied values.
+
 The [plugin checker](example/plugins/README.md) exercises inherited and explicit
 plugins, named and dynamic native workflows, live execution and replay with
 workflow cache sizes 1000 and 0.
@@ -797,7 +804,9 @@ workflow implementation to retry that task.
 Isolate registrations require the SDK's default `BlockWorkflow` panic policy.
 `worker.New` rejects marked workflow registration under `FailWorkflow`; ordinary
 workflow registrations retain their configured behavior. When adapting an
-existing worker, pass its original options to `worker.Wrap(existing, options)`.
+existing SDK worker, `worker.Wrap(existing)` reads its final policy, including
+plugin mutations. For custom workers without `WorkerConfigurationProvider`,
+pass their effective options to `worker.Wrap(existing, options)`.
 Direct `temporalbridge.Factory` users must configure `BlockWorkflow` themselves.
 
 `fmt.Print*`, standard `log`, `slog` and Go's `print`/`println` format inside the

@@ -1,0 +1,2 @@
+2026/10/16 21:01:33 Writing full test logs to /tmp/worker-configuration-sdk-integration-cache0
+2026/10/16 21:01:33 Running /usr/local/go-bootstrap/bin/go in /Users/maxim/workarea/workspaces/projects/tasks/modify-go-runtime-for-isolates/temporal-go-sdk/test with args [test -json -count 1 -race -v -timeout 15m -run ^TestIntegrationSuite/Test(WorkerPlugin|SimplePlugin)$ ./... -- -using-cli-dev-server]

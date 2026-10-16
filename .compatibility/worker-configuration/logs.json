@@ -1,0 +1,30 @@
+{
+  "poc-all.log": {
+    "exit_code": 0,
+    "sha256": "00d671eb54787634f2584ea8bd14a0c044ece1296a5280c752978caa33ed0ff3"
+  },
+  "poc-live.log": {
+    "exit_code": 0,
+    "sha256": "ca5209c82dddb0b683c080a6e502c67c2672f8fac25055f0b1d23b45ed94bc01"
+  },
+  "sdk-unit.log": {
+    "exit_code": 0,
+    "sha256": "585fe529aa910be11c28f9c8f44b67cc8259c6a6318f34562d6754a6988e5c5a"
+  },
+  "sdk-check.log": {
+    "exit_code": 0,
+    "sha256": "8a58b6a1eb9bcab337570736b9bb3b90fcd449828f6d6434ef5864355cba67e2"
+  },
+  "doclink-test.log": {
+    "exit_code": 0,
+    "sha256": "d8445e1b9bd7475bb1d9bb4ca1e1e1576da31cd292ddfedda35e0b9944bd74dd"
+  },
+  "sdk-integration-default.log": {
+    "exit_code": 0,
+    "sha256": "4bb6ecb2282b500b8c803317bf7fd47bbe11ccccb2d0dc15006c847b7a2e6956"
+  },
+  "sdk-integration-cache0.log": {
+    "exit_code": 0,
+    "sha256": "c9bd5d7be1dcb44e7b378fd04b6595f02028b1a5cf778889e521c7f578260bd0"
+  }
+}

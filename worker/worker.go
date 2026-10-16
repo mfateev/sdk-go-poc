@@ -22,6 +22,8 @@ import (
 
 type Worker = goWorker.Worker
 type Options = goWorker.Options
+type WorkerConfiguration = goWorker.WorkerConfiguration
+type WorkerConfigurationProvider = goWorker.WorkerConfigurationProvider
 
 // WorkflowReplayer accepts activity registrations as alias metadata for replay.
 // Replay never executes these activity functions.
@@ -34,14 +36,15 @@ type WorkflowReplayerOptions = goWorker.WorkflowReplayerOptions
 
 // New constructs a normal Temporal worker with isolate-aware registration.
 func New(c client.Client, taskQueue string, options Options) Worker {
-	return Wrap(goWorker.New(c, taskQueue, options), options)
+	return Wrap(goWorker.New(c, taskQueue, options))
 }
 
 // Wrap adds isolate registration to an existing worker. All lifecycle,
 // activity and service methods retain their SDK behavior.
 // Call before Start or Run. SDK worker plugins receive the wrapper as their
 // registry; custom worker implementations retain their own plugin wiring.
-// Pass the options used to construct the worker if they differ from defaults.
+// Workers implementing WorkerConfigurationProvider supply their effective options.
+// For other workers, pass the options used to construct them if not defaults.
 // Isolate workflows require BlockWorkflow panic policy. Ordinary registrations
 // keep the underlying worker's policy and converter.
 func Wrap(w Worker, options ...Options) Worker {
@@ -55,13 +58,19 @@ func Wrap(w Worker, options ...Options) Worker {
 	if len(options) == 1 {
 		opts = options[0]
 	}
+	if provider, ok := w.(WorkerConfigurationProvider); ok {
+		opts = Options(provider.GetConfiguration())
+	}
 	wrapped := &isolateWorker{Worker: w, workflows: activityAliases{disabled: opts.DisableRegistrationAliasing}, activities: activityAliases{disabled: opts.DisableRegistrationAliasing}, failWorkflowOnPanic: opts.WorkflowPanicPolicy == goWorker.FailWorkflow}
+	wrapped.configuration = WorkerConfiguration(opts)
+	wrapped.configuration = wrapped.GetConfiguration()
 	internalbindings.SetWorkerPluginRegistry(w, wrapped)
 	return wrapped
 }
 
 type isolateWorker struct {
 	Worker
+	configuration       WorkerConfiguration
 	workflows           activityAliases
 	activities          activityAliases
 	logs                logConfiguration
@@ -74,6 +83,22 @@ type isolateWorker struct {
 	failWorkflowOnPanic bool
 	dynamicRegistered   bool
 	dynamicMu           sync.Mutex
+}
+
+// GetConfiguration forwards the SDK snapshot when available. For custom workers,
+// it reports the options supplied to Wrap; their effective configuration is unknown.
+func (w *isolateWorker) GetConfiguration() WorkerConfiguration {
+	if provider, ok := w.Worker.(WorkerConfigurationProvider); ok {
+		return provider.GetConfiguration()
+	}
+	configuration := w.configuration
+	configuration.Interceptors = append(configuration.Interceptors[:0:0], configuration.Interceptors...)
+	configuration.Plugins = append(configuration.Plugins[:0:0], configuration.Plugins...)
+	if configuration.MaxEagerActivityReservationsPerWorkflowTask != nil {
+		value := *configuration.MaxEagerActivityReservationsPerWorkflowTask
+		configuration.MaxEagerActivityReservationsPerWorkflowTask = &value
+	}
+	return configuration
 }
 
 // Match Temporal's short-name alias rules. This table stays on the host, and
