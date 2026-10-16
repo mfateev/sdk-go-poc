@@ -70,7 +70,7 @@ jobs:
         run: |
           set -euo pipefail
           cd golang-go
-          ./bin/go test -failfast -short runtime isolate internal/isolatebridge internal/isolatepolicy go/build internal/trace context time sync iter reflect internal/runtime/maps math math/rand math/rand/v2
+          ./bin/go test -failfast -short runtime isolate internal/isolatebridge internal/isolatestate internal/isolatepolicy go/build internal/trace context time sync iter reflect internal/runtime/maps math math/rand math/rand/v2
           ./bin/go test -failfast -race runtime isolate internal/isolatebridge -run 'TestIsolate|TestLifecycle|TestKill|TestDeterministic|TestOwnershipFault' -count=1
           GOEXPERIMENT=isolates,staticlockranking ./bin/go test -failfast -short runtime isolate internal/isolatebridge -run 'TestIsolate|TestLifecycle|TestKill|TestDeterministic|TestOwnershipFault' -count=1
           ./bin/go test -failfast -timeout=15m cmd/go -run 'TestIsolate|TestScript/.*isolate' -count=1
