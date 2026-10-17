@@ -45,20 +45,6 @@ var isolateOwnedStandardPackages = map[string]bool{
 	"time":                             true,
 }
 
-// Value codecs and pools belong to the caller. Descriptor builders and default
-// registries remain process services with pinned, narrow metadata privileges.
-func isolateOwnedProtobufPackage(path string) bool {
-	switch path {
-	case "google.golang.org/protobuf/proto", "google.golang.org/protobuf/encoding/protojson", "google.golang.org/protobuf/encoding/prototext",
-		"google.golang.org/protobuf/reflect/protoreflect",
-		"google.golang.org/protobuf/internal/impl", "google.golang.org/protobuf/internal/order",
-		"google.golang.org/protobuf/internal/detrand", "google.golang.org/protobuf/internal/errors",
-		"google.golang.org/protobuf/internal/encoding/json", "google.golang.org/protobuf/internal/encoding/text":
-		return true
-	}
-	return false
-}
-
 // OTel API attribute encoders and header parsing caches are private, including
 // scratch copies for read-only handlers. The trace API initializes an automatic
 // tracer from process environment; keep that startup on the host. Native sink

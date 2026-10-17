@@ -35,8 +35,12 @@ func cacheReuse() error {
 					return
 				}
 			}
-			if _, err := env.QueryWorkflow("mutateMetadata"); err == nil || !strings.Contains(err.Error(), "read-only handler cannot mutate shared protobuf metadata") {
+			if _, err := env.QueryWorkflow("mutateMetadata"); err == nil || !strings.Contains(err.Error(), "read-only handler cannot mutate host state") {
 				queryError = fmt.Errorf("metadata mutation query: %v", err)
+				return
+			}
+			if _, err := env.QueryWorkflow("mutateRegistry"); err == nil || !strings.Contains(err.Error(), "unsupported metadata operation") {
+				queryError = fmt.Errorf("registry mutation query: %v", err)
 				return
 			}
 			value, err := env.QueryWorkflow("metadata")

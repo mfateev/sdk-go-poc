@@ -9,13 +9,26 @@ import (
 	"github.com/mfateev/sdk-go-poc/workflow"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/reflect/protoregistry"
 )
+
+var rangeCallbacks int
 
 // SharedMetadata exercises repeated use of a type's shared reflection/coder
 // tables with distinct, mutable message values. Settings remains unused.
 //
 //temporal:workflow
 func SharedMetadata(ctx context.Context) (string, error) {
+	defaults := model.Default_Settings_Data
+	model.Default_Settings_Data = []byte("private-default")
+	if string((&model.Settings{}).GetData()) != "private-default" {
+		return "", fmt.Errorf("generated getter lost private package defaults")
+	}
+	model.Default_Settings_Data = defaults
+	if rangeCallbacks != 0 {
+		return "", fmt.Errorf("callback package state leaked across isolates")
+	}
+
 	if err := workflow.SetQueryHandler(ctx, "mutateLibrary", func() (string, error) {
 		unicode.L.R16[0].Lo++
 		return "mutation accepted", nil
@@ -39,10 +52,19 @@ func SharedMetadata(ctx context.Context) (string, error) {
 	}); err != nil {
 		return "", err
 	}
+	if err := workflow.SetQueryHandler(ctx, "mutateRegistry", func() (string, error) { return "", new(protoregistry.Types).RegisterMessage(nil) }); err != nil {
+		return "", err
+	}
 	identity := ""
 	for i := range 100 {
 		message := &model.Record{Sequence: int64(i), Entries: map[string]*model.Record{"nested": {Sequence: int64(i + 1)}}, Choice: &model.Record_Title{Title: "cache"}}
 		view := message.ProtoReflect()
+		if i == 0 {
+			view.Range(func(_ protoreflect.FieldDescriptor, _ protoreflect.Value) bool { rangeCallbacks++; return true })
+			if rangeCallbacks == 0 {
+				return "", fmt.Errorf("protobuf callback did not reenter application state")
+			}
+		}
 		current := fmt.Sprintf("%p", view.Type())
 		if identity != "" && identity != current {
 			return "", fmt.Errorf("message metadata was rebuilt")

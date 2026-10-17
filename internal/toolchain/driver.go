@@ -16,6 +16,8 @@ import (
 
 type Module struct {
 	Path, Version string
+	Dir, GoMod    string
+	Main          bool
 	Replace       *Module
 }
 
@@ -165,6 +167,15 @@ func Main(args []string) int {
 		return fail(err)
 	}
 	defer os.RemoveAll(temporary)
+	adaptedOverlay, adaptedModfile, err := libraryOverlay(packages, temporary, overlay)
+	if err != nil {
+		return fail(err)
+	}
+	args = withOverlay(args, adaptedOverlay)
+	if adaptedModfile != "" {
+		args = withModfile(args, adaptedModfile)
+		args = append([]string{args[0], "-trimpath"}, args[1:]...)
+	}
 	data, err := json.Marshal(manifest)
 	if err != nil {
 		return fail(err)
@@ -330,17 +341,20 @@ func plan(packages []*Package, functions []isolateFunction) (*config, error) {
 		}
 	}
 	for _, p := range all {
+		if p.ImportPath == hostAdapterPackage || strings.HasPrefix(p.ImportPath, ProtobufModule+"/") {
+			continue
+		}
 		if !slices.Contains(roots, p) && slices.Contains([]string{"github.com/mfateev/sdk-go-poc/testsuite", "github.com/mfateev/sdk-go-poc/worker", "github.com/mfateev/sdk-go-poc/temporalbridge"}, p.ImportPath) {
 			continue
 		}
-		if process[p.ImportPath] && p.ImportPath != "go.temporal.io/sdk/converter" && p.ImportPath != "github.com/google/uuid" && !isolateOwnedObservabilityPackage(p.ImportPath) && !isolateOwnedProtobufPackage(p.ImportPath) {
+		if process[p.ImportPath] && p.ImportPath != "go.temporal.io/sdk/converter" && p.ImportPath != "github.com/google/uuid" && !isolateOwnedObservabilityPackage(p.ImportPath) {
 			continue
 		}
 		if p.Standard && !isolateOwnedStandardPackages[p.ImportPath] {
 			continue
 		}
 		result.StatePackages = append(result.StatePackages, p.ImportPath)
-		if p.Standard || p.ImportPath == "github.com/google/uuid" || isolateOwnedObservabilityPackage(p.ImportPath) || isolateOwnedProtobufPackage(p.ImportPath) || p.ImportPath == "go.temporal.io/sdk/converter" {
+		if p.Standard || p.ImportPath == "github.com/google/uuid" || isolateOwnedObservabilityPackage(p.ImportPath) || p.ImportPath == "go.temporal.io/sdk/converter" {
 			result.ReadOnlyPackages = append(result.ReadOnlyPackages, p.ImportPath)
 		}
 	}
@@ -497,4 +511,34 @@ func splitQuoted(input string) ([]string, error) {
 		}
 	}
 	return result, nil
+}
+
+func withOverlay(args []string, filename string) []string {
+	result := []string{args[0], "-overlay=" + filename}
+	for i := 1; i < len(args); i++ {
+		if args[i] == "-overlay" {
+			i++
+			continue
+		}
+		if strings.HasPrefix(args[i], "-overlay=") {
+			continue
+		}
+		result = append(result, args[i])
+	}
+	return result
+}
+
+func withModfile(args []string, filename string) []string {
+	result := []string{args[0], "-modfile=" + filename}
+	for i := 1; i < len(args); i++ {
+		if args[i] == "-modfile" {
+			i++
+			continue
+		}
+		if strings.HasPrefix(args[i], "-modfile=") {
+			continue
+		}
+		result = append(result, args[i])
+	}
+	return result
 }

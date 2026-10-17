@@ -173,6 +173,22 @@ func UpstreamRandom(ctx context.Context) (*commonpb.WorkflowType, error) {
 func checkConversions(ctx context.Context) error {
 	// Proto2 defaults contain process-owned descriptor strings and bytes. Coder
 	// construction must copy those scalar defaults into the conversion owner.
+	now := time.Now()
+	if got := timestamppb.Now().AsTime(); !got.Equal(now) {
+		return fmt.Errorf("protobuf constructor changed workflow time: %v != %v", got, now)
+	}
+	registered, err := protoregistry.GlobalTypes.FindMessageByName("native.protobuf.Record")
+	if err != nil {
+		return err
+	}
+	fresh := registered.New().Interface().(*model.Record)
+	fresh.Sequence = 42
+	if fresh.Sequence != 42 {
+		return fmt.Errorf("registry constructor lost private ownership")
+	}
+	if _, err := (protojson.MarshalOptions{Resolver: protoregistry.GlobalTypes}).Marshal(Record()); err != nil {
+		return err
+	}
 	settings := &model.Settings{}
 	for _, mode := range []string{"json", "binary"} {
 		dc := workflow.GetDataConverter(workflow.WithDataConverter(ctx, DataConverter(mode)))
@@ -253,5 +269,20 @@ func (*legacyMessage) ProtoMessage()  {}
 //temporal:workflow
 func ResolverWorkflow(ctx context.Context) error {
 	_, err := (protojson.MarshalOptions{Resolver: &protoregistry.Types{}}).Marshal(Record())
+	return err
+}
+
+type customReflectMessage struct{}
+
+func (*customReflectMessage) Reset()         {}
+func (*customReflectMessage) String() string { return "custom" }
+func (*customReflectMessage) ProtoMessage()  {}
+func (*customReflectMessage) ProtoReflect() protoreflect.Message {
+	panic("application ProtoReflect executed in host")
+}
+
+//temporal:workflow
+func CustomMessageWorkflow(context.Context) error {
+	_, err := proto.Marshal(&customReflectMessage{})
 	return err
 }

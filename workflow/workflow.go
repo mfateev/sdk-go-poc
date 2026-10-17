@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/mfateev/sdk-go-poc/hostintegration"
 	"isolate"
 	"reflect"
 	"time"
@@ -200,7 +201,7 @@ func encodeTypedResult[R any](result R, cause error) (*commonpb.Payloads, error)
 }
 
 // Reject alternate/dynamic implementations before entering generated codecs.
-// The runtime records type provenance only after the audited process builder.
+// SDK source adapters register supported generated message types at startup.
 func isUnsupportedProtoValue(value any) bool {
 	if value == nil {
 		return false
@@ -214,7 +215,7 @@ func isUnsupportedProtoValue(value any) bool {
 	}
 	pointer := reflect.PointerTo(typ)
 	if pointer.Implements(reflect.TypeFor[proto.Message]()) {
-		return !isolate.IsGeneratedProtobuf(value)
+		return !hostintegration.IsGenerated(value)
 	}
 	return pointer.Implements(reflect.TypeFor[gogoproto.Message]())
 }

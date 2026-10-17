@@ -3,6 +3,7 @@ package workflow
 import (
 	"context"
 	"fmt"
+	"github.com/mfateev/sdk-go-poc/hostintegration"
 	"isolate"
 	"reflect"
 
@@ -13,7 +14,7 @@ import (
 
 // Read-only marshal may update a generated message's size cache. Clone just
 // message values into scratch memory first; descriptors remain opaque handles
-// and initialized coder tables are shared immutable process metadata.
+// and coder tables are host-owned behind SDK-generated host operations.
 type protobufConverter struct{ converter.DataConverter }
 
 func protectProtobuf(dc converter.DataConverter) converter.DataConverter {
@@ -27,7 +28,7 @@ func protobufInput(value any) (any, error) {
 	if isUnsupportedProtoValue(value) {
 		return nil, fmt.Errorf("workflow: unsupported protobuf type %T; use a generated Google message without extensions", value)
 	}
-	if !isolate.IsReadOnly() || !isolate.IsGeneratedProtobuf(value) {
+	if !isolate.IsReadOnly() || !hostintegration.IsGenerated(value) {
 		return value, nil
 	}
 	if message, ok := value.(proto.Message); ok {

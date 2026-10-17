@@ -41,6 +41,7 @@ func register(w interface{ RegisterWorkflow(any) }, mode string) {
 	w.RegisterWorkflow(example.UpstreamPayloads)
 	w.RegisterWorkflow(example.UpstreamRandom)
 	w.RegisterWorkflow(example.ResolverWorkflow)
+	w.RegisterWorkflow(example.CustomMessageWorkflow)
 	if mode == "binary" {
 		check(worker.SetIsolateDataConverter(w, worker.DataConverterOptions{Factory: example.ConverterFactory, Config: []byte(mode)}))
 	}
@@ -70,6 +71,10 @@ func run(mode, scenario string) {
 	env.RegisterActivityWithOptions(Echo, activity.RegisterOptions{Name: "Echo"})
 	env.RegisterActivityWithOptions(Payloads, activity.RegisterOptions{Name: "Payloads"})
 	env.RegisterActivityWithOptions(Random, activity.RegisterOptions{Name: "Random"})
+	if scenario == "custom-message" {
+		env.ExecuteWorkflow("CustomMessageWorkflow")
+		panic("custom protobuf message accepted")
+	}
 	if scenario == "resolver" {
 		env.ExecuteWorkflow("ResolverWorkflow")
 		panic("custom resolver accepted")

@@ -44,3 +44,11 @@ func TestGeneratedProtobufSharedMetadata(t *testing.T) {
 		t.Fatalf("shared protobuf metadata: %v\n%s", err, out)
 	}
 }
+
+func TestCustomProtoReflectCannotRunAsHost(t *testing.T) {
+	binary := checktest.Build(t, "protobuf-custom-check")
+	output, err := checktest.Command(t, binary, "-scenario", "custom-message").CombinedOutput()
+	if err == nil || !strings.Contains(string(output), "unsupported protobuf implementation") || strings.Contains(string(output), "application ProtoReflect executed in host") {
+		t.Fatalf("custom protobuf implementation: %v\n%s", err, output)
+	}
+}

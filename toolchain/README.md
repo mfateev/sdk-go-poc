@@ -16,9 +16,26 @@ TGO_GOROOT=/absolute/path/to/golang-go bin/tgo test ./...
 SDK driver beside its bundled `bin/go`; caller `GOROOT` cannot redirect it.
 `go-source.json` records the matching compiler/runtime source revision.
 
-The core temporarily retains dependency-source checks while its old metadata
-rewrites exist. The driver checks those versions as integration policy too.
-Neither the build manifest nor generated adapters grant metadata privileges.
+Protobuf and OpenTelemetry source adaptations and version policy live entirely
+in this SDK. Go has no module-name/version allowlist, generated protobuf rewrite,
+or protobuf runtime/reflect layout helper. The driver stages temporary copies of
+cached dependency modules and composes source overlays for application-generated
+code; it never modifies the module cache or checked-in generated files. Adapted
+builds default to `-trimpath` so temporary paths do not enter executable stacks.
+
+The adapters use registered `isolate.NewHostFunc` operations. Shared descriptors,
+registries and lazy coder tables allocate in nested host scopes; messages,
+reflection views, scalar metadata and diagnostics allocate with the caller's
+allocator, including scratch ownership for queries. Function arguments reenter
+application state explicitly. Custom message implementations, custom resolvers,
+registry mutation and the previously unsupported metadata APIs remain rejected.
+Query mutation errors return to the query boundary without terminating workflow
+execution. Fatal adapter policy failures carry copied `isolate.PanicError`
+diagnostics; ordinary forbidden Go effects still produce `isolate.EffectError`.
+Plain generated getters retain private application defaults and aliases; time
+constructors read the workflow clock before entering host construction.
+DataConverter instances and the copied-byte SDK transport remain in their
+existing execution domains.
 
 The driver preserves selected Go source/build constraints, ordinary command
 forwarding, internal/external test variants and dependency cache reuse. The
