@@ -1,7 +1,6 @@
 package temporalbridge
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"isolate"
@@ -14,13 +13,12 @@ import (
 	"go.temporal.io/sdk/converter"
 	bindings "go.temporal.io/sdk/internalbindings"
 	"go.temporal.io/sdk/temporal"
-	"google.golang.org/protobuf/proto"
 )
 
 type updateState struct {
 	id, name  string
-	payload   []byte
-	header    map[string][]byte
+	payload   *commonpb.Payloads
+	header    *commonpb.Header
 	callbacks bindings.UpdateCallbacks
 	accepted  bool
 }
@@ -39,7 +37,7 @@ func (d *definition) queueUpdate(name, id string, input *commonpb.Payloads, head
 		callbacks.Reject(errors.New("duplicate update ID"))
 		return
 	}
-	raw, err := inboundPayloadBytes(input, d.env.GetDataConverter())
+	raw, err := inboundPayloads(input, d.env.GetDataConverter())
 	if err != nil {
 		callbacks.Reject(err)
 		return
@@ -58,7 +56,7 @@ func (d *definition) handleUpdate(command *isolate.Command) error {
 	switch command.Op {
 	case workflow.OpRegisterUpdate:
 		var r workflow.UpdateRegistration
-		if err := json.Unmarshal(command.Payload, &r); err != nil {
+		if err := workflow.UnmarshalTransport(command.Payload, &r); err != nil {
 			return err
 		}
 		if d.updateHandlers == nil {
@@ -79,7 +77,7 @@ func (d *definition) handleUpdate(command *isolate.Command) error {
 		d.updateWaiter = command
 	case workflow.OpCompleteUpdate:
 		var r workflow.UpdateCompletion
-		if err := json.Unmarshal(command.Payload, &r); err != nil {
+		if err := workflow.UnmarshalTransport(command.Payload, &r); err != nil {
 			return err
 		}
 		state := d.updates[r.ID]
@@ -88,16 +86,16 @@ func (d *definition) handleUpdate(command *isolate.Command) error {
 		}
 		var result any
 		var cause error
-		if len(r.Failure) != 0 {
+		if r.Failure != nil {
 			var err error
 			cause, err = d.decodeOutboundFailure(r.Failure, d.env.GetDataConverter())
 			if err != nil {
 				return err
 			}
 		} else {
-			payloads := new(commonpb.Payloads)
-			if err := proto.Unmarshal(r.Payloads, payloads); err != nil {
-				return err
+			payloads := r.Payloads
+			if payloads == nil {
+				payloads = new(commonpb.Payloads)
 			}
 			if len(payloads.Payloads) != 1 {
 				return errors.New("update result must contain exactly one payload")
@@ -136,9 +134,9 @@ func (d *definition) admitUpdate() bool {
 	if err != nil {
 		d.failTask(err)
 	}
-	if response.Failed || len(response.Failure) != 0 {
+	if response.Failed || response.Failure != nil {
 		cause := error(errors.New(response.Error))
-		if len(response.Failure) != 0 {
+		if response.Failure != nil {
 			var err error
 			cause, err = d.decodeOutboundFailure(response.Failure, d.env.GetDataConverter())
 			if err != nil {
@@ -150,7 +148,7 @@ func (d *definition) admitUpdate() bool {
 		delete(d.updates, state.id)
 		return true
 	}
-	raw, err := json.Marshal(workflow.UpdateRequest{ID: state.id, Name: state.name, Payloads: state.payload, Header: state.header})
+	raw, err := workflow.MarshalTransport(workflow.UpdateRequest{ID: state.id, Name: state.name, Payloads: state.payload, Header: state.header})
 	if err != nil {
 		d.failTask(err)
 	}

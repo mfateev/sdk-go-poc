@@ -1,7 +1,6 @@
 package temporalbridge
 
 import (
-	"encoding/json"
 	"errors"
 	"isolate"
 	"testing"
@@ -11,7 +10,6 @@ import (
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/converter"
 	bindings "go.temporal.io/sdk/internalbindings"
-	"google.golang.org/protobuf/proto"
 )
 
 type continuationEnvironment struct {
@@ -33,24 +31,32 @@ func (*continuationEnvironment) GetDataConverter() converter.DataConverter {
 func TestVersionDelegatesHistoryAndBoundsToSDK(t *testing.T) {
 	e := new(continuationEnvironment)
 	d := &definition{env: e}
-	raw, _ := json.Marshal(workflow.VersionRequest{ChangeID: "change", Min: workflow.DefaultVersion, Max: 2})
+	raw, _ := workflow.MarshalTransport(workflow.VersionRequest{ChangeID: "change", Min: workflow.DefaultVersion, Max: 2})
 	if err := d.handle(&isolate.Command{Op: workflow.OpGetVersion, Payload: raw}); err != nil {
 		t.Fatal(err)
 	}
-	if e.request.ChangeID != "change" || e.request.Min != workflow.DefaultVersion || string(d.immediate[0].payload) != "2" {
+	var version workflow.Version
+	if err := workflow.UnmarshalTransport(d.immediate[0].payload, &version); err != nil {
+		t.Fatal(err)
+	}
+	if e.request.ChangeID != "change" || e.request.Min != workflow.DefaultVersion || version != 2 {
 		t.Fatalf("version request: %+v", e.request)
 	}
 	if err := d.handle(&isolate.Command{Op: workflow.OpIsReplaying}); err != nil {
 		t.Fatal(err)
 	}
-	if string(d.immediate[1].payload) != "true" {
+	var replay bool
+	if err := workflow.UnmarshalTransport(d.immediate[1].payload, &replay); err != nil {
+		t.Fatal(err)
+	}
+	if !replay {
 		t.Fatal("replay state not delegated")
 	}
 }
 func TestContinueAsNewRetiresDefinitionAndPreservesSDKFields(t *testing.T) {
 	dc := converter.GetDefaultDataConverter()
 	input, _ := dc.ToPayloads(42)
-	raw, _ := json.Marshal(workflow.PayloadCompletion{ContinueAsNew: &workflow.ContinueAsNewRequest{Name: "target", Payloads: mustPayloads(t, input), Options: workflow.RunOptions{TaskQueue: "next", WorkflowRunTimeout: time.Minute, WorkflowTaskTimeout: time.Second}, RetryPolicy: &workflow.RetryPolicy{MaximumAttempts: 3}, BackoffStartInterval: int64(time.Second)}})
+	raw, _ := workflow.MarshalTransport(workflow.PayloadCompletion{ContinueAsNew: &workflow.ContinueAsNewRequest{Name: "target", Payloads: mustPayloads(t, input), Options: workflow.RunOptions{TaskQueue: "next", WorkflowRunTimeout: time.Minute, WorkflowTaskTimeout: time.Second}, RetryPolicy: &workflow.RetryPolicy{MaximumAttempts: 3}, BackoffStartInterval: int64(time.Second)}})
 	e := new(continuationEnvironment)
 	d := &definition{env: e}
 	if err := d.handle(&isolate.Command{Op: workflow.OpCompletePayloads, Payload: raw}); err != nil {
@@ -68,7 +74,11 @@ func TestContinueAsNewRetiresDefinitionAndPreservesSDKFields(t *testing.T) {
 func TestEmptyErrorRemainsFailureAcrossCompletionBoundary(t *testing.T) {
 	e := new(continuationEnvironment)
 	d := &definition{env: e}
-	if err := d.handle(&isolate.Command{Op: workflow.OpCompletePayloads, Payload: []byte(`{"failed":true}`)}); err != nil {
+	raw, err := workflow.MarshalTransport(workflow.PayloadCompletion{Failed: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := d.handle(&isolate.Command{Op: workflow.OpCompletePayloads, Payload: raw}); err != nil {
 		t.Fatal(err)
 	}
 	if e.err == nil || e.err.Error() != "" {
@@ -76,11 +86,4 @@ func TestEmptyErrorRemainsFailureAcrossCompletionBoundary(t *testing.T) {
 	}
 }
 
-func mustPayloads(t *testing.T, p *commonpb.Payloads) []byte {
-	t.Helper()
-	raw, err := proto.Marshal(p)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return raw
-}
+func mustPayloads(t *testing.T, p *commonpb.Payloads) *commonpb.Payloads { t.Helper(); return p }

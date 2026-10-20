@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"reflect"
@@ -70,14 +69,14 @@ func (e *environment) Complete(p *commonpb.Payloads, err error) {
 	e.completes++
 }
 func (e *environment) TypedSearchAttributes() temporal.SearchAttributes {
-	fields := make(map[string][]byte)
+	fields := make(map[string]*commonpb.Payload)
 	for name, p := range e.info.SearchAttributes.GetIndexedFields() {
-		if p.Data == nil || len(p.Metadata["type"]) == 0 {
-			continue
+		if p.Data != nil && len(p.Metadata["type"]) != 0 {
+			fields[name] = p
 		}
-		fields[name], _ = proto.Marshal(&commonpb.Payloads{Payloads: []*commonpb.Payload{p}})
 	}
-	raw, _ := json.Marshal(fields)
+	raw, err := proto.MarshalOptions{Deterministic: true}.Marshal(&commonpb.SearchAttributes{IndexedFields: fields})
+	must(err)
 	attributes, err := searchattrwire.Decode(raw)
 	must(err)
 	return attributes

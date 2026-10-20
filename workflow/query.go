@@ -2,15 +2,15 @@ package workflow
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
+	commonpb "go.temporal.io/api/common/v1"
+	failurepb "go.temporal.io/api/failure/v1"
 	"isolate"
 	"reflect"
 	"strings"
 
 	"github.com/mfateev/sdk-go-poc/internal/interceptorscope"
-	"github.com/mfateev/sdk-go-poc/internal/payloadwire"
 	"github.com/mfateev/sdk-go-poc/internal/tracecontext"
 	goWorkflow "go.temporal.io/sdk/workflow"
 )
@@ -23,22 +23,22 @@ type QueryRegistration struct {
 	Options QueryHandlerOptions `json:"options"`
 }
 type QueryRequest struct {
-	ObservationID string            `json:"observation_id,omitempty"`
-	Header        map[string][]byte `json:"header,omitempty"`
-	Kind          string            `json:"kind,omitempty"`
-	UpdateID      string            `json:"update_id,omitempty"`
-	Canceled      bool              `json:"canceled,omitempty"`
-	SkipValidator bool              `json:"skip_validator,omitempty"`
-	ID            uint64            `json:"id"`
-	Name          string            `json:"name"`
-	Payloads      []byte            `json:"payloads"`
+	ObservationID string             `json:"observation_id,omitempty"`
+	Header        *commonpb.Header   `json:"header,omitempty"`
+	Kind          string             `json:"kind,omitempty"`
+	UpdateID      string             `json:"update_id,omitempty"`
+	Canceled      bool               `json:"canceled,omitempty"`
+	SkipValidator bool               `json:"skip_validator,omitempty"`
+	ID            uint64             `json:"id"`
+	Name          string             `json:"name"`
+	Payloads      *commonpb.Payloads `json:"payloads"`
 }
 type QueryResponse struct {
-	Failure  []byte `json:"failure,omitempty"`
-	ID       uint64 `json:"id"`
-	Payloads []byte `json:"payloads,omitempty"`
-	Error    string `json:"error,omitempty"`
-	Failed   bool   `json:"failed,omitempty"`
+	Failure  *failurepb.Failure `json:"failure,omitempty"`
+	ID       uint64             `json:"id"`
+	Payloads *commonpb.Payloads `json:"payloads,omitempty"`
+	Error    string             `json:"error,omitempty"`
+	Failed   bool               `json:"failed,omitempty"`
 }
 
 var queryHandlers = make(map[string]any)
@@ -76,7 +76,7 @@ func setQueryHandlerWithOptions(ctx context.Context, queryType string, handler a
 
 func registerQuery(registration QueryRegistration) error {
 	startReadOnlyService()
-	raw, err := json.Marshal(registration)
+	raw, err := MarshalTransport(registration)
 	if err != nil {
 		return err
 	}
@@ -131,7 +131,7 @@ func serveQueries() {
 			panic(err)
 		}
 		var request QueryRequest
-		if err := json.Unmarshal(raw, &request); err != nil {
+		if err := UnmarshalTransport(raw, &request); err != nil {
 			panic(err)
 		}
 		interceptorscope.RandomStreams = nil
@@ -144,7 +144,7 @@ func serveQueries() {
 		if err != nil {
 			outcome.Failed, outcome.Error = true, readOnlyErrorMessage(err)
 		}
-		response, err = json.Marshal(outcome)
+		response, err = MarshalTransport(outcome)
 		if err != nil {
 			panic(err)
 		}
@@ -162,11 +162,11 @@ func readOnlyErrorMessage(err error) (message string) {
 	return err.Error()
 }
 
-func invokeQuery(handler any, raw []byte) (result []byte, err error) {
+func invokeQuery(handler any, raw *commonpb.Payloads) (result *commonpb.Payloads, err error) {
 	return invokeQueryWithHeader("", handler, raw, nil)
 }
 
-func invokeQueryWithHeader(name string, handler any, raw []byte, header map[string][]byte, observationID ...string) (result []byte, err error) {
+func invokeQueryWithHeader(name string, handler any, raw *commonpb.Payloads, header *commonpb.Header, observationID ...string) (result *commonpb.Payloads, err error) {
 	defer func() {
 		if p := recover(); p != nil {
 			result = nil
@@ -215,7 +215,7 @@ func invokeQueryWithHeader(name string, handler any, raw []byte, header map[stri
 		for i := range args {
 			p := reflect.New(t.In(i))
 			if isUnsupportedProtoValue(p.Interface()) {
-				return nil, errors.New("workflow: only generated Google protobuf messages without extensions are supported")
+				return nil, errors.New("workflow: legacy gogo protobuf messages are unsupported; use Google protobuf")
 			}
 			pointers[i], args[i] = p.Interface(), p.Elem()
 		}
@@ -246,11 +246,11 @@ func invokeQueryWithHeader(name string, handler any, raw []byte, header map[stri
 		value = values[0].Interface()
 	}
 	if isUnsupportedProtoValue(value) {
-		return nil, errors.New("workflow: only generated Google protobuf messages without extensions are supported")
+		return nil, errors.New("workflow: legacy gogo protobuf messages are unsupported; use Google protobuf")
 	}
 	payloads, err = dc.ToPayloads(value)
 	if err != nil {
 		return nil, err
 	}
-	return payloadwire.Encode(payloads)
+	return payloads, nil
 }

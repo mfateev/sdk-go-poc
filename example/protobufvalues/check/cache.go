@@ -35,14 +35,21 @@ func cacheReuse() error {
 					return
 				}
 			}
-			if _, err := env.QueryWorkflow("mutateMetadata"); err == nil || !strings.Contains(err.Error(), "read-only handler cannot mutate host state") {
+			if _, err := env.QueryWorkflow("mutateMetadata"); err == nil || !strings.Contains(err.Error(), "read-only handler cannot mutate workflow state") {
 				queryError = fmt.Errorf("metadata mutation query: %v", err)
 				return
 			}
-			if _, err := env.QueryWorkflow("mutateRegistry"); err == nil || !strings.Contains(err.Error(), "unsupported metadata operation") {
-				queryError = fmt.Errorf("registry mutation query: %v", err)
+			local, err := env.QueryWorkflow("localRegistry")
+			if err != nil {
+				queryError = err
 				return
 			}
+			var registered string
+			if err = local.Get(&registered); err != nil || registered != "native.protobuf.Record" {
+				queryError = fmt.Errorf("scratch registration: %q %v", registered, err)
+				return
+			}
+
 			value, err := env.QueryWorkflow("metadata")
 			if err != nil {
 				queryError = fmt.Errorf("query panic killed the isolate: %w", err)
@@ -53,9 +60,24 @@ func cacheReuse() error {
 				queryError = err
 				return
 			}
-			if result != identity {
-				queryError = fmt.Errorf("query changed metadata identity")
+			if result == identity {
+				queryError = fmt.Errorf("query reused host metadata")
+				return
 			}
+			workflowMetadata, err := env.QueryWorkflow("workflowMetadata")
+			if err != nil {
+				queryError = err
+				return
+			}
+			var workflowIdentity string
+			if err = workflowMetadata.Get(&workflowIdentity); err != nil {
+				queryError = err
+				return
+			}
+			if result == workflowIdentity || workflowIdentity == identity {
+				queryError = fmt.Errorf("metadata shared across execution domains")
+			}
+
 		}, time.Millisecond)
 		env.ExecuteWorkflow("SharedMetadata")
 		if queryError != nil {
@@ -68,8 +90,8 @@ func cacheReuse() error {
 		if err := env.GetWorkflowResult(&result); err != nil {
 			return err
 		}
-		if result != identity {
-			return fmt.Errorf("isolate metadata %s differs from host %s", result, identity)
+		if result == identity {
+			return fmt.Errorf("isolate reused host metadata")
 		}
 		return nil
 	}
@@ -87,8 +109,8 @@ func cacheReuse() error {
 			return err
 		}
 	}
-	if ready(info) != 1 {
-		return fmt.Errorf("used metadata was not initialized in the host cache")
+	if ready(info) != 0 {
+		return fmt.Errorf("isolate initialized the host cache")
 	}
 	if ready(unused) != 0 {
 		return fmt.Errorf("unused Settings metadata was eagerly initialized")
@@ -96,6 +118,6 @@ func cacheReuse() error {
 	if err := run(); err != nil {
 		return err
 	}
-	fmt.Println("shared protobuf metadata reused across isolates; unused types remain lazy")
+	fmt.Println("protobuf metadata independent across host, workflows and query scratch; unused host types remain lazy")
 	return nil
 }

@@ -3,7 +3,6 @@ package temporalbridge
 import (
 	"crypto/sha256"
 	"encoding/binary"
-	"encoding/json"
 	"errors"
 	"github.com/mfateev/sdk-go-poc/workflow"
 
@@ -30,7 +29,7 @@ func workflowRandomRunID(info *goWorkflow.Info) string {
 }
 
 func (d *definition) controlBytes() []byte {
-	raw, err := json.Marshal(workflow.WorkflowControl{RandomRunID: d.randomRunID, Canceled: d.canceled})
+	raw, err := workflow.MarshalTransport(workflow.WorkflowControl{RandomRunID: d.randomRunID, Canceled: d.canceled})
 	if err != nil {
 		d.failTask(err)
 	}

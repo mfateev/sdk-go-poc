@@ -59,7 +59,7 @@ func TestPinnedFailureSchemaMatchesProtobuf(t *testing.T) {
 }
 
 func TestMalformedFailuresAreRejected(t *testing.T) {
-	for _, data := range [][]byte{{0}, {0x0a, 0x80}, {0x08, 1}, {0xf8, 0x01, 1}, {0x2a, 1, 0x80}, {0x0a, 1, 0xff}} {
+	for _, data := range [][]byte{{0}, {0x0a, 0x80}, {0x2a, 1, 0x80}, {0x0a, 1, 0xff}} {
 		if _, err := Decode(data); err == nil {
 			t.Fatalf("accepted %x", data)
 		}
@@ -76,5 +76,17 @@ func TestRepeatedFailureInfoMergesLikeProtobuf(t *testing.T) {
 	decoded, err := Decode(data)
 	if err != nil || !proto.Equal(standard, decoded) {
 		t.Fatalf("oneof merge: %v", err)
+	}
+}
+
+func TestUnknownFailureFieldsArePreserved(t *testing.T) {
+	raw := []byte{0xf8, 0x01, 1}
+	decoded, err := Decode(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded, err := Encode(decoded)
+	if err != nil || string(encoded) != string(raw) {
+		t.Fatalf("unknown field lost: %x %v", encoded, err)
 	}
 }

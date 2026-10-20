@@ -238,7 +238,7 @@ marked factory through `worker.SetIsolateDataConverter` (see below). Default
 supported encodings are `binary/null`, `binary/plain`, `json/plain`,
 `json/protobuf`, and `binary/protobuf`. Generated Google protobuf messages use
 SDK value converters, including message-type metadata. External payload references
-remain unsupported. See generated protobuf support below.
+remain unsupported. See protobuf support below.
 
 The host applies configured codecs using `converter.RawValue`, preserving the
 plain serialized values without deserializing application types on the host.
@@ -314,7 +314,7 @@ does not close it. A first registration with `context.WithoutCancel(ctx)` keeps
 the channel open after workflow cancellation, allowing cleanup/update handlers
 to finish. Invalid payloads and other host errors panic and fail the
 Workflow Task. `T` supports the same JSON/bytes/null values and configured
-serializers as workflow arguments; generated Google protobuf values are supported.
+serializers as workflow arguments; Google protobuf values are supported.
 Existing callers must supply a type argument and receive values directly,
 e.g. `GetSignalChannel[[]byte]`, instead of accessing `SignalResult.Signal.Input`.
 `NextSignal` retains its byte-input convention and receives the next signal of
@@ -449,16 +449,16 @@ state and mutable retry policy data. Empty task queues inherit existing context
 options and ultimately the workflow task queue. Server retry defaults are
 preserved; set `RetryPolicy.MaximumAttempts: 1` to disable retries.
 
-The result boundary supports default-converter JSON/bytes/null and generated Google protobuf values.
+The result boundary supports default-converter JSON/bytes/null and Google protobuf values.
 Activities and workflow completion preserve the pinned SDK's structured error
 types, causes, details, retry metadata, and heartbeat details across the byte
 boundary. The default SDK failure converter runs under the receiving owner's
-allocator. The compiler supplies a checked generated-value `proto.Clone` path;
-it copies mutable values without exposing shared coder caches or invoking custom
-message callbacks. Ordinary host protobuf operations retain their implementation.
-The internal Failure wire codec supports the pinned schema and ordinary payloads;
-unknown fields, extensions, and external payload references remain unsupported.
-Worker-configured deterministic serializers, generated Google protobuf values,
+allocator. The SDK snapshots captured protobuf values before read-only cloning/conversion;
+mutable values and coder caches remain private. Ordinary host protobuf operations
+retain their implementation.
+The structured Failure transport uses the pinned API schema and ordinary payloads;
+external payload references remain unsupported.
+Worker-configured deterministic serializers, Google protobuf values,
 custom failure converters and host codecs are supported below.
 
 ### Child workflows
@@ -728,7 +728,7 @@ activity context parameters are optional.
 
 Arguments/results use the isolate-owned default or worker-configured serializer
 and cross `Call` as protobuf-serialized `Payloads`. Default supported values are
-JSON/bytes/null and generated Google protobuf messages. Adding context parameters does not add context data to workflow or
+JSON/bytes/null and Google protobuf messages. Adding context parameters does not add context data to workflow or
 activity histories. Activities now use SDK-style futures with a mandatory standard Go context.
 
 Cancellation examples are registered on the example worker: `ActivityWorkflow`
@@ -1124,7 +1124,7 @@ Current restrictions and follow-ups:
   payloads. Batch codecs that combine multiple payloads are deferred and rejected
   when they violate the single-payload contract. Codec failures fail the Workflow
   Task. Remote codecs therefore currently make one request per payload.
-- Gogo/dynamic/extension protobuf values and external payload references at the
+- Legacy gogo protobuf values and external payload references at the
   isolate wire boundary remain unsupported. SDK external-storage retrieval stays
   on the host; end-to-end storage integration has not been validated.
 
@@ -1239,8 +1239,8 @@ serializes workflow failures, update handler failures and validator rejections.
 Only copied failure bytes cross the boundary. Custom conversion may replace the
 whole failure tree; preserving causes, operation wrappers and retry metadata is
 the converter's policy. Host and native converters must agree on that format and
-understand the plain payload encodings they exchange. The existing failure-wire
-restrictions on extensions, unknown fields and external payload references remain.
+understand the plain payload encodings they exchange. External payload
+references remain unsupported.
 
 `example/failureconversion/check` ports the upstream custom error/retry assertions
 and covers precise details, fallback errors, read-only conversions, per-context
@@ -1459,13 +1459,11 @@ producer's numeric metadata version; an unsupported version fails before the
 runtime reads descriptor fields or publishes an entry. The compiler's isolate
 build report includes these versions.
 
-The POC SDK separately expects those three versions and uses **host protocol 6**.
-Protocol 6 adds reset-aware identity messages to the existing cancellation input
-service. Protocol 5 added native failure converter factories to startup, retaining
-context
-propagator factories, priority update admission/execution and signal-channel
-admission barriers from protocols 4, 3 and 2. Rebuild host and workflow
-SDK together when upgrading.
+The POC SDK separately expects those three versions and uses **host protocol 7**.
+Protocol 7 replaces JSON transport envelopes with shared protobuf messages and
+fixed-width binary identifiers. Rebuild host and workflow SDK together when
+upgrading. Reset-aware identity delivery, converter factories and native signal
+and update admission retain their existing semantics.
 Startup requests and replies have a fixed `ISOL` header carrying the four version
 numbers. Both sides validate it before decoding startup data or running converter
 factories and workflow code. An incompatibility fails the Workflow Task; it does
@@ -1545,7 +1543,7 @@ experimental export-data format; standard-Go checks validate the portable SDK
 patch without disabling those checks.
 
 
-## Generated protobuf values
+## Protobuf values
 
 Native workflow APIs accept generated `google.golang.org/protobuf` messages using
 the open struct API, as pointers or values. The pinned SDK converters retain their
@@ -1562,29 +1560,28 @@ converters keep selecting the serializer for their operation. Host payload codec
 continue to wrap the wire payloads, and saved histories replay with the same
 configuration.
 
-Descriptors remain canonical process metadata. Generated accessors resolve their
-metadata by the Go type recorded by the audited process builder. Reflection and
-coder tables initialize lazily once per used type in the host process and are
-shared across isolates after safe publication. Unused types remain uninitialized.
-Only audited immutable cache fields and allocations become readable; workflow
-values cannot be retained in shared caches. Message values, size caches, nil
-reflection wrappers and codec pools belong to the active workflow or query owner.
-Descriptor names and scalar defaults are copied into that owner.
-Queries and validators serialize captured messages through scratch clones, so
-protobuf's size caches cannot write workflow memory. Ordinary read-only checks still
-reject direct mutation and reflection setters. Host protobuf behavior is unchanged.
+Every workflow initializes its own protobuf descriptors, registry and
+`MessageInfo`/coder caches. Serialized descriptor constants remain shared in
+read-only binary storage; lazy descriptor/coder construction remains private.
+Host registry additions and extensions do not become visible to workflows.
+`Any` resolution therefore requires a type linked/registered in that workflow.
 
-Gogo/legacy messages, `dynamicpb`, extension-bearing messages, weak/opaque layouts,
-custom resolvers and registry mutation are outside this implementation. Their types
-or operations are rejected rather than gaining shared metadata privileges.
+Queries and validators initialize separate scratch library state. Captured
+message values are snapshotted before cloning and conversion, including direct
+`proto.Clone` calls, so their cached workflow `MessageInfo` is not reused with
+scratch descriptors. Unknown fields and extension values are copied. Ordinary
+read-only checks still reject mutation of captured values or workflow metadata.
 
-[Compiled API checks](example/protobufvalues/check/main_test.go) verify lazy metadata
-reuse across concurrent isolates and run both encodings
-at GOMAXPROCS 1/2/8, including read-only conversions and mutation rejection. The
-original two activity-environment cases retain host coverage in
-[upstream_test.go](example/protobufvalues/check/upstream_test.go), with native
-counterparts and compressed live histories for replay. Build host and workflow
-binaries together with the current development toolchain.
+Google custom message implementations, `dynamicpb`, custom resolvers and local
+registry registration run as ordinary private Go code. They must obey workflow
+determinism and read-only ownership rules. Legacy gogo messages and external
+payload references remain outside the default native converter contract.
+
+[Compiled API checks](example/protobufvalues/check/main_test.go) verify independent
+host/workflow/query metadata, lazy host caches, both encodings, custom reflection,
+custom resolvers, scratch registration, mutation rejection and saved-history
+replay at GOMAXPROCS 1/2/8. Build host and workflow binaries together with the
+current development toolchain.
 
 ### Native workflow streams
 

@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mfateev/sdk-go-poc/internal/payloadwire"
 	commonpb "go.temporal.io/api/common/v1"
 	goWorkflow "go.temporal.io/sdk/workflow"
 )
@@ -39,10 +38,10 @@ func TestContinuationUsesSDKErrorAndCopiesArgumentsAndOptions(t *testing.T) {
 	if request.Name != "next-workflow" || request.BackoffStartInterval != int64(2*time.Second) {
 		t.Fatalf("wire options: %+v", request)
 	}
-	header, err := payloadwire.Decode(request.Header["trace"])
-	if err != nil || string(header.Payloads[0].Data) != "trace" {
-		t.Fatalf("header: %+v %v", header, err)
+	if string(request.Header.GetFields()["trace"].Data) != "trace" {
+		t.Fatal("header changed")
 	}
+
 	if !IsContinueAsNewError(fmt.Errorf("wrapped: %w", sdkError)) || IsContinueAsNewError(errors.New("ordinary")) {
 		t.Fatal("continuation identity lost")
 	}

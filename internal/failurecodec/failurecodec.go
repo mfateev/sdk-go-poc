@@ -6,16 +6,18 @@ import (
 	"context"
 	"errors"
 
-	"github.com/mfateev/sdk-go-poc/internal/failurewire"
+	"github.com/mfateev/sdk-go-poc/protobufcopy"
+
+	failurepb "go.temporal.io/api/failure/v1"
 	"go.temporal.io/sdk/converter"
 	"go.temporal.io/sdk/temporal"
 )
 
-func Encode(cause error, dc converter.DataConverter) ([]byte, error) {
+func Encode(cause error, dc converter.DataConverter) (*failurepb.Failure, error) {
 	return EncodeWithConverter(cause, temporal.NewDefaultFailureConverter(temporal.DefaultFailureConverterOptions{DataConverter: dc}))
 }
 
-func EncodeWithConverter(cause error, fc converter.FailureConverter) ([]byte, error) {
+func EncodeWithConverter(cause error, fc converter.FailureConverter) (*failurepb.Failure, error) {
 	if canceled, ok := cause.(*cancellationError); ok {
 		cause = canceled.cause
 	}
@@ -26,20 +28,16 @@ func EncodeWithConverter(cause error, fc converter.FailureConverter) ([]byte, er
 	if cause != nil && failure == nil {
 		return nil, errors.New("failure converter returned nil failure for a non-nil error")
 	}
-	return failurewire.Encode(failure)
+	return failure, nil
 }
 
 // Decode separates malformed transport data from the decoded operation error.
-func Decode(data []byte, dc converter.DataConverter) (error, error) {
-	return DecodeWithConverter(data, temporal.NewDefaultFailureConverter(temporal.DefaultFailureConverterOptions{DataConverter: dc}))
+func Decode(failure *failurepb.Failure, dc converter.DataConverter) (error, error) {
+	return DecodeWithConverter(failure, temporal.NewDefaultFailureConverter(temporal.DefaultFailureConverterOptions{DataConverter: dc}))
 }
 
-func DecodeWithConverter(data []byte, fc converter.FailureConverter) (error, error) {
-	failure, err := failurewire.Decode(data)
-	if err != nil {
-		return nil, err
-	}
-	cause := fc.FailureToError(failure)
+func DecodeWithConverter(failure *failurepb.Failure, fc converter.FailureConverter) (error, error) {
+	cause := fc.FailureToError(protobufcopy.Clone(failure))
 	if failure != nil && cause == nil {
 		return nil, errors.New("failure converter returned nil error for a non-nil failure")
 	}

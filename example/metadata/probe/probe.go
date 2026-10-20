@@ -14,8 +14,8 @@ import (
 var callbackProbeCount atomic.Int32
 
 // PrepareCallbackProbe runs on the host. Normal host registry visitors and
-// custom descriptors must keep working; an isolate service must reject their
-// callbacks before giving them process ownership.
+// custom descriptors must keep working; private registries must not discover
+// them or invoke callbacks from the host registry.
 func PrepareCallbackProbe() error {
 	file, err := protodesc.NewFile(&descriptorpb.FileDescriptorProto{
 		Name:        proto.String("isolate_metadata_callback_probe.proto"),

@@ -2,7 +2,6 @@ package workflow
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"isolate"
@@ -10,7 +9,6 @@ import (
 	"reflect"
 
 	"github.com/mfateev/sdk-go-poc/internal/failurecodec"
-	"github.com/mfateev/sdk-go-poc/internal/payloadwire"
 	"github.com/mfateev/sdk-go-poc/internal/searchattrwire"
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/converter"
@@ -69,27 +67,27 @@ func (f *childFuture) GetChildWorkflowExecution() Future { return f.execution }
 // ChildRequest carries copied options and individually encoded memo/search
 // values. Decoding JSON into interface{} on the host would round large integers.
 type ChildRequest struct {
-	Header                 map[string][]byte
+	Header                 *commonpb.Header
 	ID                     uint64
 	Name                   string
 	Function               bool
-	Payloads               []byte
+	Payloads               *commonpb.Payloads
 	Options                ChildWorkflowOptions
-	Memo, SearchAttributes map[string][]byte
+	Memo, SearchAttributes map[string]*commonpb.Payload
 }
 
 type ChildSignalRequest struct {
-	Header                      map[string][]byte
+	Header                      *commonpb.Header
 	ID                          uint64
 	Namespace, WorkflowID, Name string
-	Payloads                    []byte
+	Payloads                    *commonpb.Payloads
 }
 
 func completeOperation(f *activityFuture, response []byte, err error, ctx context.Context) {
 	f.err = err
 	if err == nil && len(response) != 0 {
 		var outcome ActivityOutcome
-		f.err = json.Unmarshal(response, &outcome)
+		f.err = UnmarshalTransport(response, &outcome)
 		if f.err == nil {
 			f.payload = outcome.Payloads
 			switch outcome.ErrorKind {
@@ -103,7 +101,7 @@ func completeOperation(f *activityFuture, response []byte, err error, ctx contex
 			default:
 				f.err = errors.New("workflow: unknown operation error kind")
 			}
-			if f.err == nil && len(outcome.Failure) != 0 {
+			if f.err == nil && outcome.Failure != nil {
 				var transportErr error
 				f.err, transportErr = decodeFailure(outcome.Failure, futureDataConverter(f))
 				if transportErr != nil {
@@ -121,17 +119,17 @@ func completeOperation(f *activityFuture, response []byte, err error, ctx contex
 	close(f.done)
 }
 
-func encodeOptionValues(values map[string]any, dc converter.DataConverter) (map[string][]byte, error) {
+func encodeOptionValues(values map[string]any, dc converter.DataConverter) (map[string]*commonpb.Payload, error) {
 	if values == nil {
 		return nil, nil
 	}
-	result := make(map[string][]byte, len(values))
+	result := make(map[string]*commonpb.Payload, len(values))
 	for key, value := range values {
-		raw, err := encodeArgsWithConverter([]any{value}, dc)
+		p, err := dc.ToPayload(value)
 		if err != nil {
 			return nil, err
 		}
-		result[key] = raw
+		result[key] = p
 	}
 	return result, nil
 }
@@ -187,22 +185,22 @@ func executeChildWorkflow(ctx context.Context, fn any, args ...any) ChildWorkflo
 	if err != nil {
 		panic(err)
 	}
-	raw, err := json.Marshal(ChildRequest{ID: id, Name: name, Function: function, Payloads: payloads, Options: o, Memo: memo, SearchAttributes: search, Header: header})
+	raw, err := MarshalTransport(ChildRequest{ID: id, Name: name, Function: function, Payloads: payloads, Options: o, Memo: memo, SearchAttributes: search, Header: header})
 	if err != nil {
 		return fail(err)
 	}
 	if _, err := isolate.Call(OpScheduleChild, raw); err != nil {
 		return fail(err)
 	}
-	stop := context.AfterFunc(ctx, func() { p, _ := json.Marshal(id); _, _ = isolate.Call(OpCancelChild, p) })
+	stop := context.AfterFunc(ctx, func() { p := encodeID(id); _, _ = isolate.Call(OpCancelChild, p) })
 	isolate.GoInbound(func() {
 		defer stop()
-		p, _ := json.Marshal(id)
+		p := encodeID(id)
 		r, err := isolate.Call(OpAwaitChild, p)
 		completeOperation(f.activityFuture, r, err, ctx)
 	})
 	isolate.GoInbound(func() {
-		p, _ := json.Marshal(id)
+		p := encodeID(id)
 		r, err := isolate.Call(OpAwaitChildExecution, p)
 		completeOperation(f.execution, r, err, ctx)
 	})
@@ -240,7 +238,7 @@ func signalChildWorkflow(ctx context.Context, workflowID, name string, data any)
 	if err != nil {
 		panic(err)
 	}
-	raw, err := json.Marshal(ChildSignalRequest{ID: id, Namespace: runOptions(ctx).Namespace, WorkflowID: workflowID, Name: name, Payloads: payloads, Header: header})
+	raw, err := MarshalTransport(ChildSignalRequest{ID: id, Namespace: runOptions(ctx).Namespace, WorkflowID: workflowID, Name: name, Payloads: payloads, Header: header})
 	if err != nil {
 		return fail(err)
 	}
@@ -248,39 +246,34 @@ func signalChildWorkflow(ctx context.Context, workflowID, name string, data any)
 		return fail(err)
 	}
 	isolate.GoInbound(func() {
-		p, _ := json.Marshal(id)
+		p := encodeID(id)
 		r, err := isolate.Call(OpAwaitChildSignal, p)
 		completeOperation(result, r, err, ctx)
 	})
 	return result
 }
 
-func encodeSearchAttributeValues(values map[string]any) (map[string][]byte, error) {
+func encodeSearchAttributeValues(values map[string]any) (map[string]*commonpb.Payload, error) {
 	if values == nil {
 		return nil, nil
 	}
 	dc := newDefaultDataConverter()
-	result := make(map[string][]byte, len(values))
+	result := make(map[string]*commonpb.Payload, len(values))
 	for key, value := range values {
-		var p *commonpb.Payloads
-		var err error
-		if raw, ok := value.(*commonpb.Payload); ok {
-			p = &commonpb.Payloads{Payloads: []*commonpb.Payload{raw}}
-		} else {
-			p, err = dc.ToPayloads(value)
+		p, ok := value.(*commonpb.Payload)
+		if !ok {
+			var err error
+			p, err = dc.ToPayload(value)
+			if err != nil {
+				return nil, err
+			}
 		}
-		if err != nil {
-			return nil, err
-		}
-		result[key], err = payloadwire.Encode(p)
-		if err != nil {
-			return nil, err
-		}
+		result[key] = p
 	}
 	return result, nil
 }
 
-func encodeChildSearchAttributes(options ChildWorkflowOptions) (map[string][]byte, error) {
+func encodeChildSearchAttributes(options ChildWorkflowOptions) (map[string]*commonpb.Payload, error) {
 	// Start commands omit unset entries, unlike an upsert command.
 	typed := temporal.NewSearchAttributes(options.TypedSearchAttributes.Copy())
 	if options.SearchAttributes != nil && typed.Size() != 0 {

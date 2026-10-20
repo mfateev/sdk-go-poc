@@ -15,6 +15,8 @@ func TestInteroperatesWithProtobufPayloads(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	original.ProtoReflect().SetUnknown([]byte{0xf8, 0x01, 1})
+	original.Payloads[0].ProtoReflect().SetUnknown([]byte{0xf8, 0x01, 1})
 	encoded, err := proto.Marshal(original)
 	if err != nil {
 		t.Fatal(err)

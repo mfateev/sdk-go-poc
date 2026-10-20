@@ -3,6 +3,7 @@ package protobufvalues
 import (
 	"context"
 	"fmt"
+	"isolate"
 	"time"
 
 	"github.com/mfateev/sdk-go-poc/example/protobufvalues/model"
@@ -103,6 +104,7 @@ func Workflow(ctx context.Context, value *model.Record, mode string) (*model.Rec
 	if mode == "simple" {
 		return value, nil
 	}
+	cold := Record()
 	// Registration-context conversion is independently selected for these handlers.
 	queryCtx := workflow.WithDataConverter(ctx, DataConverter("binary"))
 	if err := workflow.SetQueryHandler(queryCtx, "value", func() (*model.Record, error) { return value, nil }); err != nil {
@@ -131,7 +133,12 @@ func Workflow(ctx context.Context, value *model.Record, mode string) (*model.Rec
 		return nil, err
 	}
 	// Both the update and query registrations must be visible before readiness.
-	if err := workflow.SetQueryHandler(ctx, "conversions", func() (bool, error) { return true, checkConversions(ctx) }); err != nil {
+	if err := workflow.SetQueryHandler(ctx, "conversions", func() (bool, error) {
+		if err := CheckRecord(proto.Clone(cold).(*model.Record)); err != nil {
+			return false, err
+		}
+		return true, checkConversions(ctx)
+	}); err != nil {
 		return nil, err
 	}
 	if err := workflow.SetQueryHandler(ctx, "ready", func() (bool, error) { return true, nil }); err != nil {
@@ -251,8 +258,8 @@ func checkConversions(ctx context.Context) error {
 		return fmt.Errorf("unknown protobuf fields lost")
 	}
 	dynamic := dynamicpb.NewMessage(Record().ProtoReflect().Descriptor())
-	if _, err := dc.ToPayload(dynamic); err == nil {
-		return fmt.Errorf("dynamic message accepted")
+	if payload, err := dc.ToPayload(dynamic); err != nil || payload == nil {
+		return fmt.Errorf("dynamic message conversion: %v", err)
 	}
 	if _, err := dc.ToPayload(&legacyMessage{}); err == nil {
 		return fmt.Errorf("gogo-style message accepted")
@@ -272,13 +279,16 @@ func ResolverWorkflow(ctx context.Context) error {
 	return err
 }
 
-type customReflectMessage struct{}
+type customReflectMessage struct{ model.Record }
 
 func (*customReflectMessage) Reset()         {}
 func (*customReflectMessage) String() string { return "custom" }
 func (*customReflectMessage) ProtoMessage()  {}
-func (*customReflectMessage) ProtoReflect() protoreflect.Message {
-	panic("application ProtoReflect executed in host")
+func (m *customReflectMessage) ProtoReflect() protoreflect.Message {
+	if !isolate.IsActive() {
+		panic("application ProtoReflect executed in host")
+	}
+	return m.Record.ProtoReflect()
 }
 
 //temporal:workflow

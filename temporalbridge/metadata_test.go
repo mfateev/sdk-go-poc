@@ -1,14 +1,13 @@
 package temporalbridge
 
 import (
-	"encoding/json"
 	"errors"
+	"github.com/mfateev/sdk-go-poc/internal/failurewire"
 	"reflect"
 	"testing"
 	"unsafe"
 
 	"github.com/mfateev/sdk-go-poc/internal/failurecodec"
-	"github.com/mfateev/sdk-go-poc/internal/payloadwire"
 	"github.com/mfateev/sdk-go-poc/workflow"
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/converter"
@@ -44,17 +43,16 @@ func TestPreviousRunSnapshotsPreservePresenceAndDecodeCodecs(t *testing.T) {
 			t.Fatal(err)
 		}
 		var snapshot workflow.LastCompletionSnapshot
-		if err := json.Unmarshal(raw, &snapshot); err != nil {
+		if err := workflow.UnmarshalTransport(raw, &snapshot); err != nil {
 			t.Fatal(err)
 		}
 		if snapshot.Present != wantPresent {
 			t.Fatalf("presence=%v", snapshot.Present)
 		}
-		p, err := payloadwire.Decode(snapshot.Payloads)
-		if err != nil {
-			t.Fatal(err)
+		if snapshot.Payloads == nil {
+			return new(commonpb.Payloads)
 		}
-		return p
+		return snapshot.Payloads
 	}
 	check(false)
 	setInfoField(t, &env.info, "lastCompletionResult", &commonpb.Payloads{})
@@ -80,7 +78,11 @@ func TestPreviousRunSnapshotsPreservePresenceAndDecodeCodecs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	decoded, err := failurecodec.Decode(raw, defaultDC)
+	f, err := failurewire.Decode(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	decoded, err := failurecodec.Decode(f, defaultDC)
 	if err != nil {
 		t.Fatal(err)
 	}

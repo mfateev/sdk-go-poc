@@ -2,7 +2,6 @@ package temporalbridge
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"isolate"
@@ -15,7 +14,6 @@ import (
 	"go.temporal.io/sdk/converter"
 	bindings "go.temporal.io/sdk/internalbindings"
 	"go.temporal.io/sdk/temporal"
-	"google.golang.org/protobuf/proto"
 )
 
 // Local activities use actual host arguments. Decode into their registered
@@ -47,8 +45,8 @@ func (d *definition) handleLocal(c *isolate.Command) error {
 		return d.awaitState(c, d.locals)
 	}
 	if c.Op == workflow.OpCancelLocal {
-		var id uint64
-		if err := json.Unmarshal(c.Payload, &id); err != nil {
+		id, err := commandID(c)
+		if err != nil {
 			return err
 		}
 		if s := d.locals[id]; s != nil && !s.done && !s.cancelRequested {
@@ -63,7 +61,7 @@ func (d *definition) handleLocal(c *isolate.Command) error {
 		return nil
 	}
 	var r workflow.LocalActivityRequest
-	if err := json.Unmarshal(c.Payload, &r); err != nil {
+	if err := workflow.UnmarshalTransport(c.Payload, &r); err != nil {
 		return err
 	}
 	if r.ID == 0 || r.Name == "" || r.Attempt < 1 || r.Options.ScheduleToCloseTimeout <= 0 || r.Options.StartToCloseTimeout <= 0 {
@@ -93,9 +91,9 @@ func (d *definition) handleLocal(c *isolate.Command) error {
 		}
 		fn = func(context.Context) error { panic("replay must never execute local activity") }
 	} else {
-		p := new(commonpb.Payloads)
-		if err := proto.Unmarshal(r.Payloads, p); err != nil {
-			return err
+		p := r.Payloads
+		if p == nil {
+			p = new(commonpb.Payloads)
 		}
 		p, err := encodeTransport(p, dc)
 		if err != nil {
@@ -123,13 +121,13 @@ func (d *definition) handleLocal(c *isolate.Command) error {
 			panic("nil local activity result")
 		}
 		var outcome workflow.LocalActivityOutcome
-		if err := json.Unmarshal(d.operationOutcomeWithConverters(result.Result, result.Err, dc, fc), &outcome.ActivityOutcome); err != nil {
+		if err := workflow.UnmarshalTransport(d.operationOutcomeWithConverters(result.Result, result.Err, dc, fc), &outcome.ActivityOutcome); err != nil {
 			panic(err)
 		}
 		if result.Err != nil && !temporal.IsCanceledError(result.Err) {
 			outcome.Backoff, outcome.Attempt = result.Backoff, result.Attempt
 		}
-		p, err := json.Marshal(outcome)
+		p, err := workflow.MarshalTransport(outcome)
 		if err != nil {
 			panic(err)
 		}

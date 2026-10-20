@@ -101,7 +101,7 @@ func (h propagationHeader) ForEachKey(fn func(string, *commonpb.Payload) error) 
 	return nil
 }
 
-func withIncomingHeader(ctx context.Context, fields map[string][]byte) (context.Context, error) {
+func withIncomingHeader(ctx context.Context, fields *commonpb.Header) (context.Context, error) {
 	ctx, err := withInterceptorHeader(ctx, fields)
 	if err != nil {
 		return nil, err
@@ -123,7 +123,7 @@ func withIncomingHeader(ctx context.Context, fields map[string][]byte) (context.
 	return ctx, nil
 }
 
-func propagatedHeader(ctx context.Context) (map[string][]byte, error) {
+func propagatedHeader(ctx context.Context) (*commonpb.Header, error) {
 	fields, err := headerwire.Encode(&commonpb.Header{Fields: InterceptorHeader(ctx)})
 	if err != nil {
 		return nil, err

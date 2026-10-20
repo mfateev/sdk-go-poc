@@ -128,13 +128,13 @@ func main() {
 				effect, ok := fault.(*isolate.EffectError)
 				operation, function := "os.WriteFile", "effects.writeFile"
 				if mode == "metadata" {
-					var policy *isolate.PanicError
+					var ownership *isolate.OwnershipError
 					rejected := false
 					if err, ok := fault.(error); ok {
-						rejected = errors.As(err, &policy)
+						rejected = errors.As(err, &ownership)
 					}
-					if !rejected || !strings.Contains(policy.Message, "unsupported metadata operation") || !strings.Contains(policy.Stack, "effects.mutateMetadata") || env.completes != 0 {
-						panic(fmt.Sprintf("metadata fault=%v completes=%d", fault, env.completes))
+					if !rejected || !strings.Contains(ownership.Reason, "process global") || !strings.Contains(ownership.Stack, "effects.mutateProcessState") || env.completes != 0 {
+						panic(fmt.Sprintf("process-state fault=%v completes=%d", fault, env.completes))
 					}
 					continue
 				}
@@ -187,7 +187,7 @@ func main() {
 			if err != nil || count != 5 {
 				panic(fmt.Sprintf("SDK logging replay: logs=%d error=%v", count, err))
 			}
-		} else if err == nil || !strings.Contains(err.Error(), map[string]string{"deny": "forbidden operation os.WriteFile", "metadata": "unsupported metadata operation"}[mode]) {
+		} else if err == nil || !strings.Contains(err.Error(), map[string]string{"deny": "forbidden operation os.WriteFile", "metadata": "access to process global"}[mode]) {
 			panic(fmt.Sprintf("SDK effect replay: %v", err))
 		}
 	}

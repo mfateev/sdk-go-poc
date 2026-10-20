@@ -16,26 +16,44 @@ TGO_GOROOT=/absolute/path/to/golang-go bin/tgo test ./...
 SDK driver beside its bundled `bin/go`; caller `GOROOT` cannot redirect it.
 `go-source.json` records the matching compiler/runtime source revision.
 
-Protobuf and OpenTelemetry source adaptations and version policy live entirely
-in this SDK. Go has no module-name/version allowlist, generated protobuf rewrite,
-or protobuf runtime/reflect layout helper. The driver stages temporary copies of
-cached dependency modules and composes source overlays for application-generated
-code; it never modifies the module cache or checked-in generated files. Adapted
-builds default to `-trimpath` so temporary paths do not enter executable stacks.
+Protobuf and OpenTelemetry policy lives in this SDK. Protobuf packages and
+workflow-reachable generated messages use private instance state; host-only SDK
+service descriptors are excluded from private startup. Query services rebuild
+selected libraries in scratch state. Generated message methods and registry
+bindings keep their original bodies, with no host mediation or process registry.
 
-The adapters use registered `isolate.NewHostFunc` operations. Shared descriptors,
-registries and lazy coder tables allocate in nested host scopes; messages,
-reflection views, scalar metadata and diagnostics allocate with the caller's
-allocator, including scratch ownership for queries. Function arguments reenter
-application state explicitly. Custom message implementations, custom resolvers,
-registry mutation and the previously unsupported metadata APIs remain rejected.
-Query mutation errors return to the query boundary without terminating workflow
-execution. Fatal adapter policy failures carry copied `isolate.PanicError`
-diagnostics; ordinary forbidden Go effects still produce `isolate.EffectError`.
-Plain generated getters retain private application defaults and aliases; time
-constructors read the workflow clock before entering host construction.
-DataConverter instances and the copied-byte SDK transport remain in their
-existing execution domains.
+The generic Go manifest supports audited packages and physical source files for
+unsafe implementation code while retaining ownership and forbidden-effect
+checks. The SDK audits the pinned protobuf implementation, its generated files,
+and `protobufcopy`; ordinary application files get no generated-file audit.
+
+Small dependency overlays pin protobuf's ordering seed/functions, use default
+protobuf environment settings during private execution, snapshot captured values
+before read-only `proto.Clone`, and replace OpenTelemetry zero-ID sentinel
+comparisons with literal values. Host environment settings and ordinary host
+Clone behavior remain unchanged. The driver mirrors cached modules temporarily;
+it never edits the module cache or checked-in generated files. It applies no
+application-generated message rewrites. Adapted builds use `-trimpath` and
+preserve workspace modules/replacements in a temporary `go.work`; nested builds
+restore the original workspace before selecting dependencies.
+
+Structured transport has a shared generated schema at
+`internal/transportpb/transport.proto` and uses payload, header and failure
+submessages. Scalar identifiers use fixed-width
+binary framing; timer waits retain the runtime's decimal-nanosecond contract.
+The public typed host-function/construction/waiter APIs have been removed.
+
+Regenerate the schema, protobuf types and static SDK conversions with a built
+isolate Go toolchain and `protoc` (3.21 or later) on PATH:
+
+```sh
+GO=/absolute/path/to/golang-go/bin/go python3 internal/cmd/transportgen/generate.py
+```
+
+The generator inventories the shared SDK envelope/options types, builds the
+pinned `protoc-gen-go`, and obtains imported descriptor definitions from the
+pinned Go modules. No separate Temporal proto checkout is needed. Review the
+schema and regenerate both sides together when changing an operation.
 
 The driver preserves selected Go source/build constraints, ordinary command
 forwarding, internal/external test variants and dependency cache reuse. The

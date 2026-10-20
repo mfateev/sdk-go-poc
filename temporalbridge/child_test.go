@@ -1,7 +1,6 @@
 package temporalbridge
 
 import (
-	"encoding/json"
 	"isolate"
 	"testing"
 	"time"
@@ -31,7 +30,7 @@ func TestChildOptionsReachSDKAndCloseRetiresCallbacks(t *testing.T) {
 		WaitForCancellation: true, WorkflowIDReusePolicy: enumspb.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE,
 		RetryPolicy: &workflow.RetryPolicy{MaximumAttempts: 3}, CronSchedule: "@daily", ParentClosePolicy: enumspb.PARENT_CLOSE_POLICY_ABANDON,
 		StaticSummary: "summary", StaticDetails: "details", Priority: workflow.Priority{PriorityKey: 2, FairnessKey: "tenant", FairnessWeight: 1.25}}
-	p, err := json.Marshal(workflow.ChildRequest{ID: 1, Name: "child", Options: o})
+	p, err := workflow.MarshalTransport(workflow.ChildRequest{ID: 1, Name: "child", Options: o})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,8 +41,8 @@ func TestChildOptionsReachSDKAndCloseRetiresCallbacks(t *testing.T) {
 	if actual.Namespace != o.Namespace || actual.WorkflowID != o.WorkflowID || actual.TaskQueueName != o.TaskQueue || actual.WorkflowExecutionTimeout != o.WorkflowExecutionTimeout || actual.WorkflowRunTimeout != o.WorkflowRunTimeout || actual.WorkflowTaskTimeout != o.WorkflowTaskTimeout || !actual.WaitForCancellation || actual.WorkflowIDReusePolicy != o.WorkflowIDReusePolicy || actual.CronSchedule != o.CronSchedule || actual.ParentClosePolicy != o.ParentClosePolicy || actual.StaticSummary != o.StaticSummary || actual.StaticDetails != o.StaticDetails || actual.RetryPolicy.GetMaximumAttempts() != 3 || actual.Priority.GetFairnessKey() != "tenant" {
 		t.Fatalf("SDK child options=%+v", actual)
 	}
-	result := &isolate.Command{Op: workflow.OpAwaitChild, Payload: []byte("1")}
-	start := &isolate.Command{Op: workflow.OpAwaitChildExecution, Payload: []byte("1")}
+	result := &isolate.Command{Op: workflow.OpAwaitChild, Payload: identifierPayload(1)}
+	start := &isolate.Command{Op: workflow.OpAwaitChildExecution, Payload: identifierPayload(1)}
 	if err := d.handle(result); err != nil {
 		t.Fatal(err)
 	}

@@ -30,7 +30,7 @@ func (v encodedArguments) Get(pointers ...any) error {
 	}
 	for _, pointer := range pointers {
 		if isUnsupportedProtoValue(pointer) {
-			return errors.New("workflow: only generated Google protobuf messages without extensions are supported")
+			return errors.New("workflow: legacy gogo protobuf messages are unsupported; use Google protobuf")
 		}
 	}
 	return v.converter.FromPayloads(v.payloads, pointers...)
@@ -97,7 +97,7 @@ func resolveUpdateHandler(name string) updateHandler {
 	}
 	return updateHandler{}
 }
-func updateHandlerArguments(h updateHandler, fn any, ctx context.Context, requestName string, raw []byte) ([]reflect.Value, error) {
+func updateHandlerArguments(h updateHandler, fn any, ctx context.Context, requestName string, raw *commonpb.Payloads) ([]reflect.Value, error) {
 	if !h.dynamic {
 		return updateArguments(fn, ctx, raw)
 	}

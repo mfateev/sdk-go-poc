@@ -2,7 +2,6 @@ package temporalbridge
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	goWorkflow "go.temporal.io/sdk/workflow"
 	"isolate"
@@ -101,7 +100,7 @@ func TestOnlyFunctionReferencesResolveActivityAliases(t *testing.T) {
 			}
 			return "custom-name"
 		}}
-		request, err := json.Marshal(workflow.ActivityPayloadRequest{Name: "Foo", Function: function, StartToCloseTimeout: time.Minute})
+		request, err := workflow.MarshalTransport(workflow.ActivityPayloadRequest{Name: "Foo", Function: function, StartToCloseTimeout: time.Minute})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -124,13 +123,13 @@ func (e *activityEnvironment) RequestCancelActivity(_ bindings.ActivityID) { e.c
 func TestCancelActivityRepliesOnceAndIgnoresLateCallback(t *testing.T) {
 	env := new(activityEnvironment)
 	d := &definition{env: env}
-	payload, _ := json.Marshal(workflow.ActivityPayloadRequest{Name: "Foo", StartToCloseTimeout: time.Minute})
-	request, _ := json.Marshal(workflow.CallRequest{ID: 1, Op: workflow.OpActivityPayloads, Payload: payload})
+	payload, _ := workflow.MarshalTransport(workflow.ActivityPayloadRequest{Name: "Foo", StartToCloseTimeout: time.Minute})
+	request, _ := workflow.MarshalTransport(workflow.CallRequest{ID: 1, Op: workflow.OpActivityPayloads, Payload: payload})
 	original := &isolate.Command{Op: workflow.OpCancellableCall, Payload: request}
 	if err := d.handle(original); err != nil {
 		t.Fatal(err)
 	}
-	cancel := &isolate.Command{Op: workflow.OpCancelCall, Payload: []byte("1")}
+	cancel := &isolate.Command{Op: workflow.OpCancelCall, Payload: identifierPayload(1)}
 	if err := d.handle(cancel); err != nil {
 		t.Fatal(err)
 	}

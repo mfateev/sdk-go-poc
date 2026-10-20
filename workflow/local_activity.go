@@ -2,8 +2,8 @@ package workflow
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
+	commonpb "go.temporal.io/api/common/v1"
 	"isolate"
 	"reflect"
 	"slices"
@@ -36,11 +36,11 @@ func GetLocalActivityOptions(ctx context.Context) LocalActivityOptions {
 }
 
 type LocalActivityRequest struct {
-	Header        map[string][]byte
+	Header        *commonpb.Header
 	ID            uint64
 	Name          string
 	Function      bool
-	Payloads      []byte
+	Payloads      *commonpb.Payloads
 	Options       LocalActivityOptions
 	Attempt       int32
 	ScheduledTime time.Time
@@ -107,13 +107,13 @@ func executeLocalActivity(ctx context.Context, activity any, args ...any) Future
 	isolate.GoInbound(func() {
 		for {
 			id := r.ID
-			stop := context.AfterFunc(ctx, func() { p, _ := json.Marshal(id); _, _ = isolate.Call(OpCancelLocal, p) })
-			p, _ := json.Marshal(id)
+			stop := context.AfterFunc(ctx, func() { p := encodeID(id); _, _ = isolate.Call(OpCancelLocal, p) })
+			p := encodeID(id)
 			response, err := isolate.Call(OpAwaitLocal, p)
 			stop()
 			var outcome LocalActivityOutcome
 			if err == nil {
-				err = json.Unmarshal(response, &outcome)
+				err = UnmarshalTransport(response, &outcome)
 			}
 			if err == nil && outcome.Backoff > 0 && !outcome.Canceled {
 				if err = Sleep(ctx, outcome.Backoff); err == nil {
@@ -132,7 +132,7 @@ func executeLocalActivity(ctx context.Context, activity any, args ...any) Future
 }
 func scheduleLocal(r *LocalActivityRequest) error {
 	r.ID = nextCallID.Add(1)
-	p, err := json.Marshal(r)
+	p, err := MarshalTransport(r)
 	if err != nil {
 		return err
 	}

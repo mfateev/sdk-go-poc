@@ -2,17 +2,15 @@ package workflow
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
+	commonpb "go.temporal.io/api/common/v1"
 	"isolate"
 	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
 
-	"github.com/mfateev/sdk-go-poc/internal/failurewire"
-	"github.com/mfateev/sdk-go-poc/internal/payloadwire"
 	"github.com/mfateev/sdk-go-poc/internal/tracecontext"
 	failurepb "go.temporal.io/api/failure/v1"
 	goWorkflow "go.temporal.io/sdk/workflow"
@@ -35,16 +33,16 @@ type UpdateRegistration struct {
 }
 
 type UpdateRequest struct {
-	Header   map[string][]byte `json:"header,omitempty"`
-	ID       string            `json:"id"`
-	Name     string            `json:"name"`
-	Payloads []byte            `json:"payloads"`
+	Header   *commonpb.Header   `json:"header,omitempty"`
+	ID       string             `json:"id"`
+	Name     string             `json:"name"`
+	Payloads *commonpb.Payloads `json:"payloads"`
 }
 
 type UpdateCompletion struct {
-	ID       string `json:"id"`
-	Payloads []byte `json:"payloads,omitempty"`
-	Failure  []byte `json:"failure,omitempty"`
+	ID       string             `json:"id"`
+	Payloads *commonpb.Payloads `json:"payloads,omitempty"`
+	Failure  *failurepb.Failure `json:"failure,omitempty"`
 }
 
 type updateHandler struct {
@@ -114,7 +112,7 @@ func registerUpdate(registration UpdateRegistration) error {
 		updateServiceStarted = true
 		isolate.GoWithPriority(isolate.PriorityHigh, serveUpdates)
 	}
-	raw, err := json.Marshal(registration)
+	raw, err := MarshalTransport(registration)
 	if err != nil {
 		return err
 	}
@@ -181,7 +179,7 @@ func validateUpdateFunctions(handler, validator any) error {
 	return nil
 }
 
-func updateArguments(fn any, ctx context.Context, raw []byte) ([]reflect.Value, error) {
+func updateArguments(fn any, ctx context.Context, raw *commonpb.Payloads) ([]reflect.Value, error) {
 	t := reflect.TypeOf(fn)
 	offset := 0
 	if t.NumIn() > 0 && t.In(0) == reflect.TypeFor[context.Context]() {
@@ -202,7 +200,7 @@ func updateArguments(fn any, ctx context.Context, raw []byte) ([]reflect.Value, 
 	for i := range pointers {
 		p := reflect.New(t.In(i + offset))
 		if isUnsupportedProtoValue(p.Interface()) {
-			return nil, errors.New("workflow: only generated Google protobuf messages without extensions are supported")
+			return nil, errors.New("workflow: legacy gogo protobuf messages are unsupported; use Google protobuf")
 		}
 		pointers[i], args[i+offset] = p.Interface(), p.Elem()
 	}
@@ -212,15 +210,15 @@ func updateArguments(fn any, ctx context.Context, raw []byte) ([]reflect.Value, 
 	return args, nil
 }
 
-func validateUpdate(request QueryRequest) (failure []byte, err error) {
+func validateUpdate(request QueryRequest) (failure *failurepb.Failure, err error) {
 	// This encompasses argument callbacks, the validator, and failure conversion.
 	// None may escape the read-only service and terminate the workflow.
 	defer func() {
 		if p := recover(); p != nil {
-			failure, err = failurewire.Encode(&failurepb.Failure{
+			failure = &failurepb.Failure{
 				Message: fmt.Sprintf("update validator panic: %v", p), Source: "GoSDK",
 				FailureInfo: &failurepb.Failure_ApplicationFailureInfo{ApplicationFailureInfo: &failurepb.ApplicationFailureInfo{Type: "PanicError"}},
-			})
+			}
 		}
 	}()
 	h := resolveUpdateHandler(request.Name)
@@ -281,7 +279,7 @@ func serveUpdates() {
 			panic(err)
 		}
 		var request UpdateRequest
-		if err := json.Unmarshal(raw, &request); err != nil {
+		if err := UnmarshalTransport(raw, &request); err != nil {
 			panic(err)
 		}
 		updateWaitMu.Lock()
@@ -328,12 +326,12 @@ func executeUpdate(request UpdateRequest) {
 	completion := UpdateCompletion{ID: request.ID}
 	if cause == nil {
 		if isUnsupportedProtoValue(value) {
-			cause = errors.New("workflow: only generated Google protobuf messages without extensions are supported")
+			cause = errors.New("workflow: legacy gogo protobuf messages are unsupported; use Google protobuf")
 		} else {
 			payloads, err := GetDataConverter(ctx).ToPayloads(value)
 			cause = err
 			if cause == nil {
-				completion.Payloads, cause = payloadwire.Encode(payloads)
+				completion.Payloads = payloads
 			}
 		}
 	}
@@ -344,7 +342,7 @@ func executeUpdate(request UpdateRequest) {
 			panic(err)
 		}
 	}
-	raw, err := json.Marshal(completion)
+	raw, err := MarshalTransport(completion)
 	if err != nil {
 		panic(err)
 	}

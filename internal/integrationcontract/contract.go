@@ -1,5 +1,5 @@
 // Package integrationcontract checks the single current POC host/workflow protocol.
-// A fixed header is validated before JSON, converters, or user code run. It is
+// A fixed header is validated before envelope decoding, converters, or user code run. It is
 // transport metadata, not a history event or application payload.
 package integrationcontract
 
@@ -12,8 +12,8 @@ import (
 // Markers can change freely during POC development. They are sanity checks,
 // not source revision identifiers or selectors for compatibility implementations.
 const (
-	// Version 6 adds reset-aware named random identity delivery.
-	ProtocolVersion    uint32 = 6
+	// Version 7 uses protobuf envelopes and fixed-width binary identifiers.
+	ProtocolVersion    uint32 = 7
 	MetadataVersion    uint32 = 1
 	APIVersion         uint32 = 1
 	DeterminismVersion uint32 = 1

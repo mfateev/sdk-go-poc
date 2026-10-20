@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	commonpb "go.temporal.io/api/common/v1"
 	"isolate"
 	"reflect"
 
@@ -169,7 +170,7 @@ func rootDataConverter() converter.DataConverter {
 	return currentDataConverter()
 }
 
-func encodeContextArgs(ctx context.Context, args []any) ([]byte, error) {
+func encodeContextArgs(ctx context.Context, args []any) (*commonpb.Payloads, error) {
 	if ctx == nil {
 		return nil, fmt.Errorf("workflow: nil context")
 	}

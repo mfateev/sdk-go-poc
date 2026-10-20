@@ -9,7 +9,6 @@ import (
 	"os"
 
 	"github.com/mfateev/sdk-go-poc/workflow"
-	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
 func init() { log.SetFlags(0); log.Print("effects initializer") }
@@ -33,7 +32,7 @@ func EffectsWorkflow(_ context.Context, mode string) (string, error) {
 	if mode == "deny" {
 		writeFile()
 	} else if mode == "metadata" {
-		mutateMetadata()
+		mutateProcessState()
 	}
 	return "logged", nil
 }
@@ -78,12 +77,11 @@ func writeFile() {
 	_ = os.WriteFile("effect-sentinel", []byte("changed"), 0600)
 }
 
-func mutateMetadata() {
+func mutateProcessState() {
 	defer func() {
 		if recover() != nil {
-			panic("metadata violation was recoverable")
+			panic("process-state violation was recoverable")
 		}
 	}()
-	var registry protoregistry.Types
-	_ = registry.RegisterMessage(nil)
+	os.Args[0] = "private mutation"
 }

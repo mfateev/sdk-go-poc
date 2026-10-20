@@ -1,7 +1,6 @@
 package temporalbridge
 
 import (
-	"encoding/json"
 	"fmt"
 	"isolate"
 	"math"
@@ -19,7 +18,7 @@ func (d *definition) handleObservation(message *isolate.Message) {
 	switch message.Op {
 	case workflow.OpLogWrite:
 		var record workflow.LoggerWrite
-		if err := json.Unmarshal(message.Payload, &record); err != nil {
+		if err := workflow.UnmarshalTransport(message.Payload, &record); err != nil {
 			d.logWarning("invalid isolate logger record", "error", err)
 			return
 		}
@@ -58,7 +57,7 @@ func (d *definition) handleObservation(message *isolate.Message) {
 			return
 		}
 		var record workflow.MetricWrite
-		if err := json.Unmarshal(message.Payload, &record); err != nil {
+		if err := workflow.UnmarshalTransport(message.Payload, &record); err != nil {
 			d.logWarning("invalid isolate metric record", "error", err)
 			return
 		}

@@ -33,7 +33,7 @@ func checkLiveServer(address string) error {
 			return err
 		}
 	}
-	fmt.Println("live server: logging completed; file and metadata violations failed tasks only")
+	fmt.Println("live server: logging completed; file and process-state violations failed tasks only")
 	return nil
 }
 
@@ -64,7 +64,7 @@ func checkLiveWorkflow(c client.Client, queue, mode string) error {
 	}()
 	operation, function := "os.WriteFile", "effects.writeFile"
 	if mode == "metadata" {
-		operation, function = "unaudited metadata operation", "effects.mutateMetadata"
+		operation, function = "access to process global", "effects.mutateProcessState"
 	}
 	for {
 		history := c.GetWorkflowHistory(ctx, run.GetID(), run.GetRunID(), false, enums.HISTORY_EVENT_FILTER_TYPE_ALL_EVENT)

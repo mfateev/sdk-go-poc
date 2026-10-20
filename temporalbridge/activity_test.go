@@ -1,7 +1,6 @@
 package temporalbridge
 
 import (
-	"encoding/json"
 	"isolate"
 	"testing"
 	"time"
@@ -30,7 +29,7 @@ func (e *optionEnvironment) RequestCancelActivity(id bindings.ActivityID) {
 }
 func scheduleActivity(t *testing.T, d *definition, o workflow.ActivityOptions) {
 	t.Helper()
-	p, err := json.Marshal(workflow.ActivityPayloadRequest{ID: 1, Name: "echo", Options: &o})
+	p, err := workflow.MarshalTransport(workflow.ActivityPayloadRequest{ID: 1, Name: "echo", Options: &o})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,13 +59,13 @@ func TestActivityCancellationUsesSDKCompletionPolicy(t *testing.T) {
 			e := new(optionEnvironment)
 			d := &definition{env: e}
 			scheduleActivity(t, d, workflow.ActivityOptions{ScheduleToCloseTimeout: time.Minute, WaitForCancellation: wait})
-			await := &isolate.Command{Op: workflow.OpAwaitActivity, Payload: []byte("1")}
+			await := &isolate.Command{Op: workflow.OpAwaitActivity, Payload: identifierPayload(1)}
 			if err := d.handle(await); err != nil {
 				t.Fatal(err)
 			}
 			d.immediate = nil
 			for range 2 {
-				if err := d.handle(&isolate.Command{Op: workflow.OpCancelActivity, Payload: []byte("1")}); err != nil {
+				if err := d.handle(&isolate.Command{Op: workflow.OpCancelActivity, Payload: identifierPayload(1)}); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -86,7 +85,7 @@ func TestActivityCancellationUsesSDKCompletionPolicy(t *testing.T) {
 					t.Fatal("immediate cancellation must reply within same task")
 				}
 				var result workflow.ActivityOutcome
-				if err := json.Unmarshal(d.immediate[0].payload, &result); err != nil || !result.Canceled {
+				if err := workflow.UnmarshalTransport(d.immediate[0].payload, &result); err != nil || !result.Canceled {
 					t.Fatalf("cancellation: %+v %v", result, err)
 				}
 				e.callback(nil, nil)
@@ -118,7 +117,7 @@ func TestConsumedActivityRetiresOutcomeFromRetainedSDKCallback(t *testing.T) {
 	if !state.done || state.payload == nil {
 		t.Fatal("unread result not retained for future")
 	}
-	if err := d.handle(&isolate.Command{Op: workflow.OpAwaitActivity, Payload: []byte("1")}); err != nil {
+	if err := d.handle(&isolate.Command{Op: workflow.OpAwaitActivity, Payload: identifierPayload(1)}); err != nil {
 		t.Fatal(err)
 	}
 	if !state.retired || state.payload != nil || state.cancel != nil || state.waiter != nil {

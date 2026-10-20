@@ -2,7 +2,6 @@ package temporalbridge
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"isolate"
 	"reflect"
@@ -78,19 +77,22 @@ func (e *coverageEnvironment) AddSession(s *goWorkflow.SessionInfo) {
 func (e *coverageEnvironment) RemoveSession(id string) { delete(e.open, id) }
 func coverageCommand(t *testing.T, op uint32, request any) *isolate.Command {
 	t.Helper()
-	p, err := json.Marshal(request)
+	if s, ok := request.(goWorkflow.SessionInfo); ok {
+		request = workflow.SessionInfo{SessionID: s.SessionID, HostName: s.HostName, SessionState: s.SessionState}
+	}
+	p, err := workflow.MarshalTransport(request)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return &isolate.Command{Op: op, Payload: p}
 }
-func coveragePayload(t *testing.T, values ...any) []byte {
+func coveragePayload(t *testing.T, values ...any) *commonpb.Payloads {
 	t.Helper()
 	p, err := converter.GetDefaultDataConverter().ToPayloads(values...)
 	if err != nil {
 		t.Fatal(err)
 	}
-	raw, err := inboundPayloadBytes(p, converter.GetDefaultDataConverter())
+	raw, err := inboundPayloads(p, converter.GetDefaultDataConverter())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,7 +133,7 @@ func TestLocalTypesOptionsBackoffAndCancel(t *testing.T) {
 	}
 	e.localCallback(&bindings.LocalActivityResultWrapper{Err: temporal.NewApplicationError("retry", "retry"), Backoff: 2 * time.Second, Attempt: 3})
 	var outcome workflow.LocalActivityOutcome
-	if err := json.Unmarshal(d.locals[1].payload, &outcome); err != nil || outcome.Backoff != 2*time.Second || outcome.Attempt != 3 {
+	if err := workflow.UnmarshalTransport(d.locals[1].payload, &outcome); err != nil || outcome.Backoff != 2*time.Second || outcome.Attempt != 3 {
 		t.Fatalf("retry outcome: %+v %v", outcome, err)
 	}
 	r.ID = 2
@@ -242,7 +244,7 @@ func TestMissingLocalRegistrationResolvesFuture(t *testing.T) {
 		t.Fatal(err)
 	}
 	var outcome workflow.LocalActivityOutcome
-	if err := json.Unmarshal(d.locals[1].payload, &outcome); err != nil || !outcome.Failed {
+	if err := workflow.UnmarshalTransport(d.locals[1].payload, &outcome); err != nil || !outcome.Failed {
 		t.Fatal("missing implementation did not resolve error future")
 	}
 	if d.closed || d.completed || e.local.ActivityType != "" {

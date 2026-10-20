@@ -1,7 +1,6 @@
 package temporalbridge
 
 import (
-	"encoding/json"
 	"isolate"
 	"testing"
 
@@ -40,7 +39,7 @@ func TestResetQueuesIdentityUntilWorkflowTaskBoundary(t *testing.T) {
 		t.Fatalf("control replies = %d", len(d.pending))
 	}
 	var control workflow.WorkflowControl
-	if err := json.Unmarshal(d.pending[0].payload, &control); err != nil {
+	if err := workflow.UnmarshalTransport(d.pending[0].payload, &control); err != nil {
 		t.Fatal(err)
 	}
 	if control.RandomRunID != "reset-2" || !control.Canceled {

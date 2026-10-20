@@ -1,9 +1,7 @@
 package temporalbridge
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 	"isolate"
 	"time"
 
@@ -22,18 +20,18 @@ func (d *definition) handleVersion(command *isolate.Command) error {
 		}
 		d.replyWhenSuspended(command, []byte(name), nil)
 	case workflow.OpIsReplaying:
-		raw, err := json.Marshal(d.env.IsReplaying())
+		raw, err := workflow.MarshalTransport(d.env.IsReplaying())
 		if err != nil {
 			return err
 		}
 		d.replyWhenSuspended(command, raw, nil)
 	case workflow.OpGetVersion:
 		var request workflow.VersionRequest
-		if err := json.Unmarshal(command.Payload, &request); err != nil {
+		if err := workflow.UnmarshalTransport(command.Payload, &request); err != nil {
 			return err
 		}
 		version := d.env.GetVersion(request.ChangeID, request.Min, request.Max)
-		raw, err := json.Marshal(version)
+		raw, err := workflow.MarshalTransport(version)
 		if err != nil {
 			return err
 		}
@@ -46,9 +44,9 @@ func (d *definition) finishContinuation(r *workflow.ContinueAsNewRequest) error 
 	if r.Name == "" {
 		return errors.New("continue-as-new: empty workflow type")
 	}
-	input := new(commonpb.Payloads)
-	if err := proto.Unmarshal(r.Payloads, input); err != nil {
-		return fmt.Errorf("decode continuation input: %w", err)
+	input := r.Payloads
+	if input == nil {
+		input = new(commonpb.Payloads)
 	}
 	input, err := encodeTransport(input, d.env.GetDataConverter())
 	if err != nil {
@@ -60,18 +58,9 @@ func (d *definition) finishContinuation(r *workflow.ContinueAsNewRequest) error 
 		VersioningIntent: r.Options.VersioningIntent, RetryPolicy: r.RetryPolicy,
 		BackoffStartInterval: time.Duration(r.BackoffStartInterval), InitialVersioningBehavior: r.InitialVersioningBehavior}
 	if r.Header != nil {
-		e.Header = &commonpb.Header{Fields: make(map[string]*commonpb.Payload, len(r.Header))}
-		for key, raw := range r.Header {
-			p := new(commonpb.Payloads)
-			if err := proto.Unmarshal(raw, p); err != nil {
-				return err
-			}
-			if len(p.Payloads) != 1 {
-				return fmt.Errorf("continuation header %q: expected one payload", key)
-			}
-			e.Header.Fields[key] = p.Payloads[0]
-		}
+		e.Header = proto.Clone(r.Header).(*commonpb.Header)
 	}
+
 	d.finishWorkflow(nil, e)
 	return nil
 }

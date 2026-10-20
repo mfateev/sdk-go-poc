@@ -1,7 +1,6 @@
 package temporalbridge
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/mfateev/sdk-go-poc/workflow"
 	"isolate"
@@ -13,7 +12,7 @@ func (d *definition) interceptSignal(command *isolate.Command) error {
 	}
 	if len(command.Payload) != 0 {
 		var response workflow.InterceptedSignals
-		if err := json.Unmarshal(command.Payload, &response); err != nil {
+		if err := workflow.UnmarshalTransport(command.Payload, &response); err != nil {
 			return err
 		}
 		if response.Error != "" {
@@ -30,7 +29,7 @@ func (d *definition) interceptSignal(command *isolate.Command) error {
 		d.completeSignalFlush()
 		return nil
 	}
-	raw, err := json.Marshal(d.incomingSignals[0])
+	raw, err := workflow.MarshalTransport(d.incomingSignals[0])
 	if err != nil {
 		return err
 	}

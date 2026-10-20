@@ -1,6 +1,7 @@
 package temporalbridge
 
 import (
+	failurepb "go.temporal.io/api/failure/v1"
 	"isolate"
 
 	"go.temporal.io/sdk/converter"
@@ -41,7 +42,7 @@ func (d *definition) activityFailureConverter(dc converter.DataConverter, name, 
 		WorkflowType: info.WorkflowType.Name, ActivityType: name, TaskQueue: queue, IsLocal: local})
 }
 
-func (d *definition) encodeInboundFailure(cause error, dc converter.DataConverter, converters ...converter.FailureConverter) ([]byte, error) {
+func (d *definition) encodeInboundFailure(cause error, dc converter.DataConverter, converters ...converter.FailureConverter) (*failurepb.Failure, error) {
 	fc := d.hostFailureConverter(dc)
 	if len(converters) != 0 {
 		fc = converters[0]
@@ -49,6 +50,6 @@ func (d *definition) encodeInboundFailure(cause error, dc converter.DataConverte
 	return encodeInboundFailure(cause, dc, fc)
 }
 
-func (d *definition) decodeOutboundFailure(raw []byte, dc converter.DataConverter) (error, error) {
+func (d *definition) decodeOutboundFailure(raw *failurepb.Failure, dc converter.DataConverter) (error, error) {
 	return decodeOutboundFailure(raw, dc, d.hostFailureConverter(dc))
 }

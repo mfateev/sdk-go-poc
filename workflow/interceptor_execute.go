@@ -25,7 +25,7 @@ func runInterceptedFunction(handle isolate.Handle, ctx context.Context, payloads
 		for i := range pointers {
 			pointers[i] = reflect.New(signature.In(i + 1)).Interface()
 			if isUnsupportedProtoValue(pointers[i]) {
-				return completePayloads(nil, errors.New("workflow: only generated Google protobuf messages without extensions are supported"))
+				return completePayloads(nil, errors.New("workflow: legacy gogo protobuf messages are unsupported; use Google protobuf"))
 			}
 		}
 		if err := GetDataConverter(ctx).FromPayloads(payloads, pointers...); err != nil {
@@ -92,7 +92,7 @@ func runInterceptedFunction(handle isolate.Handle, ctx context.Context, payloads
 		return completePayloads(nil, nil)
 	}
 	if isUnsupportedProtoValue(result) {
-		return completePayloads(nil, errors.New("workflow: only generated Google protobuf messages without extensions are supported"))
+		return completePayloads(nil, errors.New("workflow: legacy gogo protobuf messages are unsupported; use Google protobuf"))
 	}
 	encoded, err := GetDataConverter(ctx).ToPayloads(result)
 	if err != nil {

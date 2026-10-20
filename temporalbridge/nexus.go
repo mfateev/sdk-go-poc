@@ -1,7 +1,6 @@
 package temporalbridge
 
 import (
-	"encoding/json"
 	"errors"
 	"isolate"
 
@@ -10,7 +9,6 @@ import (
 	"go.temporal.io/sdk/converter"
 	bindings "go.temporal.io/sdk/internalbindings"
 	"go.temporal.io/sdk/temporal"
-	"google.golang.org/protobuf/proto"
 )
 
 type nexusState struct {
@@ -60,7 +58,7 @@ func (d *definition) nexusCompleted(id uint64, s *nexusState, p *commonpb.Payloa
 func (d *definition) handleNexus(c *isolate.Command) error {
 	if c.Op == workflow.OpScheduleNexus {
 		var r workflow.NexusRequest
-		if err := json.Unmarshal(c.Payload, &r); err != nil {
+		if err := workflow.UnmarshalTransport(c.Payload, &r); err != nil {
 			return err
 		}
 		if r.ID == 0 || r.Endpoint == "" || r.Service == "" || r.Operation == "" || r.Options.CancellationType < workflow.NexusOperationCancellationTypeAbandon || r.Options.CancellationType > workflow.NexusOperationCancellationTypeWaitCompleted || r.Options.ScheduleToCloseTimeout < 0 || r.Options.ScheduleToStartTimeout < 0 || r.Options.StartToCloseTimeout < 0 {
@@ -72,9 +70,9 @@ func (d *definition) handleNexus(c *isolate.Command) error {
 		if d.nexus[r.ID] != nil {
 			return errors.New("duplicate Nexus request ID")
 		}
-		p := new(commonpb.Payloads)
-		if err := proto.Unmarshal(r.Payloads, p); err != nil {
-			return err
+		p := r.Payloads
+		if p == nil {
+			p = new(commonpb.Payloads)
 		}
 		if len(p.Payloads) != 1 {
 			return errors.New("Nexus input must contain one payload")
@@ -99,8 +97,8 @@ func (d *definition) handleNexus(c *isolate.Command) error {
 		d.replyWhenSuspended(c, nil, nil)
 		return nil
 	}
-	var id uint64
-	if err := json.Unmarshal(c.Payload, &id); err != nil {
+	id, err := commandID(c)
+	if err != nil {
 		return err
 	}
 	s := d.nexus[id]

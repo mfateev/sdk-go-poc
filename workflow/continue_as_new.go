@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"github.com/mfateev/sdk-go-poc/internal/activityref"
 	"github.com/mfateev/sdk-go-poc/internal/headerwire"
-	"github.com/mfateev/sdk-go-poc/internal/payloadwire"
 	commonpb "go.temporal.io/api/common/v1"
 	goWorkflow "go.temporal.io/sdk/workflow"
+	"google.golang.org/protobuf/proto"
 	"isolate"
 	"reflect"
 )
@@ -102,8 +102,8 @@ func IsContinueAsNewError(err error) bool { var e *ContinueAsNewError; return er
 // ContinueAsNewRequest carries only copied configuration and encoded payloads.
 type ContinueAsNewRequest struct {
 	Name                      string                          `json:"name"`
-	Payloads                  []byte                          `json:"payloads"`
-	Header                    map[string][]byte               `json:"header,omitempty"`
+	Payloads                  *commonpb.Payloads              `json:"payloads"`
+	Header                    *commonpb.Header                `json:"header,omitempty"`
 	Options                   RunOptions                      `json:"options"`
 	RetryPolicy               *RetryPolicy                    `json:"retry_policy,omitempty"`
 	BackoffStartInterval      int64                           `json:"backoff_start_interval,omitempty"`
@@ -118,23 +118,12 @@ func continuationRequest(cause error) (*ContinueAsNewRequest, error) {
 	if e.WorkflowType == nil || e.WorkflowType.Name == "" {
 		return nil, errors.New("workflow: continue-as-new requires a workflow type")
 	}
-	input, err := payloadwire.Encode(e.Input)
-	if err != nil {
-		return nil, err
-	}
-	r := &ContinueAsNewRequest{Name: e.WorkflowType.Name, Payloads: input,
+	r := &ContinueAsNewRequest{Name: e.WorkflowType.Name, Payloads: e.Input,
 		Options: RunOptions{TaskQueue: e.TaskQueueName, WorkflowExecutionTimeout: e.WorkflowExecutionTimeout,
 			WorkflowRunTimeout: e.WorkflowRunTimeout, WorkflowTaskTimeout: e.WorkflowTaskTimeout, VersioningIntent: e.VersioningIntent},
 		RetryPolicy: e.RetryPolicy, BackoffStartInterval: int64(e.BackoffStartInterval), InitialVersioningBehavior: e.InitialVersioningBehavior}
 	if e.Header != nil {
-		r.Header = make(map[string][]byte, len(e.Header.Fields))
-		for key, payload := range e.Header.Fields {
-			raw, err := payloadwire.Encode(&commonpb.Payloads{Payloads: []*commonpb.Payload{payload}})
-			if err != nil {
-				return nil, err
-			}
-			r.Header[key] = raw
-		}
+		r.Header = proto.Clone(e.Header).(*commonpb.Header)
 	}
 	return r, nil
 }

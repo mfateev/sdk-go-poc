@@ -3,6 +3,7 @@ package workflow
 import (
 	"context"
 	"errors"
+	commonpb "go.temporal.io/api/common/v1"
 	"reflect"
 	"testing"
 	"time"
@@ -165,9 +166,9 @@ func TestFutureToChannelWaitsAndSupportsIndependentTypedExtraction(t *testing.T)
 		if err := result.Value.Get(&wrong); err == nil {
 			t.Fatal("invalid extraction type accepted")
 		}
-		var protobuf *unsupportedTestProto
-		if err := result.Value.Get(&protobuf); err == nil {
-			t.Fatal("channel bypassed protobuf subset checks")
+		var protobuf *customTestProto
+		if err := result.Value.Get(&protobuf); err != nil || protobuf.Name != "hello" {
+			t.Fatalf("custom protobuf extraction: %v %v", protobuf, err)
 		}
 	}
 	var result struct{ Name string }
@@ -191,7 +192,7 @@ func TestFutureToChannelPreservesErrorsAndEmptyResults(t *testing.T) {
 	if result.Err != nil || result.Value == nil || result.Value.HasValue() || result.Value.Get(nil) != nil {
 		t.Fatalf("error-only success: %+v", result)
 	}
-	for _, payload := range [][]byte{{0xff}, func() []byte {
+	for _, payload := range []*commonpb.Payloads{{Payloads: []*commonpb.Payload{nil}}, func() *commonpb.Payloads {
 		p, err := encodeActivityArgs([]any{1, 2})
 		if err != nil {
 			t.Fatal(err)

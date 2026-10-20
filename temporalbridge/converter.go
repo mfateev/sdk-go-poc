@@ -6,8 +6,8 @@ import (
 	"strconv"
 
 	"github.com/mfateev/sdk-go-poc/internal/failurecodec"
-	"github.com/mfateev/sdk-go-poc/internal/failurewire"
 	commonpb "go.temporal.io/api/common/v1"
+	failurepb "go.temporal.io/api/failure/v1"
 	"go.temporal.io/sdk/converter"
 	"go.temporal.io/sdk/temporal"
 	"google.golang.org/protobuf/proto"
@@ -62,12 +62,8 @@ func decodeTransport(p *commonpb.Payloads, dc converter.DataConverter) (*commonp
 	return out, nil
 }
 
-func inboundPayloadBytes(p *commonpb.Payloads, dc converter.DataConverter) ([]byte, error) {
-	plain, err := decodeTransport(p, dc)
-	if err != nil || plain == nil {
-		return nil, err
-	}
-	return proto.MarshalOptions{Deterministic: true}.Marshal(plain)
+func inboundPayloads(p *commonpb.Payloads, dc converter.DataConverter) (*commonpb.Payloads, error) {
+	return decodeTransport(p, dc)
 }
 
 func (d *definition) rootDataConverter() converter.DataConverter {
@@ -105,11 +101,11 @@ func (d *definition) prepareChildID(id string) string {
 // Convert every payload in the failure tree, including encrypted common
 // attributes, without decoding application values on the host. Failure holders
 // can retain their original encrypted payloads, so do not blindly re-encode them.
-func mapFailurePayloads(raw []byte, dc converter.DataConverter, encode bool) ([]byte, error) {
-	f, err := failurewire.Decode(raw)
-	if err != nil {
-		return nil, err
+func mapFailurePayloads(original *failurepb.Failure, dc converter.DataConverter, encode bool) (*failurepb.Failure, error) {
+	if original == nil {
+		return nil, nil
 	}
+	f := proto.Clone(original).(*failurepb.Failure)
 	transform := decodeTransport
 	if encode {
 		transform = encodeTransport
@@ -141,10 +137,10 @@ func mapFailurePayloads(raw []byte, dc converter.DataConverter, encode bool) ([]
 			*p = result
 		}
 	}
-	return failurewire.Encode(f)
+	return f, nil
 }
 
-func encodeInboundFailure(cause error, dc converter.DataConverter, converters ...converter.FailureConverter) ([]byte, error) {
+func encodeInboundFailure(cause error, dc converter.DataConverter, converters ...converter.FailureConverter) (*failurepb.Failure, error) {
 	fc := converter.FailureConverter(temporal.NewDefaultFailureConverter(temporal.DefaultFailureConverterOptions{DataConverter: dc}))
 	if len(converters) != 0 {
 		fc = converters[0]
@@ -156,7 +152,7 @@ func encodeInboundFailure(cause error, dc converter.DataConverter, converters ..
 	return mapFailurePayloads(raw, dc, false)
 }
 
-func decodeOutboundFailure(raw []byte, dc converter.DataConverter, converters ...converter.FailureConverter) (error, error) {
+func decodeOutboundFailure(raw *failurepb.Failure, dc converter.DataConverter, converters ...converter.FailureConverter) (error, error) {
 	encoded, err := mapFailurePayloads(raw, dc, true)
 	if err != nil {
 		return nil, err

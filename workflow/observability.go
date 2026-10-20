@@ -2,7 +2,6 @@ package workflow
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"isolate"
 	"maps"
@@ -50,7 +49,7 @@ func emitLog(level, message string, fields []any) {
 	for i, field := range fields {
 		formatted[i] = fmt.Sprint(field)
 	}
-	raw, err := json.Marshal(LoggerWrite{Level: level, Message: message, Fields: formatted})
+	raw, err := MarshalTransport(LoggerWrite{Level: level, Message: message, Fields: formatted})
 	if err == nil {
 		isolate.Write(OpLogWrite, raw)
 	}
@@ -95,7 +94,7 @@ func (m isolateMetric) Inc(delta int64)               { m.emit(delta, 0) }
 func (m isolateMetric) Update(value float64)          { m.emit(0, math.Float64bits(value)) }
 func (m isolateMetric) Record(duration time.Duration) { m.emit(int64(duration), 0) }
 func (m isolateMetric) emit(integer int64, floatBits uint64) {
-	raw, err := json.Marshal(MetricWrite{Kind: m.kind, Name: m.name, Tags: m.tags, Int: integer, FloatBits: floatBits})
+	raw, err := MarshalTransport(MetricWrite{Kind: m.kind, Name: m.name, Tags: m.tags, Int: integer, FloatBits: floatBits})
 	if err == nil {
 		isolate.Write(OpMetricWrite, raw)
 	}

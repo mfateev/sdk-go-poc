@@ -33,9 +33,7 @@ func TestRejectInvalidHeader(t *testing.T) {
 	if _, err := Encode(&commonpb.Header{Fields: map[string]*commonpb.Payload{"nil": nil}}); err == nil {
 		t.Fatal("nil payload accepted")
 	}
-	for _, data := range [][]byte{{0xff}, nil} {
-		if _, err := Decode(map[string][]byte{"bad": data}); err == nil {
-			t.Fatal("invalid envelope accepted")
-		}
+	if _, err := Decode(&commonpb.Header{Fields: map[string]*commonpb.Payload{"bad": nil}}); err == nil {
+		t.Fatal("invalid header accepted")
 	}
 }

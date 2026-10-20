@@ -1,7 +1,7 @@
 // Package workflow exposes Temporal operations to statically compiled isolates
 // using native contexts, goroutines and channels. Host operations use copied
 // bytes; an isolate-owned data converter handles typed arguments and results.
-// The default serializer supports nil, bytes, JSON and generated Google protobuf; workers may configure a
+// The default serializer supports nil, bytes, JSON and Google protobuf; workers may configure a
 // marked serializer factory. Transport codecs remain on the host.
 package workflow
 
@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/mfateev/sdk-go-poc/hostintegration"
 	"isolate"
 	"reflect"
 	"time"
@@ -19,6 +18,7 @@ import (
 	"github.com/mfateev/sdk-go-poc/internal/integrationcontract"
 	"github.com/mfateev/sdk-go-poc/internal/payloadwire"
 	commonpb "go.temporal.io/api/common/v1"
+	failurepb "go.temporal.io/api/failure/v1"
 	"go.temporal.io/sdk/converter"
 	"google.golang.org/protobuf/proto"
 )
@@ -145,7 +145,7 @@ func RegisterTyped[A, R any](name string, handler func(context.Context, A) (R, e
 		}
 		var arg A
 		if isUnsupportedProtoValue(any(arg)) || isUnsupportedProtoValue(any(&arg)) {
-			return nil, errors.New("workflow: only generated Google protobuf messages without extensions are supported")
+			return nil, errors.New("workflow: legacy gogo protobuf messages are unsupported; use Google protobuf")
 		}
 		if err := GetDataConverter(ctx).FromPayloads(payloads, &arg); err != nil {
 			return nil, fmt.Errorf("workflow: decode arguments: %w", err)
@@ -168,7 +168,7 @@ func RegisterTyped2[A, B, R any](name string, handler func(context.Context, A, B
 		var second B
 		if isUnsupportedProtoValue(any(first)) || isUnsupportedProtoValue(any(&first)) ||
 			isUnsupportedProtoValue(any(second)) || isUnsupportedProtoValue(any(&second)) {
-			return nil, errors.New("workflow: only generated Google protobuf messages without extensions are supported")
+			return nil, errors.New("workflow: legacy gogo protobuf messages are unsupported; use Google protobuf")
 		}
 		if err := GetDataConverter(ctx).FromPayloads(payloads, &first, &second); err != nil {
 			return nil, fmt.Errorf("workflow: decode arguments: %w", err)
@@ -191,7 +191,7 @@ func encodeTypedResult[R any](result R, cause error) (*commonpb.Payloads, error)
 	}
 	// Check the concrete message provenance, including value results.
 	if isUnsupportedProtoValue(any(result)) || isUnsupportedProtoValue(any(&result)) {
-		return nil, errors.New("workflow: only generated Google protobuf messages without extensions are supported")
+		return nil, errors.New("workflow: legacy gogo protobuf messages are unsupported; use Google protobuf")
 	}
 	payloads, err := rootDataConverter().ToPayloads(result)
 	if err != nil {
@@ -200,8 +200,8 @@ func encodeTypedResult[R any](result R, cause error) (*commonpb.Payloads, error)
 	return payloads, nil
 }
 
-// Reject alternate/dynamic implementations before entering generated codecs.
-// SDK source adapters register supported generated message types at startup.
+// Google protobuf implementations run entirely within the isolate. The legacy
+// gogo message interface remains outside the default Google protobuf converter.
 func isUnsupportedProtoValue(value any) bool {
 	if value == nil {
 		return false
@@ -215,7 +215,7 @@ func isUnsupportedProtoValue(value any) bool {
 	}
 	pointer := reflect.PointerTo(typ)
 	if pointer.Implements(reflect.TypeFor[proto.Message]()) {
-		return !hostintegration.IsGenerated(value)
+		return false
 	}
 	return pointer.Implements(reflect.TypeFor[gogoproto.Message]())
 }
@@ -248,22 +248,22 @@ type Start struct {
 // PayloadStart carries the entry name and serialized Temporal Payloads. The
 // bytes cross the isolate boundary; Go argument values do not.
 type PayloadStart struct {
-	RandomRunID             string            `json:"random_run_id,omitempty"`
-	Dynamic                 bool              `json:"dynamic,omitempty"`
-	FailureConverterFactory string            `json:"failure_converter_factory,omitempty"`
-	FailureConverterConfig  []byte            `json:"failure_converter_config,omitempty"`
-	PropagatorFactory       string            `json:"propagator_factory,omitempty"`
-	PropagatorConfig        []byte            `json:"propagator_config,omitempty"`
-	ConverterFactory        string            `json:"converter_factory,omitempty"`
-	InterceptorFactory      string            `json:"interceptor_factory,omitempty"`
-	InterceptorConfig       []byte            `json:"interceptor_config,omitempty"`
-	Header                  map[string][]byte `json:"header,omitempty"`
-	ConverterConfig         []byte            `json:"converter_config,omitempty"`
-	TaskQueue               string            `json:"task_queue,omitempty"`
-	Options                 RunOptions        `json:"options"`
-	Canceled                bool              `json:"canceled,omitempty"`
-	Name                    string            `json:"name"`
-	Payloads                []byte            `json:"payloads"`
+	RandomRunID             string             `json:"random_run_id,omitempty"`
+	Dynamic                 bool               `json:"dynamic,omitempty"`
+	FailureConverterFactory string             `json:"failure_converter_factory,omitempty"`
+	FailureConverterConfig  []byte             `json:"failure_converter_config,omitempty"`
+	PropagatorFactory       string             `json:"propagator_factory,omitempty"`
+	PropagatorConfig        []byte             `json:"propagator_config,omitempty"`
+	ConverterFactory        string             `json:"converter_factory,omitempty"`
+	InterceptorFactory      string             `json:"interceptor_factory,omitempty"`
+	InterceptorConfig       []byte             `json:"interceptor_config,omitempty"`
+	Header                  *commonpb.Header   `json:"header,omitempty"`
+	ConverterConfig         []byte             `json:"converter_config,omitempty"`
+	TaskQueue               string             `json:"task_queue,omitempty"`
+	Options                 RunOptions         `json:"options"`
+	Canceled                bool               `json:"canceled,omitempty"`
+	Name                    string             `json:"name"`
+	Payloads                *commonpb.Payloads `json:"payloads"`
 }
 
 // Run selects the registered function, calls it, and reports its result to the
@@ -278,7 +278,7 @@ func Run() error {
 		panic(err) // A contract mismatch fails the Workflow Task, not the execution.
 	}
 	var start PayloadStart
-	if err := json.Unmarshal(payload, &start); err != nil {
+	if err := UnmarshalTransport(payload, &start); err != nil {
 		return Complete(nil, fmt.Errorf("workflow: decode start: %w", err))
 	}
 	startRandomStreams(start.RandomRunID)
@@ -309,43 +309,38 @@ func Run() error {
 	return Complete(result, err)
 }
 
-func decodeBytes(data []byte) ([]byte, error) {
-	if len(data) == 0 {
+func decodeBytes(payloads *commonpb.Payloads) ([]byte, error) {
+	if payloads == nil {
 		return nil, nil
 	}
-	var payloads commonpb.Payloads
-	decoded, err := payloadwire.Decode(data)
-	if err != nil {
-		return nil, err
-	}
-	payloads = *decoded
 	if len(payloads.Payloads) != 1 {
 		return nil, fmt.Errorf("got %d arguments, want 1", len(payloads.Payloads))
 	}
-	if err := checkPOCEncodings(&payloads); err != nil {
+	if err := checkPOCEncodings(payloads); err != nil {
 		return nil, err
 	}
 	var value []byte
-	if err := rootDataConverter().FromPayloads(&payloads, &value); err != nil {
+	if err := rootDataConverter().FromPayloads(payloads, &value); err != nil {
 		return nil, err
 	}
 	return value, nil
 }
 
-func decodePayloads(data []byte, converters ...converter.DataConverter) (*commonpb.Payloads, error) {
-	if len(data) == 0 {
-		return new(commonpb.Payloads), nil
+func decodePayloads(payloads *commonpb.Payloads, converters ...converter.DataConverter) (*commonpb.Payloads, error) {
+	if payloads == nil {
+		payloads = new(commonpb.Payloads)
 	}
-	payloads, err := payloadwire.Decode(data)
-	if err != nil {
-		return nil, err
+	for i, p := range payloads.Payloads {
+		if p == nil || len(p.ExternalPayloads) != 0 {
+			return nil, fmt.Errorf("workflow: invalid payload %d", i)
+		}
 	}
 	if len(converters) == 0 {
 		if err := checkPOCEncodings(payloads); err != nil {
 			return nil, err
 		}
 	}
-	return payloads, nil
+	return proto.Clone(payloads).(*commonpb.Payloads), nil
 }
 
 // RunFunction is the dispatcher used by the worker for compiler-discovered
@@ -377,7 +372,7 @@ func runFunction(handle, factory isolate.Handle, supports []isolate.Handle) erro
 		panic(err)
 	}
 	var start PayloadStart
-	if err := json.Unmarshal(startBytes, &start); err != nil {
+	if err := UnmarshalTransport(startBytes, &start); err != nil {
 		return completePayloads(nil, fmt.Errorf("workflow: decode start: %w", err))
 	}
 	startRandomStreams(start.RandomRunID)
@@ -460,7 +455,7 @@ func runFunction(handle, factory isolate.Handle, supports []isolate.Handle) erro
 		pointers := make([]any, len(args))
 		for i, arg := range args {
 			if isUnsupportedProtoValue(arg.Value) || isUnsupportedProtoValue(arg.Pointer) {
-				return errors.New("workflow: only generated Google protobuf messages without extensions are supported")
+				return errors.New("workflow: legacy gogo protobuf messages are unsupported; use Google protobuf")
 			}
 			pointers[i] = arg.Pointer
 		}
@@ -474,7 +469,7 @@ func runFunction(handle, factory isolate.Handle, supports []isolate.Handle) erro
 		}
 		value := values[0]
 		if isUnsupportedProtoValue(value.Value) || isUnsupportedProtoValue(value.Pointer) {
-			return errors.New("workflow: only generated Google protobuf messages without extensions are supported")
+			return errors.New("workflow: legacy gogo protobuf messages are unsupported; use Google protobuf")
 		}
 		var err error
 		result, err = rootDataConverter().ToPayloads(value.Value)
@@ -496,23 +491,23 @@ type ActivityRequest struct {
 // ActivityPayloadRequest carries arguments encoded inside the isolate using
 // Temporal's default converter. The host forwards them to the activity.
 type ActivityPayloadRequest struct {
-	Header              map[string][]byte `json:"header,omitempty"`
-	ID                  uint64            `json:"id,omitempty"`
-	Options             *ActivityOptions  `json:"options,omitempty"`
-	Function            bool              `json:"function,omitempty"`
-	Name                string            `json:"name"`
-	Payloads            []byte            `json:"payloads"`
-	StartToCloseTimeout time.Duration     `json:"start_to_close_timeout"`
+	Header              *commonpb.Header   `json:"header,omitempty"`
+	ID                  uint64             `json:"id,omitempty"`
+	Options             *ActivityOptions   `json:"options,omitempty"`
+	Function            bool               `json:"function,omitempty"`
+	Name                string             `json:"name"`
+	Payloads            *commonpb.Payloads `json:"payloads"`
+	StartToCloseTimeout time.Duration      `json:"start_to_close_timeout"`
 }
 
 // Signal is one incoming workflow signal.
 type Signal struct {
-	Header map[string][]byte `json:"header,omitempty"`
+	Header *commonpb.Header `json:"header,omitempty"`
 	// Payloads is the plain serialized envelope; nextSignal decodes Input under
 	// the receiving isolate owner, after host codecs have been removed.
-	Payloads []byte `json:"payloads,omitempty"`
-	Name     string `json:"name"`
-	Input    []byte `json:"input"`
+	Payloads *commonpb.Payloads `json:"payloads,omitempty"`
+	Name     string             `json:"name"`
+	Input    []byte             `json:"input"`
 }
 
 // SignalResult carries a serialized signal or host error through interceptor hooks.
@@ -530,7 +525,7 @@ type ActivityResult[R any] struct {
 
 // Completion is the wire representation of a workflow result.
 type Completion struct {
-	Failure       []byte                `json:"failure,omitempty"`
+	Failure       *failurepb.Failure    `json:"failure,omitempty"`
 	Failed        bool                  `json:"failed,omitempty"`
 	ContinueAsNew *ContinueAsNewRequest `json:"continue_as_new,omitempty"`
 	Canceled      bool                  `json:"canceled,omitempty"`
@@ -541,40 +536,40 @@ type Completion struct {
 // PayloadCompletion carries serialized Temporal Payloads produced by a typed
 // handler, or its error. The host forwards these payloads without conversion.
 type PayloadCompletion struct {
-	Failure       []byte                `json:"failure,omitempty"`
+	Failure       *failurepb.Failure    `json:"failure,omitempty"`
 	Failed        bool                  `json:"failed,omitempty"`
 	ContinueAsNew *ContinueAsNewRequest `json:"continue_as_new,omitempty"`
 	Canceled      bool                  `json:"canceled,omitempty"`
-	Payloads      []byte                `json:"payloads"`
+	Payloads      *commonpb.Payloads    `json:"payloads"`
 	Error         string                `json:"error,omitempty"`
 }
 
 // Input returns the workflow's first byte-slice argument.
 func Input() ([]byte, error) { return isolate.Call(OpInput, nil) }
 
-func encodeActivityArgs(args []any) ([]byte, error) {
+func encodeActivityArgs(args []any) (*commonpb.Payloads, error) {
 	return encodeArgsWithConverter(args, rootDataConverter())
 }
 
-func encodeArgsWithConverter(args []any, dc converter.DataConverter) ([]byte, error) {
+func encodeArgsWithConverter(args []any, dc converter.DataConverter) (*commonpb.Payloads, error) {
 	for _, arg := range args {
 		if isUnsupportedProtoValue(arg) {
-			return nil, errors.New("workflow: only generated Google protobuf messages without extensions are supported")
+			return nil, errors.New("workflow: legacy gogo protobuf messages are unsupported; use Google protobuf")
 		}
 	}
 	payloads, err := dc.ToPayloads(args...)
 	if err != nil {
 		return nil, fmt.Errorf("workflow: encode activity arguments: %w", err)
 	}
-	return payloadwire.Encode(payloads)
+	return payloads, nil
 }
 
 func decodeActivityResult[R any](response []byte) (R, error) {
 	var result R
 	if isUnsupportedProtoValue(result) || isUnsupportedProtoValue(&result) {
-		return result, errors.New("workflow: only generated Google protobuf messages without extensions are supported")
+		return result, errors.New("workflow: legacy gogo protobuf messages are unsupported; use Google protobuf")
 	}
-	payloads, err := decodePayloads(response)
+	payloads, err := payloadwire.Decode(response)
 	if err != nil {
 		return result, fmt.Errorf("workflow: decode activity result: %w", err)
 	}
@@ -631,7 +626,7 @@ func nextSignalEnvelope(ctx context.Context, name string) (Signal, error) {
 	if err != nil {
 		return signal, err
 	}
-	err = json.Unmarshal(payload, &signal)
+	err = UnmarshalTransport(payload, &signal)
 	return signal, err
 }
 
@@ -678,7 +673,7 @@ func Complete(result []byte, cause error) error {
 			}
 		}
 	}
-	payload, err := json.Marshal(completion)
+	payload, err := MarshalTransport(completion)
 	if err != nil {
 		return err
 	}
@@ -706,12 +701,12 @@ func completePayloads(result *commonpb.Payloads, cause error) error {
 		}
 	} else if result != nil {
 		var err error
-		completion.Payloads, err = payloadwire.Encode(result)
+		completion.Payloads = result
 		if err != nil {
 			return err
 		}
 	}
-	payload, err := json.Marshal(completion)
+	payload, err := MarshalTransport(completion)
 	if err != nil {
 		return err
 	}

@@ -17,7 +17,7 @@ func InterceptorHeader(ctx context.Context) map[string]*commonpb.Payload {
 	header, _ := ctx.Value(interceptorHeaderKey{}).(map[string]*commonpb.Payload)
 	return header
 }
-func withInterceptorHeader(ctx context.Context, fields map[string][]byte) (context.Context, error) {
+func withInterceptorHeader(ctx context.Context, fields *commonpb.Header) (context.Context, error) {
 	header, err := headerwire.Decode(fields)
 	if err != nil {
 		return nil, err
@@ -27,6 +27,6 @@ func withInterceptorHeader(ctx context.Context, fields map[string][]byte) (conte
 	}
 	return context.WithValue(ctx, interceptorHeaderKey{}, header.Fields), nil
 }
-func outgoingHeader(ctx context.Context) (map[string][]byte, error) {
+func outgoingHeader(ctx context.Context) (*commonpb.Header, error) {
 	return propagatedHeader(ctx)
 }

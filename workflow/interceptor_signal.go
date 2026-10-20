@@ -2,8 +2,6 @@ package workflow
 
 import (
 	"context"
-	"encoding/json"
-	"github.com/mfateev/sdk-go-poc/internal/payloadwire"
 	"isolate"
 )
 
@@ -24,7 +22,7 @@ func serveInterceptedSignals() {
 			panic(err)
 		}
 		var signal Signal
-		if err = json.Unmarshal(raw, &signal); err != nil {
+		if err = UnmarshalTransport(raw, &signal); err != nil {
 			panic(err)
 		}
 		ctx, err := withIncomingHeader(rootContext, signal.Header)
@@ -36,22 +34,22 @@ func serveInterceptedSignals() {
 			reportCorruptSignal(ctx, signal.Name, err)
 			// Acknowledge a dropped signal so admission can finish and the next
 			// signal can traverse the interceptor chain.
-			response = []byte("{}")
+			response, err = MarshalTransport(InterceptedSignals{})
+			if err != nil {
+				panic(err)
+			}
 			continue
 		}
 		outcome := InterceptedSignals{}
 		ctx = context.WithValue(ctx, interceptedSignalKey{}, func(in *HandleSignalInput) error {
-			raw, err := payloadwire.Encode(in.Arg)
-			if err != nil {
-				return err
-			}
-			outcome.Signals = append(outcome.Signals, Signal{Name: in.SignalName, Payloads: raw})
+
+			outcome.Signals = append(outcome.Signals, Signal{Name: in.SignalName, Payloads: in.Arg})
 			return nil
 		})
 		if err = activeInterceptors.inbound.HandleSignal(ctx, &HandleSignalInput{SignalName: signal.Name, Arg: payloads}); err != nil {
 			outcome.Error = err.Error()
 		}
-		response, err = json.Marshal(outcome)
+		response, err = MarshalTransport(outcome)
 		if err != nil {
 			panic(err)
 		}

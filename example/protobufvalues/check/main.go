@@ -73,11 +73,13 @@ func run(mode, scenario string) {
 	env.RegisterActivityWithOptions(Random, activity.RegisterOptions{Name: "Random"})
 	if scenario == "custom-message" {
 		env.ExecuteWorkflow("CustomMessageWorkflow")
-		panic("custom protobuf message accepted")
+		check(env.GetWorkflowError())
+		return
 	}
 	if scenario == "resolver" {
 		env.ExecuteWorkflow("ResolverWorkflow")
-		panic("custom resolver accepted")
+		check(env.GetWorkflowError())
+		return
 	}
 	if scenario == "payloads" {
 		env.ExecuteWorkflow("UpstreamPayloads")

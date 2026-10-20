@@ -2,18 +2,18 @@ package workflow
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
+	commonpb "go.temporal.io/api/common/v1"
 	"isolate"
 )
 
 // ExternalRequest identifies a signal or cancellation of an external execution.
 type ExternalRequest struct {
-	Header                                   map[string][]byte
+	Header                                   *commonpb.Header
 	ID                                       uint64
 	Namespace, WorkflowID, RunID, SignalName string
 	Cancel                                   bool
-	Payloads                                 []byte
+	Payloads                                 *commonpb.Payloads
 }
 
 // SignalExternalWorkflow follows the SDK target/run and acknowledgment contract.
@@ -50,7 +50,7 @@ func externalWorkflow(ctx context.Context, workflowID, runID, name string, arg a
 			return failOperation(f, err)
 		}
 	}
-	p, err := json.Marshal(r)
+	p, err := MarshalTransport(r)
 	if err != nil {
 		return failOperation(f, err)
 	}
@@ -69,7 +69,7 @@ func failOperation(f *activityFuture, err error) *activityFuture {
 	return f
 }
 func awaitOperation(f *activityFuture, op uint32, id uint64, ctx context.Context) {
-	p, _ := json.Marshal(id)
+	p := encodeID(id)
 	r, err := isolate.Call(op, p)
 	completeOperation(f, r, err, ctx)
 }

@@ -2,7 +2,6 @@ package temporalbridge
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"isolate"
 	"runtime"
@@ -94,7 +93,7 @@ func lifecycleClosedCallback(t *testing.T) (*definition, *lifecycleEnvironment, 
 	env := new(lifecycleEnvironment)
 	d := new(definition)
 	d.Execute(env, nil, nil)
-	payload, _ := json.Marshal(workflow.ActivityPayloadRequest{Name: "Foo", StartToCloseTimeout: time.Minute})
+	payload, _ := workflow.MarshalTransport(workflow.ActivityPayloadRequest{Name: "Foo", StartToCloseTimeout: time.Minute})
 	command := &isolate.Command{Op: workflow.OpActivityPayloads, Payload: payload}
 	if err := d.handle(command); err != nil {
 		t.Fatal(err)

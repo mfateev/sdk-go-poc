@@ -55,6 +55,8 @@ type config struct {
 	FormatVersion    int               `json:"format_version"`
 	Entries          []configEntry     `json:"entries"`
 	Sources          map[string]string `json:"sources"`
+	AuditedFiles     []string          `json:"audited_files,omitempty"`
+	AuditedPackages  []string          `json:"audited_packages,omitempty"`
 	StatePackages    []string          `json:"state_packages"`
 	ReadOnlyPackages []string          `json:"readonly_packages"`
 	SupportPackages  []string          `json:"support_packages"`
@@ -92,7 +94,7 @@ func Main(args []string) int {
 	if _, err = os.Stat(goCommand); err != nil {
 		return fail(fmt.Errorf("cannot find isolate toolchain at %s; set TGO_GOROOT to a built Go fork", root))
 	}
-	env := append(os.Environ(), "GOROOT="+root, "GOTOOLCHAIN=local", "TGO_GOROOT="+root)
+	env := restoreWorkspaceEnvironment(append(os.Environ(), "GOROOT="+root, "GOTOOLCHAIN=local", "TGO_GOROOT="+root))
 	// Keep -C semantics authoritative for discovery and for all later commands.
 	if len(args) >= 2 && args[0] == "-C" {
 		if err := os.Chdir(args[1]); err != nil {
@@ -167,13 +169,23 @@ func Main(args []string) int {
 		return fail(err)
 	}
 	defer os.RemoveAll(temporary)
-	adaptedOverlay, adaptedModfile, err := libraryOverlay(packages, temporary, overlay)
+	workspaceCommand := exec.Command(goCommand, "env", "GOWORK")
+	workspaceCommand.Env = env
+	workspaceOutput, err := workspaceCommand.Output()
+	if err != nil {
+		return fail(err)
+	}
+	adaptedOverlay, adaptedModfile, err := libraryOverlay(packages, temporary, strings.TrimSpace(string(workspaceOutput)), overlay)
 	if err != nil {
 		return fail(err)
 	}
 	args = withOverlay(args, adaptedOverlay)
 	if adaptedModfile != "" {
-		args = withModfile(args, adaptedModfile)
+		if strings.HasSuffix(adaptedModfile, ".work") {
+			env = append(env, "GOWORK="+adaptedModfile, "TGO_WORKSPACE_OVERLAY="+adaptedModfile, "TGO_WORKSPACE_ORIGIN="+strings.TrimSpace(string(workspaceOutput)))
+		} else {
+			args = withModfile(args, adaptedModfile)
+		}
 		args = append([]string{args[0], "-trimpath"}, args[1:]...)
 	}
 	data, err := json.Marshal(manifest)
@@ -340,24 +352,56 @@ func plan(packages []*Package, functions []isolateFunction) (*config, error) {
 			}
 		}
 	}
-	for _, p := range all {
-		if p.ImportPath == hostAdapterPackage || strings.HasPrefix(p.ImportPath, ProtobufModule+"/") {
-			continue
+	// Do not initialize generated services pulled in solely by host SDK internals.
+	// Follow private implementation imports, stopping at process-owned packages.
+	private := make(map[string]bool)
+	var visitPrivate func(*Package)
+	visitPrivate = func(p *Package) {
+		if private[p.ImportPath] {
+			return
 		}
+		if process[p.ImportPath] && p.ImportPath != "go.temporal.io/sdk/converter" && p.ImportPath != "github.com/google/uuid" && !isolateOwnedObservabilityPackage(p.ImportPath) && !strings.HasPrefix(p.ImportPath, ProtobufModule+"/") && !generatedProtoPackage(p) {
+			return
+		}
+		private[p.ImportPath] = true
+		for _, dep := range p.dependencies {
+			visitPrivate(dep)
+		}
+	}
+	for _, p := range append(slices.Clone(roots), support...) {
+		visitPrivate(p)
+	}
+	for _, p := range all {
+		localProto := private[p.ImportPath] && (strings.HasPrefix(p.ImportPath, ProtobufModule+"/") || generatedProtoPackage(p))
 		if !slices.Contains(roots, p) && slices.Contains([]string{"github.com/mfateev/sdk-go-poc/testsuite", "github.com/mfateev/sdk-go-poc/worker", "github.com/mfateev/sdk-go-poc/temporalbridge"}, p.ImportPath) {
 			continue
 		}
-		if process[p.ImportPath] && p.ImportPath != "go.temporal.io/sdk/converter" && p.ImportPath != "github.com/google/uuid" && !isolateOwnedObservabilityPackage(p.ImportPath) {
+		if process[p.ImportPath] && !localProto && p.ImportPath != "go.temporal.io/sdk/converter" && p.ImportPath != "github.com/google/uuid" && !isolateOwnedObservabilityPackage(p.ImportPath) {
 			continue
 		}
 		if p.Standard && !isolateOwnedStandardPackages[p.ImportPath] {
 			continue
 		}
 		result.StatePackages = append(result.StatePackages, p.ImportPath)
-		if p.Standard || p.ImportPath == "github.com/google/uuid" || isolateOwnedObservabilityPackage(p.ImportPath) || p.ImportPath == "go.temporal.io/sdk/converter" {
+		if localProto && generatedProtoPackage(p) {
+			for _, file := range p.GoFiles {
+				if strings.HasSuffix(file, ".pb.go") {
+					result.AuditedFiles = append(result.AuditedFiles, p.ImportPath+"/"+file)
+				}
+			}
+		}
+		if p.ImportPath == "github.com/mfateev/sdk-go-poc/protobufcopy" || localProto && strings.HasPrefix(p.ImportPath, ProtobufModule+"/") {
+			result.AuditedPackages = append(result.AuditedPackages, p.ImportPath)
+		}
+		if localProto || p.Standard || p.ImportPath == "github.com/google/uuid" || isolateOwnedObservabilityPackage(p.ImportPath) || p.ImportPath == "go.temporal.io/sdk/converter" {
 			result.ReadOnlyPackages = append(result.ReadOnlyPackages, p.ImportPath)
 		}
 	}
+	result.AuditedPackages = append(result.AuditedPackages, "github.com/mfateev/sdk-go-poc/protobufcopy")
+	slices.Sort(result.AuditedPackages)
+	result.AuditedPackages = slices.Compact(result.AuditedPackages)
+	slices.Sort(result.AuditedFiles)
+	result.AuditedFiles = slices.Compact(result.AuditedFiles)
 	slices.Sort(result.StatePackages)
 	result.StatePackages = slices.Compact(result.StatePackages)
 	slices.Sort(result.ReadOnlyPackages)
@@ -539,6 +583,44 @@ func withModfile(args []string, filename string) []string {
 			continue
 		}
 		result = append(result, args[i])
+	}
+	return result
+}
+
+func generatedProtoPackage(p *Package) bool {
+	for _, name := range p.GoFiles {
+		if strings.HasSuffix(name, ".pb.go") {
+			data, err := p.readSource(filepath.Join(p.Dir, name))
+			if err == nil && bytes.Contains(data, []byte(ProtobufModule+"/runtime/protoimpl")) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// A test or program may invoke tgo again. Its build must discover the original
+// dependency graph, not validate the parent's temporary adapted replacements.
+// An explicit caller GOWORK override still takes precedence.
+func restoreWorkspaceEnvironment(env []string) []string {
+	var workspace, overlay, origin string
+	result := make([]string, 0, len(env))
+	for _, item := range env {
+		key, value, _ := strings.Cut(item, "=")
+		switch key {
+		case "TGO_WORKSPACE_OVERLAY":
+			overlay = value
+		case "TGO_WORKSPACE_ORIGIN":
+			origin = value
+		default:
+			result = append(result, item)
+			if key == "GOWORK" {
+				workspace = value
+			}
+		}
+	}
+	if overlay != "" && workspace == overlay && origin != "" {
+		result = append(result, "GOWORK="+origin)
 	}
 	return result
 }

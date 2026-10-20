@@ -2,7 +2,6 @@ package workflow
 
 import (
 	"context"
-	"strings"
 	"testing"
 
 	"github.com/mfateev/sdk-go-poc/internal/payloadwire"
@@ -12,14 +11,10 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-// This user-defined message has no generated descriptor/coder metadata. Real
-// generated messages can be supported when another package enables metadata
-// services in a multi-package test build.
-type unsupportedTestProto struct{}
+// Custom implementations use their own reflection within the current isolate.
+type customTestProto struct{ commonpb.WorkflowType }
 
-func (*unsupportedTestProto) ProtoReflect() protoreflect.Message {
-	panic("unsupported message reflection must not run")
-}
+func (m *customTestProto) ProtoReflect() protoreflect.Message { return m.WorkflowType.ProtoReflect() }
 
 func TestTypedHandlerUsesDefaultTemporalConverter(t *testing.T) {
 	type input struct{ Name string }
@@ -57,28 +52,33 @@ func TestTypedHandlerUsesDefaultTemporalConverter(t *testing.T) {
 	}
 }
 
-func TestTypedHandlerRejectsProtoResult(t *testing.T) {
-	if _, err := encodeTypedResult(&unsupportedTestProto{}, nil); err == nil {
-		t.Fatal("protobuf result should be rejected")
-	}
-	if _, err := encodeTypedResult(unsupportedTestProto{}, nil); err == nil {
-		t.Fatal("protobuf value result should be rejected")
+func TestTypedHandlerAcceptsCustomProtoResult(t *testing.T) {
+	value := customTestProto{WorkflowType: commonpb.WorkflowType{Name: "custom"}}
+	for _, v := range []any{&value, value} {
+		result, err := encodeTypedResult(v, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var got commonpb.WorkflowType
+		if err := converter.GetDefaultDataConverter().FromPayloads(result, &got); err != nil || got.Name != "custom" {
+			t.Fatalf("custom result: %v %v", &got, err)
+		}
 	}
 }
-
-func TestTypedHandlerRejectsProtoArgumentBeforeConversion(t *testing.T) {
-	RegisterTyped("test-proto-argument", func(context.Context, *unsupportedTestProto) (string, error) {
-		t.Fatal("protobuf handler must not run")
-		return "", nil
-	})
+func TestTypedHandlerAcceptsCustomProtoArgument(t *testing.T) {
+	RegisterTyped("test-proto-argument", func(_ context.Context, in *customTestProto) (string, error) { return in.Name, nil })
 	t.Cleanup(func() { delete(typedHandlers, "test-proto-argument") })
-	payloads := &commonpb.Payloads{Payloads: []*commonpb.Payload{{
-		Metadata: map[string][]byte{converter.MetadataEncoding: []byte(converter.MetadataEncodingJSON)},
-		Data:     []byte(`{}`),
-	}}}
-	_, err := typedHandlers["test-proto-argument"](context.Background(), payloads)
-	if err == nil || !strings.Contains(err.Error(), "generated Google protobuf") {
-		t.Fatalf("protobuf argument error = %v", err)
+	input, err := converter.GetDefaultDataConverter().ToPayloads(&commonpb.WorkflowType{Name: "custom"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := typedHandlers["test-proto-argument"](context.Background(), input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got string
+	if err := converter.GetDefaultDataConverter().FromPayloads(result, &got); err != nil || got != "custom" {
+		t.Fatalf("custom argument: %q %v", got, err)
 	}
 }
 
@@ -91,14 +91,11 @@ func TestTypedActivityArgumentsAndResults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var payloads commonpb.Payloads
-	if err := proto.Unmarshal(data, &payloads); err != nil {
-		t.Fatal(err)
-	}
+	payloads := data
 	var name string
 	var count int
 	var in record
-	if err := converter.GetDefaultDataConverter().FromPayloads(&payloads, &name, &count, &in); err != nil {
+	if err := converter.GetDefaultDataConverter().FromPayloads(payloads, &name, &count, &in); err != nil {
 		t.Fatal(err)
 	}
 	if name != "hello" || count != 3 || in != (record{Name: "world", Count: 7}) {
@@ -117,7 +114,7 @@ func TestTypedActivityArgumentsAndResults(t *testing.T) {
 		t.Fatalf("result = %+v, %v", got, err)
 	}
 	empty, err := encodeActivityArgs(nil)
-	if err != nil || len(empty) != 0 {
+	if err != nil || len(empty.GetPayloads()) != 0 {
 		t.Fatalf("zero arguments = %x, %v", empty, err)
 	}
 	if _, err := decodeActivityResult[struct{}](nil); err != nil {
@@ -154,14 +151,14 @@ func TestTypedActivityFailuresReturnZero(t *testing.T) {
 	if _, err := decodeActivityResult[string](raw); err == nil {
 		t.Fatal("multiple result payloads accepted")
 	}
-	for _, value := range []any{&unsupportedTestProto{}, unsupportedTestProto{}} {
-		if _, err := encodeActivityArgs([]any{value}); err == nil {
-			t.Fatal("protobuf activity argument accepted")
+	for _, value := range []any{&customTestProto{}, customTestProto{}} {
+		if _, err := encodeActivityArgs([]any{value}); err != nil {
+			t.Fatal(err)
 		}
 	}
-	f := &activityFuture{done: make(chan struct{}), payload: []byte{1}}
+	f := &activityFuture{done: make(chan struct{}), payload: &commonpb.Payloads{Payloads: []*commonpb.Payload{nil}}}
 	close(f.done)
-	if err := f.Get(context.Background(), new(*unsupportedTestProto)); err == nil || !strings.Contains(err.Error(), "generated Google protobuf") {
+	if err := f.Get(context.Background(), new(*customTestProto)); err == nil {
 		t.Fatalf("protobuf activity result: %v", err)
 	}
 	if _, err := encodeActivityArgs([]any{make(chan int)}); err == nil {

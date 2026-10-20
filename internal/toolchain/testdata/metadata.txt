@@ -14,31 +14,31 @@ cp baseline.go.mod go.mod
 
 # OTel scalar ID sentinel reads require pinned, unreplaced trace API sources.
 ! go build -mod=mod ./hostotel
-stderr 'metadata services require go.opentelemetry.io/otel/trace@v1.44.0 without a replacement'
+stderr 'SDK dependency policy requires go.opentelemetry.io/otel/trace@v1.44.0 without a replacement'
 
 # Local replacements cannot impersonate an audited metadata implementation.
 ! go build -mod=mod ./host
-stderr 'metadata services require google.golang.org/protobuf@v1.36.11 without a replacement, nested module, or vendored source'
+stderr 'SDK dependency policy requires google.golang.org/protobuf@v1.36.11 without a replacement, nested module, or vendored source'
 
 # Host-only implementations may be reached through a shared registry callback.
 ! go build -mod=mod ./hostonly
-stderr 'metadata services require google.golang.org/protobuf@v1.36.11 without a replacement, nested module, or vendored source'
+stderr 'SDK dependency policy requires google.golang.org/protobuf@v1.36.11 without a replacement, nested module, or vendored source'
 
 # Vendor metadata cannot claim privileges by changing only modules.txt.
 cp vendor.go.mod go.mod
 ! go build -mod=vendor ./host
-stderr 'metadata services require google.golang.org/protobuf@v1.36.11 without a replacement, nested module, or vendored source'
+stderr 'SDK dependency policy requires google.golang.org/protobuf@v1.36.11 without a replacement, nested module, or vendored source'
 
 # An unaudited version also fails before compilation.
 cp old.go.mod go.mod
 cp old.modules.txt vendor/modules.txt
 ! go build -mod=vendor ./host
-stderr 'metadata services require google.golang.org/protobuf@v1.36.11'
+stderr 'SDK dependency policy requires google.golang.org/protobuf@v1.36.11'
 
 # Nested modules cannot inherit the trusted namespace.
 cp nested.go.mod go.mod
 ! go build -mod=mod ./host
-stderr 'metadata services require google.golang.org/protobuf@v1.36.11'
+stderr 'SDK dependency policy requires google.golang.org/protobuf@v1.36.11'
 
 -- go.mod --
 module example.org/isolateMetadata

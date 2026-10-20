@@ -688,7 +688,7 @@ func runMetadataServices() {
 	}
 	for _, procs := range []int{1, 2, 8} {
 		runtime.GOMAXPROCS(procs)
-		for _, mode := range []string{"build", "reject visitor", "reject builder", "reject descriptor", "reject mutation", "reject clone", "private registry", "private message info", "build"} {
+		for _, mode := range []string{"build", "visitor", "builder", "host descriptor", "clone", "private registry", "private message info", "build"} {
 			d := definitionFor(metadata.MetadataWorkflow)
 			e := &environment{now: time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)}
 			input, err := e.GetDataConverter().ToPayloads(mode)
@@ -696,28 +696,6 @@ func runMetadataServices() {
 				panic(err)
 			}
 			d.Execute(e, nil, input)
-			if strings.HasPrefix(mode, "reject ") {
-				var failure any
-				func() { defer func() { failure = recover() }(); d.OnWorkflowTaskStarted(5 * time.Second) }()
-				fault, ok := failure.(*isolate.EffectError)
-				operation := map[string]string{"reject visitor": "RangeMessages", "reject builder": "Builder.Build", "reject descriptor": "metadata callback", "reject mutation": "RegisterMessage", "reject clone": "unaudited protobuf clone type"}[mode]
-				if !ok || !strings.Contains(fault.Operation, operation) || !strings.Contains(fault.Stack, "metadata.MetadataWorkflow") || e.completes != 0 || probe.CallbackProbeCount() != 0 {
-					panic(fmt.Sprintf("%s task fault: %v completions=%d callbacks=%d", mode, failure, e.completes, probe.CallbackProbeCount()))
-				}
-				d.Close()
-				continue
-			}
-			if mode == "private registry" {
-				var failure any
-				func() { defer func() { failure = recover() }(); d.OnWorkflowTaskStarted(5 * time.Second) }()
-				taskFailure, ok := failure.(*temporalbridge.WorkflowTaskError)
-				var fault *isolate.OwnershipError
-				if !ok || !errors.As(taskFailure, &fault) || fault.Reason != "isolate: metadata service requires a process-owned receiver" || !strings.Contains(fault.Stack, "metadata.MetadataWorkflow") || e.completes != 0 {
-					panic(fmt.Sprintf("%s ownership task fault: failure=%v completions=%d", mode, failure, e.completes))
-				}
-				d.Close()
-				continue
-			}
 			d.OnWorkflowTaskStarted(5 * time.Second)
 			if e.err != nil {
 				panic(e.err)
@@ -755,8 +733,8 @@ func runStructuredFailures() {
 	for _, procs := range []int{1, 2, 8} {
 		runtime.GOMAXPROCS(procs)
 		for _, returnFailure := range []bool{false, true} {
-			// Two active instances plus host conversion exercise shared type
-			// initialization while all message contents remain independently owned.
+			// Two active instances plus host conversion exercise independent
+			// metadata initialization and separately owned message contents.
 			var definitions []bindings.WorkflowDefinition
 			var environments []*environment
 			for range 2 {

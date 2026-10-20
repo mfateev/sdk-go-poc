@@ -2,7 +2,6 @@ package workflow
 
 import (
 	"context"
-	"encoding/json"
 	goWorkflow "go.temporal.io/sdk/workflow"
 	"isolate"
 )
@@ -58,7 +57,7 @@ func getInfo(ctx context.Context) *Info {
 		panic(err)
 	}
 	var snapshot InfoSnapshot
-	if err := json.Unmarshal(raw, &snapshot); err != nil {
+	if err := UnmarshalTransport(raw, &snapshot); err != nil {
 		panic(err)
 	}
 	return &Info{Info: snapshot.Info, details: snapshot.Details}

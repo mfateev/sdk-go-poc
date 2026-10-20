@@ -1,7 +1,6 @@
 package temporalbridge
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"isolate"
@@ -23,10 +22,11 @@ func (d *definition) handleSession(c *isolate.Command) error {
 		id := fmt.Sprintf("isolate-session/%s/%d", info.OriginalRunID, d.env.GenerateSequence())
 		d.replyWhenSuspended(c, []byte(id), nil)
 	case workflow.OpAddSession:
-		var s goWorkflow.SessionInfo
-		if err := json.Unmarshal(c.Payload, &s); err != nil {
+		var wire workflow.SessionInfo
+		if err := workflow.UnmarshalTransport(c.Payload, &wire); err != nil {
 			return err
 		}
+		s := goWorkflow.SessionInfo{SessionID: wire.SessionID, HostName: wire.HostName, SessionState: wire.SessionState}
 		if s.SessionID == "" || s.SessionState != goWorkflow.SessionStateOpen {
 			return errors.New("invalid session metadata")
 		}

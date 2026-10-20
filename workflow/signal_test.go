@@ -7,17 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mfateev/sdk-go-poc/internal/payloadwire"
 	commonpb "go.temporal.io/api/common/v1"
 )
 
 func signalPayload(t *testing.T, encoding, data string) Signal {
 	t.Helper()
-	raw, err := payloadwire.Encode(&commonpb.Payloads{Payloads: []*commonpb.Payload{{Metadata: map[string][]byte{"encoding": []byte(encoding)}, Data: []byte(data)}}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	return Signal{Payloads: raw}
+	return Signal{Payloads: &commonpb.Payloads{Payloads: []*commonpb.Payload{{Metadata: map[string][]byte{"encoding": []byte(encoding)}, Data: []byte(data)}}}}
 }
 
 func TestDecodeTypedSignal(t *testing.T) {
@@ -51,8 +46,8 @@ func TestDecodeTypedSignalRejectsInvalidPayload(t *testing.T) {
 		signalPayload(t, "json/plain", `{"ID":1,"Tags":false}`),
 		signalPayload(t, "json/plain", `"wrong type"`),
 		signalPayload(t, "unsupported", `0`),
-		{Payloads: []byte{0xff}},
-		{Payloads: []byte{0x0a, 0x00, 0x0a, 0x00}},
+		{Payloads: &commonpb.Payloads{Payloads: []*commonpb.Payload{nil}}},
+		{Payloads: &commonpb.Payloads{Payloads: []*commonpb.Payload{{}, {}}}},
 		{},
 	} {
 		value, err := decodeSignal[struct {
@@ -63,8 +58,8 @@ func TestDecodeTypedSignalRejectsInvalidPayload(t *testing.T) {
 			t.Fatalf("invalid signal returned partial value %+v, %v", value, err)
 		}
 	}
-	if _, err := decodeSignal[*unsupportedTestProto](signalPayload(t, "binary/null", "")); err == nil {
-		t.Fatal("protobuf signal accepted")
+	if value, err := decodeSignal[*customTestProto](signalPayload(t, "binary/null", "")); err != nil || value != nil {
+		t.Fatalf("nil protobuf signal: %v %v", value, err)
 	}
 }
 

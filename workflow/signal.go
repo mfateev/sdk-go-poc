@@ -43,7 +43,7 @@ func registerSignalChannel[T any](ctx context.Context, name string, options Sign
 	}
 	var value T
 	if isUnsupportedProtoValue(value) || isUnsupportedProtoValue(&value) {
-		panic("workflow: only generated Google protobuf messages without extensions are supported")
+		panic("workflow: legacy gogo protobuf messages are unsupported; use Google protobuf")
 	}
 	// Serialize registration for each name across the metadata handshake. In
 	// particular, repeated calls must not start unused interceptor adapters that
@@ -174,9 +174,9 @@ func signalChannelContext(ctx context.Context) context.Context {
 func decodeSignal[T any](signal Signal, contexts ...context.Context) (T, error) {
 	var value T
 	if isUnsupportedProtoValue(value) || isUnsupportedProtoValue(&value) {
-		return value, errors.New("workflow: only generated Google protobuf messages without extensions are supported")
+		return value, errors.New("workflow: legacy gogo protobuf messages are unsupported; use Google protobuf")
 	}
-	if len(signal.Payloads) == 0 {
+	if signal.Payloads == nil {
 		return value, errors.New("signal has no serialized payload")
 	}
 	dc := rootDataConverter()

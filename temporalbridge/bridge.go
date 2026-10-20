@@ -218,7 +218,7 @@ type definition struct {
 	entryName            string
 	env                  bindings.WorkflowEnvironment
 	input                *commonpb.Payloads
-	header               map[string][]byte
+	header               *commonpb.Header
 	instance             *isolate.Isolate
 	started              bool
 	completed            bool
@@ -267,7 +267,7 @@ func (d *definition) Execute(env bindings.WorkflowEnvironment, header *commonpb.
 		if d.completed || d.closed {
 			return nil
 		}
-		payload, err := inboundPayloadBytes(payloads, env.GetDataConverter())
+		payload, err := inboundPayloads(payloads, env.GetDataConverter())
 		if err != nil {
 			return err
 		}
@@ -702,7 +702,7 @@ func (d *definition) handle(command *isolate.Command) error {
 		return nil
 	case workflow.OpCancellableCall:
 		var request workflow.CallRequest
-		if err := json.Unmarshal(command.Payload, &request); err != nil {
+		if err := workflow.UnmarshalTransport(command.Payload, &request); err != nil {
 			return err
 		}
 		if request.ID == 0 || (request.Op != workflow.OpActivityPayloads && request.Op != workflow.OpSleep && request.Op != workflow.OpSignal) {
@@ -727,8 +727,8 @@ func (d *definition) handle(command *isolate.Command) error {
 		command.Op, command.Payload = request.Op, request.Payload
 		return d.handle(command)
 	case workflow.OpCancelCall:
-		var id uint64
-		if err := json.Unmarshal(command.Payload, &id); err != nil {
+		id, err := commandID(command)
+		if err != nil {
 			return err
 		}
 		if id == 0 {
@@ -772,7 +772,7 @@ func (d *definition) handle(command *isolate.Command) error {
 		if err != nil {
 			return err
 		}
-		payload, err := json.Marshal(workflow.Start{Name: d.entryName, Input: input})
+		payload, err := workflow.MarshalTransport(workflow.Start{Name: d.entryName, Input: input})
 		if err != nil {
 			return err
 		}
@@ -782,22 +782,22 @@ func (d *definition) handle(command *isolate.Command) error {
 		if d.entryName == "" {
 			return errors.New("workflow entry name is not configured")
 		}
-		var input []byte
+		var input *commonpb.Payloads
 		if d.input != nil {
 			var err error
-			input, err = inboundPayloadBytes(d.input, d.env.GetDataConverter())
+			input, err = inboundPayloads(d.input, d.env.GetDataConverter())
 			if err != nil {
 				return err
 			}
 		}
-		payload, err := json.Marshal(workflow.PayloadStart{RandomRunID: d.randomRunID, Dynamic: d.dynamic, FailureConverterFactory: d.failures.Factory.Name(), FailureConverterConfig: d.failures.Config, PropagatorFactory: d.propagators.Factory.Name(), PropagatorConfig: d.propagators.Config, ConverterFactory: d.converters.Factory.Name(), InterceptorFactory: d.interceptors.Factory.Name(), InterceptorConfig: d.interceptors.Config, Header: d.header, ConverterConfig: d.converters.Config, Name: d.entryName, Payloads: input, Canceled: d.canceled, TaskQueue: d.env.WorkflowInfo().TaskQueueName, Options: workflow.RunOptions{Namespace: d.env.WorkflowInfo().Namespace, TaskQueue: d.env.WorkflowInfo().TaskQueueName, WorkflowExecutionTimeout: d.env.WorkflowInfo().WorkflowExecutionTimeout, WorkflowRunTimeout: d.env.WorkflowInfo().WorkflowRunTimeout, WorkflowTaskTimeout: d.env.WorkflowInfo().WorkflowTaskTimeout}})
+		payload, err := workflow.MarshalTransport(workflow.PayloadStart{RandomRunID: d.randomRunID, Dynamic: d.dynamic, FailureConverterFactory: d.failures.Factory.Name(), FailureConverterConfig: d.failures.Config, PropagatorFactory: d.propagators.Factory.Name(), PropagatorConfig: d.propagators.Config, ConverterFactory: d.converters.Factory.Name(), InterceptorFactory: d.interceptors.Factory.Name(), InterceptorConfig: d.interceptors.Config, Header: d.header, ConverterConfig: d.converters.Config, Name: d.entryName, Payloads: input, Canceled: d.canceled, TaskQueue: d.env.WorkflowInfo().TaskQueueName, Options: workflow.RunOptions{Namespace: d.env.WorkflowInfo().Namespace, TaskQueue: d.env.WorkflowInfo().TaskQueueName, WorkflowExecutionTimeout: d.env.WorkflowInfo().WorkflowExecutionTimeout, WorkflowRunTimeout: d.env.WorkflowInfo().WorkflowRunTimeout, WorkflowTaskTimeout: d.env.WorkflowInfo().WorkflowTaskTimeout}})
 		if err != nil {
 			return err
 		}
 		d.replyWhenSuspended(command, integrationcontract.Pack(payload), nil)
 	case workflow.OpActivity:
 		var request workflow.ActivityRequest
-		if err := json.Unmarshal(command.Payload, &request); err != nil {
+		if err := workflow.UnmarshalTransport(command.Payload, &request); err != nil {
 			return err
 		}
 		if request.Name == "" || request.StartToCloseTimeout <= 0 {
@@ -832,7 +832,7 @@ func (d *definition) handle(command *isolate.Command) error {
 		return nil
 	case workflow.OpActivityPayloads:
 		var request workflow.ActivityPayloadRequest
-		if err := json.Unmarshal(command.Payload, &request); err != nil {
+		if err := workflow.UnmarshalTransport(command.Payload, &request); err != nil {
 			return err
 		}
 		if request.Name == "" || request.StartToCloseTimeout <= 0 {
@@ -841,13 +841,7 @@ func (d *definition) handle(command *isolate.Command) error {
 		if request.Function && d.resolveActivity != nil {
 			request.Name = d.resolveActivity(request.Name)
 		}
-		var input *commonpb.Payloads
-		if len(request.Payloads) != 0 {
-			input = new(commonpb.Payloads)
-			if err := proto.Unmarshal(request.Payloads, input); err != nil {
-				return fmt.Errorf("decode activity argument payloads: %w", err)
-			}
-		}
+		input := request.Payloads
 		dc := d.activityDataConverter(request.Name, d.env.WorkflowInfo().TaskQueueName)
 		input, err := encodeTransport(input, dc)
 		if err != nil {
@@ -870,7 +864,11 @@ func (d *definition) handle(command *isolate.Command) error {
 			}
 			var payload []byte
 			if cause == nil && result != nil {
-				payload, cause = inboundPayloadBytes(result, dc)
+				var plain *commonpb.Payloads
+				plain, cause = inboundPayloads(result, dc)
+				if cause == nil {
+					payload, cause = proto.MarshalOptions{Deterministic: true}.Marshal(plain)
+				}
 			}
 			finish(payload, cause)
 		})
@@ -910,12 +908,12 @@ func (d *definition) handle(command *isolate.Command) error {
 			d.wantSignals = append(d.wantSignals, signalWaiter{name: name, command: command})
 			return nil
 		}
-		payload, _ := json.Marshal(d.signals[index])
+		payload, _ := workflow.MarshalTransport(d.signals[index])
 		d.signals = append(d.signals[:index], d.signals[index+1:]...)
 		d.replyWhenSuspended(command, payload, nil)
 	case workflow.OpComplete:
 		var completion workflow.Completion
-		if err := json.Unmarshal(command.Payload, &completion); err != nil {
+		if err := workflow.UnmarshalTransport(command.Payload, &completion); err != nil {
 			return err
 		}
 		var result *commonpb.Payloads
@@ -923,7 +921,7 @@ func (d *definition) handle(command *isolate.Command) error {
 		if completion.ContinueAsNew != nil {
 			return d.finishContinuation(completion.ContinueAsNew)
 		}
-		if len(completion.Failure) != 0 {
+		if completion.Failure != nil {
 			var transportErr error
 			err, transportErr = d.decodeOutboundFailure(completion.Failure, d.env.GetDataConverter())
 			if transportErr != nil {
@@ -941,7 +939,7 @@ func (d *definition) handle(command *isolate.Command) error {
 		return err
 	case workflow.OpCompletePayloads:
 		var completion workflow.PayloadCompletion
-		if err := json.Unmarshal(command.Payload, &completion); err != nil {
+		if err := workflow.UnmarshalTransport(command.Payload, &completion); err != nil {
 			return err
 		}
 		var result *commonpb.Payloads
@@ -949,7 +947,7 @@ func (d *definition) handle(command *isolate.Command) error {
 		if completion.ContinueAsNew != nil {
 			return d.finishContinuation(completion.ContinueAsNew)
 		}
-		if len(completion.Failure) != 0 {
+		if completion.Failure != nil {
 			var transportErr error
 			err, transportErr = d.decodeOutboundFailure(completion.Failure, d.env.GetDataConverter())
 			if transportErr != nil {
@@ -957,12 +955,10 @@ func (d *definition) handle(command *isolate.Command) error {
 			}
 		} else if completion.Failed || completion.Error != "" {
 			err = completionError(completion.Error, completion.Canceled, completion.Failed)
-		} else if len(completion.Payloads) != 0 {
-			result = new(commonpb.Payloads)
-			if err := proto.Unmarshal(completion.Payloads, result); err != nil {
-				return fmt.Errorf("decode workflow result payloads: %w", err)
-			}
+		} else {
+			result = completion.Payloads
 		}
+
 		if err == nil {
 			result, err = encodeTransport(result, d.env.GetDataConverter())
 			if err != nil {
@@ -1019,7 +1015,7 @@ func (d *definition) waiterIndex(name string) int {
 
 func (d *definition) deliverWaitingSignals() {
 	if d.signalHookWaiter != nil && len(d.incomingSignals) != 0 {
-		payload, _ := json.Marshal(d.incomingSignals[0])
+		payload, _ := workflow.MarshalTransport(d.incomingSignals[0])
 		d.incomingSignals = d.incomingSignals[1:]
 		d.pending = append(d.pending, reply{command: d.signalHookWaiter, payload: payload})
 		d.signalHookWaiter = nil
@@ -1033,7 +1029,7 @@ func (d *definition) deliverProcessedSignals(immediate bool) {
 			signalIndex++
 			continue
 		}
-		payload, _ := json.Marshal(d.signals[signalIndex])
+		payload, _ := workflow.MarshalTransport(d.signals[signalIndex])
 		d.finish(d.wantSignals[waiterIndex].command, d.callsByCommand[d.wantSignals[waiterIndex].command], payload, nil, immediate)
 		d.wantSignals = append(d.wantSignals[:waiterIndex], d.wantSignals[waiterIndex+1:]...)
 		d.signals = append(d.signals[:signalIndex], d.signals[signalIndex+1:]...)

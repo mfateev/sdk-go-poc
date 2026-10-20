@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"isolate"
@@ -17,7 +16,6 @@ import (
 	"github.com/mfateev/sdk-go-poc/workflow"
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/client"
-	"google.golang.org/protobuf/proto"
 )
 
 type workflowCompletion struct {
@@ -45,7 +43,7 @@ func (d *definition) handleQuery(command *isolate.Command) error {
 		return nil
 	}
 	var r workflow.QueryRegistration
-	if err := json.Unmarshal(command.Payload, &r); err != nil {
+	if err := workflow.UnmarshalTransport(command.Payload, &r); err != nil {
 		return err
 	}
 	if d.queryHandlers == nil {
@@ -82,7 +80,7 @@ func (d *definition) query(name string, input *commonpb.Payloads, header *common
 		slices.Sort(keys)
 		return nil, fmt.Errorf("unknown queryType %v. KnownQueryTypes=%v", name, keys)
 	}
-	raw, err := inboundPayloadBytes(input, d.env.GetDataConverter())
+	raw, err := inboundPayloads(input, d.env.GetDataConverter())
 	if err != nil {
 		return nil, err
 	}
@@ -97,9 +95,9 @@ func (d *definition) query(name string, input *commonpb.Payloads, header *common
 	if response.Failed {
 		return nil, errors.New(response.Error)
 	}
-	result := new(commonpb.Payloads)
-	if err := proto.Unmarshal(response.Payloads, result); err != nil {
-		return nil, err
+	result := response.Payloads
+	if result == nil {
+		result = new(commonpb.Payloads)
 	}
 	return encodeTransport(result, d.env.GetDataConverter())
 }
@@ -134,7 +132,7 @@ func (d *definition) runReadOnly(input workflow.QueryRequest) (*workflow.QueryRe
 		return nil, err
 	}
 	input.ObservationID = hex.EncodeToString(observation[:])
-	request, err := json.Marshal(input)
+	request, err := workflow.MarshalTransport(input)
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +178,7 @@ func (d *definition) runReadOnly(input workflow.QueryRequest) (*workflow.QueryRe
 			}
 			if command.Op == workflow.OpQuery {
 				var outcome workflow.QueryResponse
-				if err := json.Unmarshal(command.Payload, &outcome); err != nil {
+				if err := workflow.UnmarshalTransport(command.Payload, &outcome); err != nil {
 					d.failTask(err)
 				}
 				if response != nil || outcome.ID != d.querySequence {
@@ -201,7 +199,7 @@ func (d *definition) runReadOnly(input workflow.QueryRequest) (*workflow.QueryRe
 				raw, err := d.readMetadata(command.Op)
 				command.Reply(raw, err)
 			} else if command.Op == workflow.OpIsReplaying {
-				raw, _ := json.Marshal(d.env.IsReplaying())
+				raw, _ := workflow.MarshalTransport(d.env.IsReplaying())
 				command.Reply(raw, nil)
 			} else {
 				command.Reply(nil, errors.New("query handlers and update validators cannot schedule workflow operations"))

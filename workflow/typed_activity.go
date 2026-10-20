@@ -80,13 +80,13 @@ func executeActivity[R any](ctx context.Context, name string, function bool, tim
 		return zero, errors.New("workflow: activity name and timeout are required")
 	}
 	if isUnsupportedProtoValue(zero) || isUnsupportedProtoValue(&zero) {
-		return zero, errors.New("workflow: only generated Google protobuf messages without extensions are supported")
+		return zero, errors.New("workflow: legacy gogo protobuf messages are unsupported; use Google protobuf")
 	}
 	payloads, err := encodeActivityArgs(args)
 	if err != nil {
 		return zero, err
 	}
-	request, err := json.Marshal(ActivityPayloadRequest{Name: name, Function: function, Payloads: payloads, StartToCloseTimeout: timeout})
+	request, err := MarshalTransport(ActivityPayloadRequest{Name: name, Function: function, Payloads: payloads, StartToCloseTimeout: timeout})
 	if err != nil {
 		return zero, err
 	}

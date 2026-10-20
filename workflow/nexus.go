@@ -2,9 +2,9 @@ package workflow
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
+	commonpb "go.temporal.io/api/common/v1"
 	"isolate"
 	"reflect"
 	"strings"
@@ -56,7 +56,7 @@ func (c nexusClient) Service() string  { return c.service }
 type NexusRequest struct {
 	ID                           uint64
 	Endpoint, Service, Operation string
-	Payloads                     []byte
+	Payloads                     *commonpb.Payloads
 	Options                      NexusOperationOptions
 	Header                       nexus.Header
 }
@@ -82,7 +82,7 @@ func executeNexusOperation(ctx context.Context, input ExecuteNexusOperationInput
 
 func requestCancelNexusOperation(ctx context.Context, input RequestCancelNexusOperationInput) {
 	assertWritable()
-	p, _ := json.Marshal(input.seq)
+	p := encodeID(input.seq)
 	_, _ = isolate.Call(OpCancelNexus, p)
 }
 
@@ -131,7 +131,7 @@ func (c nexusClient) executeOperation(ctx context.Context, operation, input any,
 		return fail(err)
 	}
 	id := nextCallID.Add(1)
-	p, err := json.Marshal(NexusRequest{ID: id, Endpoint: c.endpoint, Service: c.service, Operation: name, Payloads: payloads, Options: options, Header: header})
+	p, err := MarshalTransport(NexusRequest{ID: id, Endpoint: c.endpoint, Service: c.service, Operation: name, Payloads: payloads, Options: options, Header: header})
 	if err != nil {
 		return fail(err)
 	}

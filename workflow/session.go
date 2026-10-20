@@ -111,7 +111,7 @@ func createSession(ctx context.Context, queue string, options *SessionOptions) (
 		var signal Signal
 		var value response
 		if err == nil {
-			err = json.Unmarshal(p, &signal)
+			err = UnmarshalTransport(p, &signal)
 		}
 		if err == nil {
 			dc := GetDataConverter(sessionCtx)
@@ -144,7 +144,7 @@ func createSession(ctx context.Context, queue string, options *SessionOptions) (
 		}
 		return nil, result.Err
 	}
-	p, _ := json.Marshal(s)
+	p, _ := MarshalTransport(s)
 	if _, err := isolate.Call(OpAddSession, p); err != nil {
 		cancel()
 		return nil, err

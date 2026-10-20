@@ -1,14 +1,12 @@
 package temporalbridge
 
 import (
-	"encoding/json"
 	"errors"
 	"isolate"
 
 	"github.com/mfateev/sdk-go-poc/internal/headerwire"
 	"github.com/mfateev/sdk-go-poc/workflow"
 	commonpb "go.temporal.io/api/common/v1"
-	"google.golang.org/protobuf/proto"
 )
 
 func (d *definition) handleExternal(c *isolate.Command) error {
@@ -16,7 +14,7 @@ func (d *definition) handleExternal(c *isolate.Command) error {
 		return d.awaitState(c, d.external)
 	}
 	var r workflow.ExternalRequest
-	if err := json.Unmarshal(c.Payload, &r); err != nil {
+	if err := workflow.UnmarshalTransport(c.Payload, &r); err != nil {
 		return err
 	}
 	if r.ID == 0 || r.WorkflowID == "" || (!r.Cancel && r.SignalName == "") {
@@ -45,9 +43,9 @@ func (d *definition) handleExternal(c *isolate.Command) error {
 	if r.Cancel {
 		d.env.RequestCancelExternalWorkflow(namespace, r.WorkflowID, r.RunID, callback)
 	} else {
-		p := new(commonpb.Payloads)
-		if err := proto.Unmarshal(r.Payloads, p); err != nil {
-			return err
+		p := r.Payloads
+		if p == nil {
+			p = new(commonpb.Payloads)
 		}
 		p, err := encodeTransport(p, dc)
 		if err != nil {
@@ -75,8 +73,8 @@ func (d *definition) completeState(states map[uint64]*activityState, id uint64, 
 	}
 }
 func (d *definition) awaitState(c *isolate.Command, states map[uint64]*activityState) error {
-	var id uint64
-	if err := json.Unmarshal(c.Payload, &id); err != nil {
+	id, err := commandID(c)
+	if err != nil {
 		return err
 	}
 	s := states[id]

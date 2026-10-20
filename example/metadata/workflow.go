@@ -24,6 +24,7 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
 	"google.golang.org/protobuf/runtime/protoimpl"
+	"google.golang.org/protobuf/types/descriptorpb"
 )
 
 //temporal:workflow
@@ -33,42 +34,52 @@ func MetadataWorkflow(_ context.Context, mode string) (result string, err error)
 			err = fmt.Errorf("metadata workflow unexpected panic: %v", p)
 		}
 	}()
-	// Registry receiver checks are ownership faults, so the workflow's recover
-	// above must not turn them into a normal result or workflow error.
-	if mode == "private registry" {
-		_ = (&protoregistry.Types{}).NumMessages()
-		return "ownership violation recovered", nil
-	}
-	if mode == "private message info" {
-		// Generated protobuf support permits private message caches while keeping
-		// their initialization and mutations under the isolate's owner.
+
+	switch mode {
+	case "private registry":
+		registry := new(protoregistry.Types)
+		if err := registry.RegisterMessage((&commonpb.Payload{}).ProtoReflect().Type()); err != nil {
+			return "", err
+		}
+		if registry.NumMessages() != 1 {
+			return "", fmt.Errorf("private registry registration lost")
+		}
+		return "metadata services passed", nil
+	case "private message info":
 		if (&protoimpl.MessageInfo{}).Descriptor() != nil {
 			return "", fmt.Errorf("empty private message info has a descriptor")
 		}
 		return "metadata services passed", nil
-	}
-	switch mode {
-	case "reject visitor":
-		protoregistry.GlobalTypes.RangeMessages(func(protoreflect.MessageType) bool { panic("registry visitor executed") })
-		return "metadata violation returned", nil
-	case "reject builder":
-		_ = (protoimpl.TypeBuilder{}).Build()
-		return "metadata violation returned", nil
-	case "reject descriptor":
-		_, _ = protoregistry.GlobalFiles.FindDescriptorByName("isolate_metadata_callback_probe.Record")
-		return "metadata violation returned", nil
-	case "reject mutation":
-		message, err := protoregistry.GlobalTypes.FindMessageByName("temporal.api.common.v1.Payload")
+	case "visitor":
+		count := 0
+		protoregistry.GlobalTypes.RangeMessages(func(protoreflect.MessageType) bool { count++; return true })
+		if count == 0 {
+			return "", fmt.Errorf("private registry visitor did not execute")
+		}
+		return "metadata services passed", nil
+	case "builder":
+		raw, err := proto.Marshal(&descriptorpb.FileDescriptorProto{Name: proto.String("private.proto"), Syntax: proto.String("proto3")})
 		if err != nil {
 			return "", err
 		}
-		_ = protoregistry.GlobalTypes.RegisterMessage(message)
-		return "metadata violation returned", nil
-	case "reject clone":
-		_ = proto.Clone(&customMessage{})
-		return "metadata violation returned", nil
+		built := (protoimpl.TypeBuilder{File: protoimpl.DescBuilder{RawDescriptor: raw}}).Build()
+		if built.File.Path() != "private.proto" {
+			return "", fmt.Errorf("private descriptor builder failed")
+		}
+		return "metadata services passed", nil
+	case "host descriptor":
+		if _, err := protoregistry.GlobalFiles.FindDescriptorByName("isolate_metadata_callback_probe.Record"); err == nil {
+			return "", fmt.Errorf("host registration leaked into private registry")
+		}
+		return "metadata services passed", nil
+	case "clone":
+		cloned := proto.Clone(&customMessage{Payload: commonpb.Payload{Data: []byte("custom")}})
+		if string(cloned.(*commonpb.Payload).Data) != "custom" {
+			return "", fmt.Errorf("custom message clone failed")
+		}
+		return "metadata services passed", nil
 	}
-	// Message state retains its canonical MessageInfo, while the actual message
+	// Message state retains its private MessageInfo, while the actual message
 	// and bytes stay private. Heap-backed slots exercise reference publication;
 	// Header also exercises a later element in the same metadata table.
 	payload := &commonpb.Payload{Data: []byte("private payload")}
@@ -77,7 +88,7 @@ func MetadataWorkflow(_ context.Context, mode string) (result string, err error)
 	created := types[1].New().Interface().(*commonpb.Header)
 	created.Fields = map[string]*commonpb.Payload{"owned": payload}
 	// The generated-value clone path must copy mutable containers without
-	// granting access to protobuf's shared coder caches.
+	// retaining aliases to the source values.
 	clone := proto.Clone(created).(*commonpb.Header)
 	clone.Fields["owned"].Data[0] = 'X'
 	if string(payload.Data) != "private payload" {
@@ -105,8 +116,7 @@ func MetadataWorkflow(_ context.Context, mode string) (result string, err error)
 	if !errors.Is(application.Details(), temporal.ErrNoData) {
 		return "", fmt.Errorf("missing error details lost SDK sentinel identity")
 	}
-	// Parse errors must be caller-owned, including errors in nested Payloads.
-	// Protobuf's ParseError helper returns process-owned sentinel objects.
+	// Malformed nested messages are rejected by the private protobuf decoder.
 	for _, data := range [][]byte{{0}, {0x0a, 0x80}, {0x2a, 3, 0x1a, 1, 0x80}} {
 		if _, err := failurewire.Decode(data); err == nil {
 			return "", fmt.Errorf("malformed failure was accepted")
@@ -145,7 +155,7 @@ func MetadataWorkflow(_ context.Context, mode string) (result string, err error)
 	// Frequent GC in the host driver runs while the concurrent cache builders
 	// allocate. These message values and metadata references remain live.
 	if string(payload.Data) != "private payload" || created.Fields["owned"] != payload || types[0].Descriptor().Fields().ByName("data") == nil || types[1].Descriptor().Fields().ByName("fields") == nil {
-		return "", fmt.Errorf("canonical message info or private payload changed")
+		return "", fmt.Errorf("private message info or payload changed")
 	}
 	close(failures)
 	for err := range failures {
@@ -158,10 +168,9 @@ func MetadataWorkflow(_ context.Context, mode string) (result string, err error)
 	return "metadata services passed", nil
 }
 
-type customMessage struct{}
+type customMessage struct{ commonpb.Payload }
 
-func (*customMessage) ProtoMessage()                      {}
-func (*customMessage) ProtoReflect() protoreflect.Message { panic("custom clone callback executed") }
+func (m *customMessage) ProtoReflect() protoreflect.Message { return m.Payload.ProtoReflect() }
 
 //temporal:workflow
 func StructuredFailureWorkflow(ctx context.Context, returnFailure bool) ([]byte, error) {
@@ -187,7 +196,11 @@ func StructuredFailureWorkflow(ctx context.Context, returnFailure bool) ([]byte,
 		return nil, err
 	}
 	dc := converter.NewCompositeDataConverter(converter.NewNilPayloadConverter(), converter.NewByteSlicePayloadConverter(), converter.NewJSONPayloadConverter())
-	return failurecodec.Encode(err, dc)
+	failure, encodeErr := failurecodec.Encode(err, dc)
+	if encodeErr != nil {
+		return nil, encodeErr
+	}
+	return failurewire.Encode(failure)
 }
 
 //go:noinline

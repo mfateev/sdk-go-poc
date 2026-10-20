@@ -2,9 +2,10 @@ package workflow
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
+	commonpb "go.temporal.io/api/common/v1"
+	failurepb "go.temporal.io/api/failure/v1"
 	"isolate"
 	"reflect"
 	"slices"
@@ -119,7 +120,7 @@ type activityFuture struct {
 	converterContext context.Context
 	ready            atomic.Bool
 	done             chan struct{}
-	payload          []byte
+	payload          *commonpb.Payloads
 	err              error
 }
 
@@ -169,7 +170,7 @@ func (f *activityFuture) Get(ctx context.Context, valuePtr any) error {
 	} else {
 		<-f.done
 	}
-	if f.err != nil || valuePtr == nil || len(f.payload) == 0 {
+	if f.err != nil || valuePtr == nil || f.payload == nil {
 		return f.err
 	}
 	value := reflect.ValueOf(valuePtr)
@@ -177,7 +178,7 @@ func (f *activityFuture) Get(ctx context.Context, valuePtr any) error {
 		return errors.New("valuePtr parameter is not a non-nil pointer")
 	}
 	if isUnsupportedProtoValue(valuePtr) || isUnsupportedProtoValue(value.Elem().Interface()) {
-		return errors.New("workflow: only generated Google protobuf messages without extensions are supported")
+		return errors.New("workflow: legacy gogo protobuf messages are unsupported; use Google protobuf")
 	}
 	payloads, err := decodePayloads(f.payload, futureDataConverter(f))
 	if err != nil {
@@ -250,26 +251,26 @@ func executeActivity(ctx context.Context, activity any, args ...any) Future {
 	if err != nil {
 		panic(err)
 	}
-	request, err := json.Marshal(ActivityPayloadRequest{ID: id, Name: name, Function: !byName, Payloads: payloads, Options: &options, Header: header})
+	request, err := MarshalTransport(ActivityPayloadRequest{ID: id, Name: name, Function: !byName, Payloads: payloads, Options: &options, Header: header})
 	if err != nil {
 		panic(err)
 	}
 	if _, err = isolate.Call(OpScheduleActivity, request); err != nil {
 		return fail(err)
 	}
-	stop := context.AfterFunc(ctx, func() { p, _ := json.Marshal(id); _, _ = isolate.Call(OpCancelActivity, p) })
+	stop := context.AfterFunc(ctx, func() { p := encodeID(id); _, _ = isolate.Call(OpCancelActivity, p) })
 	// Publish available results during input admission so priority handlers
 	// waiting on this future become runnable before ordinary workflow code.
 	isolate.GoInbound(func() {
 		defer stop()
-		p, _ := json.Marshal(id)
+		p := encodeID(id)
 		response, err := isolate.Call(OpAwaitActivity, p)
 		f.err = err
 		if err == nil {
 			var outcome ActivityOutcome
-			if f.err = json.Unmarshal(response, &outcome); f.err == nil {
+			if f.err = UnmarshalTransport(response, &outcome); f.err == nil {
 				f.payload = outcome.Payloads
-				if len(outcome.Failure) != 0 {
+				if outcome.Failure != nil {
 					var transportErr error
 					f.err, transportErr = decodeFailure(outcome.Failure, f.dataConverter)
 					if transportErr != nil {
@@ -296,12 +297,12 @@ func executeActivity(ctx context.Context, activity any, args ...any) Future {
 
 // ActivityOutcome carries the copied result of an activity completion.
 type ActivityOutcome struct {
-	ErrorKind string `json:"error_kind,omitempty"`
-	Failure   []byte `json:"failure,omitempty"`
-	Failed    bool   `json:"failed,omitempty"`
-	Payloads  []byte `json:"payloads"`
-	Error     string `json:"error,omitempty"`
-	Canceled  bool   `json:"canceled,omitempty"`
+	ErrorKind string             `json:"error_kind,omitempty"`
+	Failure   *failurepb.Failure `json:"failure,omitempty"`
+	Failed    bool               `json:"failed,omitempty"`
+	Payloads  *commonpb.Payloads `json:"payloads"`
+	Error     string             `json:"error,omitempty"`
+	Canceled  bool               `json:"canceled,omitempty"`
 }
 
 func futureDataConverter(f *activityFuture) converter.DataConverter {

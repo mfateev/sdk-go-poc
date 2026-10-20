@@ -3,18 +3,18 @@ package workflow
 import (
 	"context"
 	"fmt"
-	"github.com/mfateev/sdk-go-poc/hostintegration"
 	"isolate"
 	"reflect"
 
+	"github.com/mfateev/sdk-go-poc/protobufcopy"
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/converter"
 	"google.golang.org/protobuf/proto"
 )
 
 // Read-only marshal may update a generated message's size cache. Clone just
-// message values into scratch memory first; descriptors remain opaque handles
-// and coder tables are host-owned behind SDK-generated host operations.
+// message values into scratch memory first. Descriptors and coder tables are
+// ordinary private protobuf state.
 type protobufConverter struct{ converter.DataConverter }
 
 func protectProtobuf(dc converter.DataConverter) converter.DataConverter {
@@ -26,19 +26,21 @@ func protectProtobuf(dc converter.DataConverter) converter.DataConverter {
 
 func protobufInput(value any) (any, error) {
 	if isUnsupportedProtoValue(value) {
-		return nil, fmt.Errorf("workflow: unsupported protobuf type %T; use a generated Google message without extensions", value)
+		return nil, fmt.Errorf("workflow: unsupported protobuf type %T; use Google protobuf", value)
 	}
-	if !isolate.IsReadOnly() || !hostintegration.IsGenerated(value) {
+	if !isolate.IsReadOnly() {
 		return value, nil
 	}
 	if message, ok := value.(proto.Message); ok {
-		return proto.Clone(message), nil
+		return protobufcopy.Clone(message), nil
 	}
 	v := reflect.ValueOf(value)
 	if v.Kind() == reflect.Struct {
 		pointer := reflect.New(v.Type())
 		pointer.Elem().Set(v)
-		return proto.Clone(pointer.Interface().(proto.Message)), nil
+		if message, ok := pointer.Interface().(proto.Message); ok {
+			return protobufcopy.Clone(message), nil
+		}
 	}
 	return value, nil
 }

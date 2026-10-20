@@ -2,13 +2,12 @@ package workflow
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"github.com/mfateev/sdk-go-poc/internal/failurewire"
 	"isolate"
 	"strings"
 	"sync"
 
-	"github.com/mfateev/sdk-go-poc/internal/payloadwire"
 	"github.com/mfateev/sdk-go-poc/internal/searchattrwire"
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/converter"
@@ -22,7 +21,7 @@ type SignalChannelOptions = goWorkflow.SignalChannelOptions
 // LastCompletionSnapshot distinguishes absent data from a present empty envelope.
 type LastCompletionSnapshot struct {
 	Present  bool
-	Payloads []byte
+	Payloads *commonpb.Payloads
 }
 
 type SignalRegistration struct {
@@ -139,11 +138,11 @@ func upsertTypedSearchAttributes(ctx context.Context, attributes ...temporal.Sea
 	}
 	return writeMetadata(ctx, OpUpsertSearchAttributes, fields)
 }
-func writeMetadata(ctx context.Context, op uint32, fields map[string][]byte) error {
+func writeMetadata(ctx context.Context, op uint32, fields map[string]*commonpb.Payload) error {
 	if ctx == nil {
 		return fmt.Errorf("workflow: nil context")
 	}
-	raw, err := json.Marshal(fields)
+	raw, err := MarshalTransport(fields)
 	if err != nil {
 		return err
 	}
@@ -160,7 +159,7 @@ func upsertMemo(ctx context.Context, memo map[string]any) error {
 		return err
 	}
 	var useUser bool
-	if err := json.Unmarshal(raw, &useUser); err != nil {
+	if err := UnmarshalTransport(raw, &useUser); err != nil {
 		return err
 	}
 	fields, err := encodeMemoFields(memo, GetDataConverter(ctx), useUser)
@@ -169,12 +168,12 @@ func upsertMemo(ctx context.Context, memo map[string]any) error {
 	}
 	return writeMetadata(ctx, OpUpsertMemo, fields)
 }
-func encodeMemoFields(memo map[string]any, userDC converter.DataConverter, useUser bool) (map[string][]byte, error) {
+func encodeMemoFields(memo map[string]any, userDC converter.DataConverter, useUser bool) (map[string]*commonpb.Payload, error) {
 	dc := newDefaultDataConverter()
 	if useUser {
 		dc = userDC
 	}
-	fields := make(map[string][]byte, len(memo))
+	fields := make(map[string]*commonpb.Payload, len(memo))
 	for key, value := range memo {
 		p, err := dc.ToPayload(value)
 		if err != nil && useUser {
@@ -186,10 +185,7 @@ func encodeMemoFields(memo map[string]any, userDC converter.DataConverter, useUs
 		if err != nil {
 			return nil, fmt.Errorf("encode workflow memo error: %v", err)
 		}
-		fields[key], err = payloadwire.Encode(&commonpb.Payloads{Payloads: []*commonpb.Payload{p}})
-		if err != nil {
-			return nil, err
-		}
+		fields[key] = p
 	}
 	return fields, nil
 }
@@ -198,7 +194,7 @@ func lastCompletion(ctx context.Context) (LastCompletionSnapshot, error) {
 	raw, err := metadataCall(ctx, OpLastCompletionResult)
 	var snapshot LastCompletionSnapshot
 	if err == nil {
-		err = json.Unmarshal(raw, &snapshot)
+		err = UnmarshalTransport(raw, &snapshot)
 	}
 	return snapshot, err
 }
@@ -208,7 +204,7 @@ func hasLastCompletionResult(ctx context.Context) bool {
 		panic(err)
 	}
 	var present bool
-	if err := json.Unmarshal(raw, &present); err != nil {
+	if err := UnmarshalTransport(raw, &present); err != nil {
 		panic(err)
 	}
 	return present
@@ -222,7 +218,7 @@ func getLastCompletionResult(ctx context.Context, values ...any) error {
 	if !snapshot.Present {
 		return temporal.ErrNoData
 	}
-	p, err := payloadwire.Decode(snapshot.Payloads)
+	p, err := decodePayloads(snapshot.Payloads)
 	if err != nil {
 		return err
 	}
@@ -236,7 +232,11 @@ func getLastError(ctx context.Context) error {
 	if len(raw) == 0 {
 		return nil
 	}
-	cause, err := decodeFailure(raw, GetDataConverter(ctx))
+	failure, err := failurewire.Decode(raw)
+	if err != nil {
+		panic(err)
+	}
+	cause, err := decodeFailure(failure, GetDataConverter(ctx))
 	if err != nil {
 		panic(err)
 	}
@@ -265,7 +265,7 @@ func getSignalChannelWithOptions(ctx context.Context, name string, options Signa
 	if ch := signalChannels[name]; ch != nil {
 		return ch
 	}
-	raw, err := json.Marshal(SignalRegistration{Name: name, Options: options})
+	raw, err := MarshalTransport(SignalRegistration{Name: name, Options: options})
 	if err != nil {
 		panic(err)
 	}

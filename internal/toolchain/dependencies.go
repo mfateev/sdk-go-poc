@@ -9,9 +9,6 @@ import (
 const ProtobufModule = "google.golang.org/protobuf"
 const ProtobufVersion = "v1.36.11"
 
-const TemporalAPIModule = "go.temporal.io/api"
-const TemporalAPIVersion = "v1.63.6"
-
 const TemporalSDKModule = "go.temporal.io/sdk"
 
 // TemporalSDKSource supports official SDK revisions and development checkouts.
@@ -32,7 +29,7 @@ const OTelVersion = "v1.44.0"
 func validateDependencies(packages []*Package) error {
 	for _, p := range packages {
 		for _, trusted := range []struct{ path, version string }{
-			{ProtobufModule, ProtobufVersion}, {TemporalAPIModule, TemporalAPIVersion}, {TemporalSDKModule, ""}, {OTelTraceModule, OTelVersion},
+			{ProtobufModule, ProtobufVersion}, {TemporalSDKModule, ""}, {OTelTraceModule, OTelVersion},
 		} {
 			if p.ImportPath != trusted.path && !strings.HasPrefix(p.ImportPath, trusted.path+"/") {
 				continue
@@ -52,7 +49,7 @@ func validateDependencies(packages []*Package) error {
 				if trusted.path == TemporalSDKModule {
 					return fmt.Errorf("SDK metadata services require %s as the owning module, using an official revision or filesystem checkout; replacement modules, nested modules, and vendored sources are unsupported", trusted.path)
 				}
-				return fmt.Errorf("metadata services require %s@%s without a replacement, nested module, or vendored source; audit the service manifest before upgrading", trusted.path, trusted.version)
+				return fmt.Errorf("SDK dependency policy requires %s@%s without a replacement, nested module, or vendored source; audit deterministic defaults and unsafe source policy before upgrading", trusted.path, trusted.version)
 			}
 		}
 	}

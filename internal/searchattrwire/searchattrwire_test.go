@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mfateev/sdk-go-poc/internal/payloadwire"
 	"go.temporal.io/sdk/temporal"
 )
 
@@ -51,12 +50,8 @@ func TestTypedSearchAttributeUnset(t *testing.T) {
 	if len(fields) != 2 {
 		t.Fatal("unset entries were dropped")
 	}
-	for _, raw := range fields {
-		p, err := payloadwire.Decode(raw)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if p.Payloads[0].Data != nil || p.Payloads[0].Metadata["type"] != nil || string(p.Payloads[0].Metadata["encoding"]) != "binary/null" {
+	for _, p := range fields {
+		if p.Data != nil || p.Metadata["type"] != nil || string(p.Metadata["encoding"]) != "binary/null" {
 			t.Fatalf("invalid deletion encoding: %v", p)
 		}
 	}

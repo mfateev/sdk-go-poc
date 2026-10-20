@@ -3,6 +3,7 @@ package workflow
 import (
 	"bytes"
 	"errors"
+	failurepb "go.temporal.io/api/failure/v1"
 	"isolate"
 	"reflect"
 
@@ -61,7 +62,7 @@ func makeFailureConverter(factory isolate.Handle, config []byte, dc converter.Da
 	return fc, err
 }
 
-func encodeFailure(cause error, dc converter.DataConverter) ([]byte, error) {
+func encodeFailure(cause error, dc converter.DataConverter) (*failurepb.Failure, error) {
 	fc, err := makeFailureConverter(instanceFailureConverterFactory, instanceFailureConverterConfig, dc)
 	if err != nil {
 		return nil, err
@@ -69,7 +70,7 @@ func encodeFailure(cause error, dc converter.DataConverter) ([]byte, error) {
 	return failurecodec.EncodeWithConverter(cause, fc)
 }
 
-func decodeFailure(data []byte, dc converter.DataConverter) (error, error) {
+func decodeFailure(data *failurepb.Failure, dc converter.DataConverter) (error, error) {
 	fc, err := makeFailureConverter(instanceFailureConverterFactory, instanceFailureConverterConfig, dc)
 	if err != nil {
 		return nil, err

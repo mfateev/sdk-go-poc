@@ -4,24 +4,23 @@
 package searchattrwire
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
-	"github.com/mfateev/sdk-go-poc/internal/payloadwire"
 	commonpb "go.temporal.io/api/common/v1"
 	enumspb "go.temporal.io/api/enums/v1"
 	"go.temporal.io/sdk/converter"
 	bindings "go.temporal.io/sdk/internalbindings"
 	"go.temporal.io/sdk/temporal"
+	"google.golang.org/protobuf/proto"
 )
 
 func defaultConverter() converter.DataConverter {
 	return converter.NewCompositeDataConverter(converter.NewNilPayloadConverter(), converter.NewByteSlicePayloadConverter(), converter.NewProtoJSONPayloadConverter(), converter.NewProtoPayloadConverter(), converter.NewJSONPayloadConverter())
 }
 
-func EncodeFields(attributes temporal.SearchAttributes) (map[string][]byte, error) {
-	fields := make(map[string][]byte)
+func EncodeFields(attributes temporal.SearchAttributes) (map[string]*commonpb.Payload, error) {
+	fields := make(map[string]*commonpb.Payload)
 	dc := defaultConverter()
 	for _, entry := range bindings.GetSearchAttributeUpdates(attributes) {
 		key, value := entry.Key, entry.Value
@@ -32,10 +31,7 @@ func EncodeFields(attributes temporal.SearchAttributes) (map[string][]byte, erro
 		if p.Data != nil {
 			p.Metadata["type"] = []byte(key.GetValueType().String())
 		}
-		fields[key.GetName()], err = payloadwire.Encode(&commonpb.Payloads{Payloads: []*commonpb.Payload{p}})
-		if err != nil {
-			return nil, err
-		}
+		fields[key.GetName()] = p
 	}
 	return fields, nil
 }
@@ -45,25 +41,21 @@ func Encode(attributes temporal.SearchAttributes) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return json.Marshal(fields)
+	return proto.MarshalOptions{Deterministic: true}.Marshal(&commonpb.SearchAttributes{IndexedFields: fields})
 }
 
 func Decode(raw []byte) (temporal.SearchAttributes, error) {
-	var fields map[string][]byte
-	if err := json.Unmarshal(raw, &fields); err != nil {
+	envelope := new(commonpb.SearchAttributes)
+	if err := proto.Unmarshal(raw, envelope); err != nil {
 		return temporal.SearchAttributes{}, err
 	}
+	fields := envelope.IndexedFields
 	dc := defaultConverter()
 	updates := make([]temporal.SearchAttributeUpdate, 0, len(fields))
-	for name, raw := range fields {
-		envelope, err := payloadwire.Decode(raw)
-		if err != nil {
-			return temporal.SearchAttributes{}, err
+	for name, p := range fields {
+		if p == nil {
+			return temporal.SearchAttributes{}, fmt.Errorf("nil search attribute payload")
 		}
-		if len(envelope.Payloads) != 1 {
-			return temporal.SearchAttributes{}, fmt.Errorf("search attributes: expected one payload")
-		}
-		p := envelope.Payloads[0]
 		kind, err := indexedValueType(string(p.Metadata["type"]))
 		if err != nil {
 			return temporal.SearchAttributes{}, err

@@ -1,7 +1,6 @@
 package temporalbridge
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"isolate"
@@ -12,7 +11,6 @@ import (
 	"go.temporal.io/sdk/converter"
 	bindings "go.temporal.io/sdk/internalbindings"
 	"go.temporal.io/sdk/temporal"
-	"google.golang.org/protobuf/proto"
 )
 
 // SDK callbacks retain only this retireable cell. Closing a definition clears
@@ -38,7 +36,7 @@ func (d *definition) operationOutcomeWithConverters(result *commonpb.Payloads, c
 	o := workflow.ActivityOutcome{}
 	if cause == nil && result != nil {
 		var err error
-		o.Payloads, err = inboundPayloadBytes(result, dc)
+		o.Payloads, err = inboundPayloads(result, dc)
 		if err != nil {
 			panic(err)
 		}
@@ -61,28 +59,25 @@ func (d *definition) operationOutcomeWithConverters(result *commonpb.Payloads, c
 			panic(fmt.Errorf("encode child operation failure: %w", err))
 		}
 	}
-	raw, err := json.Marshal(o)
+	raw, err := workflow.MarshalTransport(o)
 	if err != nil {
 		panic(err)
 	}
 	return raw
 }
 
-func decodeOptionValues(values map[string][]byte) (map[string]any, error) {
+func decodeOptionValues(values map[string]*commonpb.Payload) (map[string]any, error) {
 	if values == nil {
 		return nil, nil
 	}
 	result := make(map[string]any, len(values))
-	for key, raw := range values {
-		p := new(commonpb.Payloads)
-		if err := proto.Unmarshal(raw, p); err != nil {
-			return nil, err
+	for key, p := range values {
+		if p == nil {
+			return nil, errors.New("nil option payload")
 		}
-		if len(p.Payloads) != 1 {
-			return nil, errors.New("child option requires one payload")
-		}
-		result[key] = converter.NewRawValue(p.Payloads[0])
+		result[key] = converter.NewRawValue(p)
 	}
+
 	return result, nil
 }
 
@@ -97,9 +92,9 @@ func (d *definition) childParams(request workflow.ChildRequest) (bindings.Execut
 	if request.Function && d.resolveWorkflow != nil {
 		request.Name = d.resolveWorkflow(request.Name)
 	}
-	input := new(commonpb.Payloads)
-	if err := proto.Unmarshal(request.Payloads, input); err != nil {
-		return bindings.ExecuteWorkflowParams{}, err
+	input := request.Payloads
+	if input == nil {
+		input = new(commonpb.Payloads)
 	}
 	input, err := encodeTransport(input, dc)
 	if err != nil {
@@ -178,7 +173,7 @@ func (d *definition) handleChild(command *isolate.Command) error {
 	}
 	if command.Op == workflow.OpScheduleChild {
 		var r workflow.ChildRequest
-		if err := json.Unmarshal(command.Payload, &r); err != nil {
+		if err := workflow.UnmarshalTransport(command.Payload, &r); err != nil {
 			return err
 		}
 		if r.ID == 0 || r.Name == "" || r.Options.WorkflowExecutionTimeout < 0 || r.Options.WorkflowRunTimeout < 0 || r.Options.WorkflowTaskTimeout < 0 {
@@ -220,8 +215,8 @@ func (d *definition) handleChild(command *isolate.Command) error {
 		d.replyWhenSuspended(command, nil, nil)
 		return nil
 	}
-	var id uint64
-	if err := json.Unmarshal(command.Payload, &id); err != nil {
+	id, err := commandID(command)
+	if err != nil {
 		return err
 	}
 	s := d.children[id]
@@ -268,7 +263,7 @@ func (d *definition) handleChild(command *isolate.Command) error {
 func (d *definition) handleChildSignal(command *isolate.Command) error {
 	if command.Op == workflow.OpSignalChild {
 		var r workflow.ChildSignalRequest
-		if err := json.Unmarshal(command.Payload, &r); err != nil {
+		if err := workflow.UnmarshalTransport(command.Payload, &r); err != nil {
 			return err
 		}
 		if r.ID == 0 || r.WorkflowID == "" {
@@ -280,9 +275,9 @@ func (d *definition) handleChildSignal(command *isolate.Command) error {
 		if d.childSignals[r.ID] != nil {
 			return errors.New("duplicate child signal ID")
 		}
-		input := new(commonpb.Payloads)
-		if err := proto.Unmarshal(r.Payloads, input); err != nil {
-			return err
+		input := r.Payloads
+		if input == nil {
+			input = new(commonpb.Payloads)
 		}
 		namespace := r.Namespace
 		if namespace == "" {
@@ -315,8 +310,8 @@ func (d *definition) handleChildSignal(command *isolate.Command) error {
 		d.replyWhenSuspended(command, nil, nil)
 		return nil
 	}
-	var id uint64
-	if err := json.Unmarshal(command.Payload, &id); err != nil {
+	id, err := commandID(command)
+	if err != nil {
 		return err
 	}
 	s := d.childSignals[id]

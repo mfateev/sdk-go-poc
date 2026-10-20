@@ -1,7 +1,6 @@
 package temporalbridge
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"isolate"
@@ -11,7 +10,6 @@ import (
 	commonpb "go.temporal.io/api/common/v1"
 	bindings "go.temporal.io/sdk/internalbindings"
 	"go.temporal.io/sdk/temporal"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
@@ -53,7 +51,7 @@ func activityOptions(o workflow.ActivityOptions, taskQueue string, sequence int6
 func (d *definition) handleActivity(command *isolate.Command) error {
 	if command.Op == workflow.OpScheduleActivity {
 		var request workflow.ActivityPayloadRequest
-		if err := json.Unmarshal(command.Payload, &request); err != nil {
+		if err := workflow.UnmarshalTransport(command.Payload, &request); err != nil {
 			return err
 		}
 		if request.ID == 0 || request.Name == "" || request.Options == nil {
@@ -72,9 +70,9 @@ func (d *definition) handleActivity(command *isolate.Command) error {
 		if request.Function && d.resolveActivity != nil {
 			request.Name = d.resolveActivity(request.Name)
 		}
-		input := new(commonpb.Payloads)
-		if err := proto.Unmarshal(request.Payloads, input); err != nil {
-			return fmt.Errorf("decode activity arguments: %w", err)
+		input := request.Payloads
+		if input == nil {
+			input = new(commonpb.Payloads)
 		}
 		options := activityOptions(o, d.env.WorkflowInfo().TaskQueueName, d.env.GenerateSequence())
 		dc := d.activityDataConverter(request.Name, options.TaskQueueName)
@@ -98,7 +96,7 @@ func (d *definition) handleActivity(command *isolate.Command) error {
 			}
 			outcome := workflow.ActivityOutcome{}
 			if cause == nil && result != nil {
-				outcome.Payloads, cause = inboundPayloadBytes(result, dc)
+				outcome.Payloads, cause = inboundPayloads(result, dc)
 			}
 			if cause != nil {
 				outcome.Failed = true
@@ -110,7 +108,7 @@ func (d *definition) handleActivity(command *isolate.Command) error {
 					panic(fmt.Errorf("encode activity failure: %w", err))
 				}
 			}
-			payload, err := json.Marshal(outcome)
+			payload, err := workflow.MarshalTransport(outcome)
 			if err != nil {
 				panic(err)
 			}
@@ -129,8 +127,8 @@ func (d *definition) handleActivity(command *isolate.Command) error {
 		d.replyWhenSuspended(command, nil, nil)
 		return nil
 	}
-	var id uint64
-	if err := json.Unmarshal(command.Payload, &id); err != nil {
+	id, err := commandID(command)
+	if err != nil {
 		return err
 	}
 	state := d.activities[id]

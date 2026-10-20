@@ -14,8 +14,8 @@ import (
 
 var rangeCallbacks int
 
-// SharedMetadata exercises repeated use of a type's shared reflection/coder
-// tables with distinct, mutable message values. Settings remains unused.
+// SharedMetadata exercises independent per-isolate reflection/coder tables
+// with distinct mutable messages. Query caches belong to the scratch domain.
 //
 //temporal:workflow
 func SharedMetadata(ctx context.Context) (string, error) {
@@ -41,8 +41,12 @@ func SharedMetadata(ctx context.Context) (string, error) {
 	}); err != nil {
 		return "", err
 	}
+	captured := &model.Record{Sequence: 42}
+	if _, err := proto.Marshal(captured); err != nil {
+		return "", err
+	}
 	if err := workflow.SetQueryHandler(ctx, "mutateMetadata", func() (string, error) {
-		(&model.Record{}).ProtoReflect().ProtoMethods().Flags = 0
+		captured.ProtoReflect().ProtoMethods().Flags = 0
 		return "mutation accepted", nil
 	}); err != nil {
 		return "", err
@@ -52,7 +56,18 @@ func SharedMetadata(ctx context.Context) (string, error) {
 	}); err != nil {
 		return "", err
 	}
-	if err := workflow.SetQueryHandler(ctx, "mutateRegistry", func() (string, error) { return "", new(protoregistry.Types).RegisterMessage(nil) }); err != nil {
+	if err := workflow.SetQueryHandler(ctx, "localRegistry", func() (string, error) {
+		registry := new(protoregistry.Types)
+		typ := (&model.Record{}).ProtoReflect().Type()
+		if err := registry.RegisterMessage(typ); err != nil {
+			return "", err
+		}
+		found, err := registry.FindMessageByName(typ.Descriptor().FullName())
+		if err != nil {
+			return "", err
+		}
+		return string(found.Descriptor().FullName()), nil
+	}); err != nil {
 		return "", err
 	}
 	identity := ""
@@ -82,6 +97,9 @@ func SharedMetadata(ctx context.Context) (string, error) {
 		if decoded.Sequence != int64(i+10) || decoded.Entries["nested"].Sequence != int64(i+1) || decoded.GetTitle() != "cache" {
 			return "", fmt.Errorf("shared tables changed message values")
 		}
+	}
+	if err := workflow.SetQueryHandler(ctx, "workflowMetadata", func() (string, error) { return identity, nil }); err != nil {
+		return "", err
 	}
 	<-workflow.GetSignalChannel[bool](ctx, "finish")
 	return identity, nil

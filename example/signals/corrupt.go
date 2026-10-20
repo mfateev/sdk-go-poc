@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/mfateev/sdk-go-poc/interceptor"
-	"github.com/mfateev/sdk-go-poc/internal/payloadwire"
 	"github.com/mfateev/sdk-go-poc/workflow"
+	commonpb "go.temporal.io/api/common/v1"
 )
 
 // CorruptWorkflow ports the upstream corrupted-signal receive cases to native
@@ -107,19 +107,16 @@ type closedSignalOutbound struct {
 }
 
 func (out *closedSignalOutbound) GetSignalChannel(ctx context.Context, name string) <-chan workflow.SignalResult {
-	raw := []byte{0xff}
+	payloads := &commonpb.Payloads{Payloads: []*commonpb.Payload{nil}}
 	if !out.wire {
-		payloads, err := workflow.GetDataConverter(ctx).ToPayloads("wrong")
-		if err != nil {
-			panic(err)
-		}
-		raw, err = payloadwire.Encode(payloads)
+		var err error
+		payloads, err = workflow.GetDataConverter(ctx).ToPayloads("wrong")
 		if err != nil {
 			panic(err)
 		}
 	}
 	ch := make(chan workflow.SignalResult, 1)
-	ch <- workflow.SignalResult{Signal: workflow.Signal{Name: name, Payloads: raw}}
+	ch <- workflow.SignalResult{Signal: workflow.Signal{Name: name, Payloads: payloads}}
 	close(ch)
 	return ch
 }

@@ -111,8 +111,8 @@ func checkCorrupt(mode string, configured, intercepted, replay bool) {
 			bad.Payloads[0].Data = []byte("{")
 			must(e.signal(name, bad, nil))
 			wantErrors++
-			// Exercise envelope rejection before inbound hooks as well as
-			// value decoding after hooks. Field 3 is outside payloadwire's subset.
+			// Unknown protobuf fields survive transport; malformed application JSON
+			// still fails value decoding.
 			bad.Payloads[0].ProtoReflect().SetUnknown([]byte{0x18, 0x01})
 			must(e.signal(name, bad, nil))
 			wantErrors++

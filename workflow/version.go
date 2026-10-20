@@ -2,7 +2,6 @@ package workflow
 
 import (
 	"context"
-	"encoding/json"
 	goWorkflow "go.temporal.io/sdk/workflow"
 	"isolate"
 )
@@ -24,7 +23,7 @@ func getVersion(ctx context.Context, changeID string, minSupported, maxSupported
 	if ctx == nil {
 		panic("workflow: nil context")
 	}
-	request, err := json.Marshal(VersionRequest{ChangeID: changeID, Min: minSupported, Max: maxSupported})
+	request, err := MarshalTransport(VersionRequest{ChangeID: changeID, Min: minSupported, Max: maxSupported})
 	if err != nil {
 		panic(err)
 	}
@@ -33,7 +32,7 @@ func getVersion(ctx context.Context, changeID string, minSupported, maxSupported
 		panic(err)
 	}
 	var version Version
-	if err := json.Unmarshal(raw, &version); err != nil {
+	if err := UnmarshalTransport(raw, &version); err != nil {
 		panic(err)
 	}
 	return version
@@ -53,7 +52,7 @@ func isReplaying(ctx context.Context) bool {
 		panic(err)
 	}
 	var replay bool
-	if err := json.Unmarshal(raw, &replay); err != nil {
+	if err := UnmarshalTransport(raw, &replay); err != nil {
 		panic(err)
 	}
 	return replay

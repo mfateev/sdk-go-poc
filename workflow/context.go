@@ -2,7 +2,6 @@ package workflow
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"isolate"
 	"sync/atomic"
@@ -48,7 +47,7 @@ func executionContext(canceled bool, taskQueue string, options ...RunOptions) (c
 				return
 			}
 			var control WorkflowControl
-			if err := json.Unmarshal(raw, &control); err != nil {
+			if err := UnmarshalTransport(raw, &control); err != nil {
 				panic(err)
 			}
 			applyRandomRunID(control.RandomRunID)
@@ -69,12 +68,12 @@ func call(ctx context.Context, op uint32, payload []byte) ([]byte, error) {
 		return nil, err
 	}
 	id := nextCallID.Add(1)
-	request, err := json.Marshal(CallRequest{ID: id, Op: op, Payload: payload})
+	request, err := MarshalTransport(CallRequest{ID: id, Op: op, Payload: payload})
 	if err != nil {
 		return nil, err
 	}
 	stop := context.AfterFunc(ctx, func() {
-		cancelRequest, _ := json.Marshal(id)
+		cancelRequest := encodeID(id)
 		_, _ = isolate.Call(OpCancelCall, cancelRequest)
 	})
 	defer stop()

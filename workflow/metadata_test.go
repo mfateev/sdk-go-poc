@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mfateev/sdk-go-poc/internal/payloadwire"
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/converter"
 )
@@ -27,12 +26,9 @@ func TestMemoEncodingPolicyAndFallback(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		p, err := payloadwire.Decode(fields["number"])
-		if err != nil {
-			t.Fatal(err)
-		}
+		p := fields["number"]
 		var number int64
-		if err := newDefaultDataConverter().FromPayloads(p, &number); err != nil || number != 9007199254740993 {
+		if err := newDefaultDataConverter().FromPayload(p, &number); err != nil || number != 9007199254740993 {
 			t.Fatal("memo fallback lost precision")
 		}
 		wantCalls := 0
@@ -53,11 +49,8 @@ func TestRawSearchAttributePayloadNotReserialized(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p, err := payloadwire.Decode(fields["number"])
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(p.Payloads[0].Data) != string(raw.Data) || string(p.Payloads[0].Metadata["type"]) != "Int" {
+	p := fields["number"]
+	if string(p.Data) != string(raw.Data) || string(p.Metadata["type"]) != "Int" {
 		t.Fatal("raw search attribute changed")
 	}
 }

@@ -1,14 +1,13 @@
 package temporalbridge
 
 import (
-	"encoding/json"
 	"github.com/mfateev/sdk-go-poc/workflow"
 	"isolate"
 )
 
 func (d *definition) infoBytes() ([]byte, error) {
 	info := d.env.WorkflowInfo()
-	return json.Marshal(workflow.InfoSnapshot{Info: *info, Details: workflow.InfoDetails{
+	return workflow.MarshalTransport(workflow.InfoSnapshot{Info: *info, Details: workflow.InfoDetails{
 		BinaryChecksum: info.GetBinaryChecksum(), BuildID: info.GetCurrentBuildID(),
 		HistoryLength: info.GetCurrentHistoryLength(),
 		HistorySize:   info.GetCurrentHistorySize(), ContinueAsNewSuggested: info.GetContinueAsNewSuggested(),

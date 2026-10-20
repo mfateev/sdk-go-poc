@@ -1,7 +1,6 @@
 package temporalbridge
 
 import (
-	"encoding/json"
 	"fmt"
 	"isolate"
 	"slices"
@@ -20,18 +19,18 @@ func (d *definition) readMetadata(op uint32) ([]byte, error) {
 	case workflow.OpGetTypedSearchAttributes:
 		return searchattrwire.Encode(d.env.TypedSearchAttributes())
 	case workflow.OpHasLastCompletionResult:
-		return json.Marshal(bindings.GetLastCompletionResult(d.env) != nil)
+		return workflow.MarshalTransport(bindings.GetLastCompletionResult(d.env) != nil)
 	case workflow.OpLastCompletionResult:
 		p := bindings.GetLastCompletionResult(d.env)
 		snapshot := workflow.LastCompletionSnapshot{Present: p != nil}
 		if p != nil {
 			var err error
-			snapshot.Payloads, err = inboundPayloadBytes(p, d.env.GetDataConverter())
+			snapshot.Payloads, err = inboundPayloads(p, d.env.GetDataConverter())
 			if err != nil {
 				return nil, err
 			}
 		}
-		return json.Marshal(snapshot)
+		return workflow.MarshalTransport(snapshot)
 	case workflow.OpLastError:
 		return d.lastFailureBytes()
 	default:
@@ -46,11 +45,11 @@ func (d *definition) lastFailureBytes() ([]byte, error) {
 	if failure == nil {
 		return nil, nil
 	}
-	raw, err := failurewire.Encode(failure)
+	copied, err := mapFailurePayloads(failure, d.env.GetDataConverter(), false)
 	if err != nil {
 		return nil, err
 	}
-	return mapFailurePayloads(raw, d.env.GetDataConverter(), false)
+	return failurewire.Encode(copied)
 }
 
 func (d *definition) handleMetadata(command *isolate.Command) error {
@@ -59,11 +58,11 @@ func (d *definition) handleMetadata(command *isolate.Command) error {
 		raw, err := d.readMetadata(command.Op)
 		d.replyWhenSuspended(command, raw, err)
 	case workflow.OpMemoEncodingPolicy:
-		raw, err := json.Marshal(bindings.UseMemoDataConverter(d.env))
+		raw, err := workflow.MarshalTransport(bindings.UseMemoDataConverter(d.env))
 		d.replyWhenSuspended(command, raw, err)
 	case workflow.OpRegisterSignal:
 		var r workflow.SignalRegistration
-		if err := json.Unmarshal(command.Payload, &r); err != nil {
+		if err := workflow.UnmarshalTransport(command.Payload, &r); err != nil {
 			return err
 		}
 		if d.signalChannels == nil {
@@ -74,8 +73,8 @@ func (d *definition) handleMetadata(command *isolate.Command) error {
 		}
 		d.replyWhenSuspended(command, nil, nil)
 	case workflow.OpUpsertSearchAttributes, workflow.OpUpsertMemo:
-		var fields map[string][]byte
-		if err := json.Unmarshal(command.Payload, &fields); err != nil {
+		var fields map[string]*commonpb.Payload
+		if err := workflow.UnmarshalTransport(command.Payload, &fields); err != nil {
 			return err
 		}
 		values, err := decodeOptionValues(fields)
