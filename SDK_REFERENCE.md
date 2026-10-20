@@ -2,7 +2,10 @@
 
 For installation and the differences from the standard Temporal Go SDK, see the
 [README](README.md). This document contains detailed behavior, advanced usage,
-implementation notes, and development checks.
+implementation notes, and development checks. For construction order, binary
+fields and validation, use [IMPLEMENTATION.md](IMPLEMENTATION.md),
+[TRANSPORT.md](TRANSPORT.md) and [TESTING.md](TESTING.md).
+[COMPATIBILITY.md](COMPATIBILITY.md) defines the current supported scope.
 
 ## Determinism regression corpus
 
@@ -43,8 +46,8 @@ key generation and `crypto/rand.Prime` remain unsupported inside isolates.
 Hosts using isolates directly can supply `isolate.Config.RandomSeed` (32 bytes).
 Its default is all zeros: two instances with the same seed and call sequence
 produce identical bytes, so hosts generating IDs must supply a distinct,
-replay-stable execution seed. This POC's shared stream replaces its earlier
-independent random/select sequences; earlier recorded sequences are incompatible.
+replay-stable execution seed. Draw order is part of the replay contract and must be checked when changing
+runtime algorithms.
 
 `example/random.RandomWorkflow` exercises UUID v4, pooled UUID generation,
 `crypto/rand`, both math/rand APIs and select before and after an activity wait.
@@ -96,8 +99,8 @@ workflow state. Accepted updates advance the normal source. Draws into captured
 workflow buffers remain prohibited by read-only ownership checks.
 
 Ten current saved histories pin normal draws, distributions, reset transitions
-and child results across replay at GOMAXPROCS 1/2/8. All nine upstream unit cases
-are mapped in TEST_PORTING.md.
+and child results across replay at GOMAXPROCS 1/2/8. The source-test mapping is retained in the machine-readable inventory; see
+[TEST_COVERAGE.md](TEST_COVERAGE.md).
 
 These generators are predictable; do not use them for cryptographic secrets.
 The runnable application sample is `samples-go-poc/random-streams` in the sibling
@@ -137,7 +140,7 @@ This is necessary because Temporal's SDK replay checks do not compare activity
 input payloads. A negative test corrupts both recorded results and verifies that
 replay still rejects the changed trace.
 The current shared-stream baseline is `history-shared-random.json`.
-The compiler repository's `isolate-determinism.yml` runs the
+The SDK repository's `.github/workflows/isolate-integration.yml` runs the
 same fixture on native Linux and macOS arm64/amd64, alongside runtime/compiler,
 SDK/sample, and repeated race tests. During POC development, fixtures track the
 current implementation and can be regenerated when intended behavior changes.
@@ -175,12 +178,7 @@ the host delivers its durable timer event.
 timestamps it observed. The clock replay command compares the replayed result
 with the completion payload in history byte for byte.
 
-The order, signal, and clock examples completed on Temporal CLI 1.9.1's local
-development server, and their exported histories replayed in fresh processes.
-The typed isolate workflow and ordinary `PlainEcho` workflow also completed on
-that server together; the typed workflow's exported history replayed in a fresh
-process.
-To repeat the live check, start `temporal server start-dev --headless` and run
+To run the live check, start `temporal server start-dev --headless` and run
 `./bin/example-worker` in another terminal. Then run:
 
 ```sh
@@ -221,15 +219,14 @@ FIFO readiness order within each priority,
 select polling is reproducible, and string/integer map range is canonical.
 An exact suspend fence batches history replies and services all concurrent
 commands before ending each workflow task. Unsupported map key kinds fail
-closed; supported `sync.Map.Range` keys and `iter.Pull` are deterministic. General I/O
-containment and native cross-architecture replay remain release work.
+closed; supported `sync.Map.Range` keys and `iter.Pull` are deterministic. Supported external effects are rejected before execution. Cross-architecture
+correctness is validated by the native integration CI for each tested revision.
 
 The driver includes two concurrent activity result channels, a native timer,
 ordered callback batching, repeatability across GOMAXPROCS 1/2/8, and deadlock
-reporting. `IsolateConcurrent` is registered by the example worker and replayer;
-it completed on the local server and replayed in fresh processes. Ordinary
-`PlainEcho` continued to work on the same worker.
-See [the implementation plan](https://github.com/mfateev/golang-go/blob/task/modify-go-runtime-for-isolates/doc/isolates/TEMPORAL_POC.md).
+reporting. `IsolateConcurrent` is registered by the example worker and replayer. Ordinary
+`PlainEcho` uses the standard SDK path on the same worker. See
+[the implementation guide](IMPLEMENTATION.md).
 
 Typed handlers receive protobuf-serialized Temporal `Payloads` through the
 copied-byte boundary. An isolate-owned serializer decodes arguments and encodes
@@ -278,12 +275,12 @@ Marked functions accept any number of ordinary Go arguments and return either
 nothing, `error`, or `(result, error)`. They do not take a host-owned Temporal
 `workflow.Context`. Generic or variadic functions, methods, cgo source, and dot
 imports are rejected. Automatic entry generation currently applies to a
-single executable `tgo build` and `tgo test` binaries, including entries declared
-in internal or external `_test.go` files. `tgo run` and `tgo install` remain
-future work. Initialization and state selection still operate at package level,
-so selected package initializers run for every instance. Finer function-level
-dependency selection remains TODO. The older directory-program and explicit
-registration helpers remain available for runtime probes.
+single executable `tgo build`, `tgo run` and `tgo test` binaries, including
+entries declared in internal or external `_test.go` files. `tgo run` builds a
+marked temporary executable before running it. `tgo install` forwards without
+generating entries. Initialization and state selection still operate at package level,
+so selected package initializers run for every instance. Selection is at package granularity, not function granularity. Generic entry
+selection is available through Go's explicit build manifest.
 
 `workflow.GetSignalChannel[T](ctx, name)` returns a native `<-chan T` of signal
 values decoded with the workflow's configured serializer. For example:
@@ -359,8 +356,6 @@ SIGNALS_DEV_SERVER=1 tgo test -count=1 ./example/signals/check
 
 Activities use the current Go SDK API: `WithActivityOptions`,
 `ExecuteActivity(ctx, activity, args...)`, and `Future.Get(ctx, &result)`.
-The earlier typed activity helpers are commented out and retained in
-`workflow/typed_activity.go` for future API work.
 
 Every isolate workflow takes standard `context.Context` as its first parameter.
 Activities run on the host and may optionally take `context.Context` first,
@@ -745,8 +740,8 @@ The trusted runtime entry copies compiler-created function metadata by value;
 workflow dispatch does not read a host-owned closure containing that handle.
 The compiler/runtime conformance workflow checks SDK application code with
 level-two heap ownership diagnostics, including the race build. Marked workflow builds force ownership checks across the linked dependency
-graph. Custom converters and hostile native-code containment retain separate
-productization gates.
+graph. Custom converter factories use the same compulsory checks. Complete
+hostile native-code containment is outside the POC contract.
 
 ### Memory ownership failures
 
@@ -939,7 +934,7 @@ signal or cancellation callbacks cannot revive the workflow. Cache eviction does
 not send server-side cancellation commands. Recreating a workflow replays its
 history. Ordinary workflows and host activities retain their SDK behavior.
 
-Automatic worker-shutdown integration is deferred by project decision (2026-10-07).
+Automatic worker-shutdown cache teardown is outside the current POC contract.
 The pinned Go SDK's `Worker.Stop`
 does not evict its shared sticky cache; closing a workflow definition and stopping
 its worker are distinct operations. Individual-worker cache eviction needs an SDK
@@ -1430,13 +1425,13 @@ tgo build -o /tmp/isolate-api-check ./example/apicoverage/check
 ```
 
 Replay-aware printing, SDK logger/metrics interfaces and tracing use copied host
-messages. The [API and observability plan](API_COVERAGE_PLAN.md) describes the
+messages. The [interceptor and observation contract](INTERCEPTORS.md) describes the
 one-way sinks abstraction and its replay/delivery rules.
 
 ## Workflow interceptor API parity
 
-The isolate chain covers all exported workflow inbound hooks and the non-concurrency,
-non-SideEffect outbound hooks in Go SDK v1.49.0. New metadata APIs include
+The isolate chain provides workflow inbound and non-concurrency, non-SideEffect
+outbound hooks checked against the pinned SDK method/signature surface. Metadata APIs include
 `GetTypedSearchAttributes`, `UpsertSearchAttributes`, `UpsertTypedSearchAttributes`,
 `UpsertMemo`, `GetSignalChannelWithOptions`, `HasLastCompletionResult`,
 `GetLastCompletionResult` and `GetLastError`. Queries and validators can use the
@@ -1460,8 +1455,7 @@ runtime reads descriptor fields or publishes an entry. The compiler's isolate
 build report includes these versions.
 
 The POC SDK separately expects those three versions and uses **host protocol 7**.
-Protocol 7 replaces JSON transport envelopes with shared protobuf messages and
-fixed-width binary identifiers. Rebuild host and workflow SDK together when
+Protocol 7 uses shared protobuf messages and fixed-width binary identifiers. Rebuild host and workflow SDK together when
 upgrading. Reset-aware identity delivery, converter factories and native signal
 and update admission retain their existing semantics.
 Startup requests and replies have a fixed `ISOL` header carrying the four version
@@ -1469,18 +1463,18 @@ numbers. Both sides validate it before decoding startup data or running converte
 factories and workflow code. An incompatibility fails the Workflow Task; it does
 not complete the Workflow Execution. Version zero is invalid. The header is
 internal transport metadata and does not add history events or alter Payloads.
-Host and workflow code must be rebuilt together; mixing an old unversioned bridge
-with a versioned workflow is rejected.
+Host and workflow code must be rebuilt together; missing or mismatched startup
+headers are rejected.
 
 The SDK dependency is `go.temporal.io/sdk v1.50.0`, using the sibling
 `../temporal-go-sdk` development checkout synchronized with official upstream main.
 That checkout carries the proposed bridge integration changes; unmodified
 upstream does not yet expose all of them. Application modules must also replace
-`go.temporal.io/sdk` with that checkout. The compiler accepts official SDK module
+`go.temporal.io/sdk` with that checkout. The SDK build driver accepts official SDK module
 revisions and filesystem checkouts, while retaining the owning-module check and
 rejecting replacement modules, nested modules and vendored sources. Protobuf,
 Temporal API and telemetry metadata dependencies retain their separate version
-checks. The additional binding contract is **1** and exposes previous failures,
+checks. The additional binding contract is **2** and exposes previous failures,
 memo converter policy, copied typed search-attribute updates and plugin registry
 overrides. Ordinary SDK workflows keep their existing execution path.
 

@@ -56,24 +56,3 @@ tgo build -o /tmp/isolate-resource-stress ./example/resources/check
 /tmp/isolate-resource-stress -stress -duration=30s \
   -history=example/determinism/testdata/history-shared-random.json
 ```
-
-## Recorded validation
-
-On 2026-10-16, using the Linux arm64 isolate toolchain
-`go1.28-devel_dba1c0fd35`, the full test passed after 10m0.335s of measured load:
-50,440 workload executions and 6,305 saved-history replays, excluding warmup.
-
-| Resource | Warmed baseline | After load and collection |
-| --- | ---: | ---: |
-| Live heap | 3.11 MiB | 3.26 MiB |
-| Live heap objects | 13,686 | 13,986 |
-| Stack memory | 0.91 MiB | 0.94 MiB |
-| Resident memory | 34.80 MiB | 37.53 MiB |
-| Goroutines | 1 | 1 |
-| OS threads | 12 | 13 |
-| File descriptors | 7 | 7 |
-
-The process consumed about 1,914 CPU seconds during load and 10 ms during the
-final 250 ms idle check. No growth exceeded the configured leak thresholds.
-The existing compiled resource controls, saved-history corruption check, and
-new leak-threshold regression tests also passed.

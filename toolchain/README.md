@@ -41,7 +41,7 @@ Structured transport has a shared generated schema at
 `internal/transportpb/transport.proto` and uses payload, header and failure
 submessages. Scalar identifiers use fixed-width
 binary framing; timer waits retain the runtime's decimal-nanosecond contract.
-The public typed host-function/construction/waiter APIs have been removed.
+Host operations use only copied-byte Call variants and observational Write.
 
 Regenerate the schema, protobuf types and static SDK conversions with a built
 isolate Go toolchain and `protoc` (3.21 or later) on PATH:
@@ -82,3 +82,7 @@ build tags and test variants, including paths containing spaces.
 
 [Distribution and installation](DISTRIBUTION.md) describes archive building,
 checksums, offline installation, relocation and Homebrew packaging.
+
+For the construction algorithm and exact wire fields, see
+[SDK implementation](../IMPLEMENTATION.md) and [transport](../TRANSPORT.md).
+For current reproduction commands use [testing](../TESTING.md).

@@ -51,8 +51,8 @@ previous-run completion results/errors, workflow metadata, logger, metrics, repl
 `time.Now` and native timers are runtime primitives, not SDK interceptor hooks.
 SideEffect and MutableSideEffect remain intentionally excluded.
 
-All exported inbound hooks and all outbound hooks in SDK v1.49.0 are present,
-except these intentional exclusions:
+The pinned-SDK method/signature comparison checks the hook surface with these
+intentional native API substitutions and exclusions:
 
 | SDK hooks | Isolate API |
 | --- | --- |
@@ -147,7 +147,7 @@ Application random APIs in scratch scopes retain their documented behavior.
 
 **Security:** workflow tracing IDs are predictable, like other deterministic
 isolate random values. They are not secrets, authorization tokens or cryptographic
-entropy. See [randomness and security](README.md#deterministic-randomness-and-security).
+entropy. See [randomness and security](SDK_REFERENCE.md#deterministic-randomness-and-security).
 Observations bypass application payload encryption: avoid putting secrets in
 names, attributes, baggage, log fields or metric tags.
 
@@ -284,8 +284,9 @@ upserts and signal registration are rejected there.
 The SDK fork exposes the previous failure through `internalbindings.GetLastFailure`.
 The host serializes its borrowed, read-only protobuf into the existing failure
 byte transport. No SDK pointer crosses into the isolate, and the bridge does not
-depend on private field layouts. Custom
-failure converter types retain the existing POC limitations.
+depend on private field layouts. A marked native failure-converter factory
+reconstructs operation and previous-run errors with the selected local data
+converter; configure a compatible host converter for client/activity behavior.
 
 `GetSignalChannel[T]` and `GetSignalChannelWithOptions[T]` return native
 channels of decoded `T` values; the options variant accepts the SDK's

@@ -17,12 +17,12 @@ func TestTemporalUnitTestMigrationList(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	checklist, err := os.ReadFile(filepath.Join(root, "TEST_PORTING.md"))
+	checklist, err := os.ReadFile(filepath.Join(root, "TEST_COVERAGE.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if string(checklist) != RenderChecklist(m) {
-		t.Fatal("TEST_PORTING.md is stale; run go run ./internal/cmd/testports -write-checklist")
+		t.Fatal("TEST_COVERAGE.md is stale; run go run ./internal/cmd/testports -write-checklist")
 	}
 	t.Logf("Temporal test dispositions: %v", counts)
 }

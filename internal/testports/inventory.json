@@ -7726,7 +7726,7 @@
       "source": "internal/internal_workflow_test.go",
       "name": "WorkflowUnitTest.Test_MutatingFunctionsInSideEffect",
       "status": "obsolete",
-      "reason": "SideEffect and MutableSideEffect are explicitly excluded by API_COVERAGE_PLAN.md; nondeterministic work belongs in host/local activities.",
+      "reason": "SideEffect and MutableSideEffect are explicitly excluded by COMPATIBILITY.md; nondeterministic work belongs in host/local activities.",
       "targets": [
         "example/apicoverage/check/main_test.go::TestCompiledAPICoverageAndReplay"
       ]
@@ -7735,7 +7735,7 @@
       "source": "internal/internal_workflow_test.go",
       "name": "WorkflowUnitTest.Test_MutatingFunctionsInMutableSideEffect",
       "status": "obsolete",
-      "reason": "SideEffect and MutableSideEffect are explicitly excluded by API_COVERAGE_PLAN.md; nondeterministic work belongs in host/local activities.",
+      "reason": "SideEffect and MutableSideEffect are explicitly excluded by COMPATIBILITY.md; nondeterministic work belongs in host/local activities.",
       "targets": [
         "example/apicoverage/check/main_test.go::TestCompiledAPICoverageAndReplay"
       ]

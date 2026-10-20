@@ -1,24 +1,52 @@
-# Temporal Go SDK with native Go workflows
+# Temporal workflows with native Go isolates
 
-Write Temporal workflows using Go's `context.Context`, goroutines, channels,
-`select`, and timers. Activities, clients, and worker registration follow the
-familiar Temporal Go SDK APIs.
+Write Temporal workflows using standard `context.Context`, goroutines, channels,
+select, synchronization and timers. The modified Go runtime makes supported
+operations replay deterministic and enforces private state/ownership. Activities,
+clients and worker services run in the ordinary host Temporal SDK.
 
-This SDK is a proof of concept. APIs and compatibility can change between
-versions.
+This is a statically linked proof of concept for reviewed code. APIs can change;
+there is one current implementation and no process security sandbox or hard-kill
+guarantee for arbitrary non-yielding code. [Supported scope](COMPATIBILITY.md)
+records the concrete API limits.
 
-## Setup
+## Install tgo
 
-### Install tgo
+`tgo` is this SDK's build driver paired with the matching Go fork. It discovers
+marked functions and supplies the generic compiler manifest. Stock Go cannot
+build native workflow executables. Source setup needs Git, Python 3.11+, a C
+compiler and bootstrap Go 1.26.7 or newer.
 
-Use `tgo` to build, test, and run applications that use this SDK. The installer
-supports macOS and Linux on arm64 and amd64 and does not require an existing
-Go installation.
+Create sibling SDK, Go, host SDK and sample checkouts. From their parent directory:
 
-The download commands require a published
-[tgo release](https://github.com/mfateev/sdk-go-poc/releases). Until the first
-release is available, follow the
-[source setup guide](https://github.com/mfateev/samples-go-poc/blob/task/modify-go-runtime-for-isolates/README.md#1-install-tgo-on-linux-or-macos).
+```sh
+git clone --branch task/modify-go-runtime-for-isolates https://github.com/mfateev/sdk-go-poc.git
+git clone --no-checkout https://github.com/mfateev/golang-go.git
+git clone --no-checkout https://github.com/mfateev/temporal-go-sdk.git
+git clone --no-checkout https://github.com/mfateev/samples-go-poc.git
+python3 - <<'PYSETUP'
+import json, subprocess
+from pathlib import Path
+pin = json.loads(Path('sdk-go-poc/toolchain/go-source.json').read_text())
+for repo, key in [('golang-go', 'revision'), ('temporal-go-sdk', 'temporal_sdk_revision'), ('samples-go-poc', 'samples_revision')]:
+    subprocess.run(['git', '-C', repo, 'fetch', 'origin', pin[key]], check=True)
+    subprocess.run(['git', '-C', repo, 'checkout', '--detach', pin[key]], check=True)
+PYSETUP
+cd sdk-go-poc
+export GOROOT_BOOTSTRAP=/absolute/path/to/bootstrap/go
+python3 toolchain/build.py --source ../golang-go --local
+export PATH="$(cd ../golang-go/bin && pwd):$PATH"
+tgo version
+```
+
+The source pins in [toolchain/go-source.json](toolchain/go-source.json) select
+matching compiler/runtime, host SDK and samples. The host SDK checkout adds
+binding version 2 and is selected by this repository's module replacement;
+unmodified upstream is insufficient for this configuration. For a pinned
+snapshot instead of in-place development, see [toolchain/README.md](toolchain/README.md).
+
+For a published precompiled release, the installer supports Linux/macOS
+arm64/amd64 without an existing Go installation:
 
 ```sh
 curl -fsSL https://github.com/mfateev/sdk-go-poc/releases/latest/download/install.sh -o install-tgo.sh
@@ -27,45 +55,56 @@ export PATH="$HOME/.local/bin:$PATH"
 tgo version
 ```
 
-Add the PATH line to your shell startup file so new terminals can find `tgo`.
-For a specific version, a custom installation directory, or Homebrew, see the
-[installation guide](https://github.com/mfateev/sdk-go-poc/blob/task/modify-go-runtime-for-isolates/toolchain/DISTRIBUTION.md).
+That command requires the corresponding published release assets. Source setup
+works independently of release publication. [Distribution](toolchain/DISTRIBUTION.md)
+covers exact tags, offline install, packaging and the conditional Homebrew tap.
 
-### Get the SDK
+## A workflow
 
-```sh
-git clone --branch task/modify-go-runtime-for-isolates https://github.com/mfateev/sdk-go-poc.git
-cd sdk-go-poc
+In a workflow package:
+
+```go
+package jobs
+
+import (
+    "context"
+    "time"
+
+    "github.com/mfateev/sdk-go-poc/workflow"
+)
+
+//temporal:workflow
+func Hello(ctx context.Context, name string) (string, error) {
+    ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
+        StartToCloseTimeout: time.Minute,
+    })
+    var greeting string
+    err := workflow.ExecuteActivity(ctx, "Greet", name).Get(ctx, &greeting)
+    return greeting, err
+}
 ```
 
-This development branch uses a sibling `../temporal-go-sdk` checkout synchronized
-with official upstream main and containing the bridge integration changes.
-Unmodified upstream does not yet contain those additions. The repository's local
-module replacement selects that checkout.
+Use the POC `worker.New` and register `jobs.Hello` plus host activity `Greet`.
+Clients use `go.temporal.io/sdk/client` and start native workflows by registered
+string name. Native worker entries require context.Context first; it is injected,
+never serialized as a workflow input. Activities may include a context first or
+omit it. Unmarked SDK workflows keep workflow.Context and their normal path.
 
-The SDK owns the `tgo` driver, source pin, installers and release jobs. To build
-from source with Go 1.26.7 or newer and Python 3.11+:
+`tgo build`, `tgo test` and `tgo run` discover marked entries. Run builds a
+marked temporary executable. `tgo install` does not generate entries. Concrete
+ordinary arguments and no returns/error/result+error are supported; method,
+generic and variadic workflow entries are rejected. Tests discover marked
+`_test.go` entries too; marked coverage mode is unsupported.
 
-```sh
-GOROOT_BOOTSTRAP=/path/to/bootstrap/go python3 toolchain/build.py --output /path/to/new-toolchain
-export PATH="/path/to/new-toolchain/bin:$PATH"
-```
+## Run the example
 
-The output directory must be empty. To build a local Go fork checkout in place,
-use `python3 toolchain/build.py --source /path/to/golang-go --local` instead.
-See [toolchain development](toolchain/README.md) for the build contract and source
-revision selection. The driver selects and verifies `GOEXPERIMENT=isolates`.
-
-### Run your first workflow
-
-Install the [Temporal CLI](https://github.com/temporalio/cli) and start a local
-server in another terminal:
+Install Temporal CLI separately. In one terminal start a local server:
 
 ```sh
 temporal server start-dev --headless
 ```
 
-From the SDK directory, build and start the example worker:
+From this SDK checkout, in another terminal:
 
 ```sh
 mkdir -p bin
@@ -73,103 +112,64 @@ tgo build -o bin/example-worker ./example/worker
 ./bin/example-worker
 ```
 
-In a third terminal, start a workflow:
+Start an execution from a third terminal:
 
 ```sh
-temporal workflow execute \
-  --workflow-id tgo-hello \
-  --type IsolateTypedEcho \
-  --task-queue isolate-poc \
-  --input '{"Name":"world"}' \
-  --input '"!"'
+temporal workflow execute --workflow-id tgo-hello --type IsolateTypedEcho \
+  --task-queue isolate-poc --input '{"Name":"world"}' --input '"!"'
 ```
 
-The result contains `hello world!`. Use a new workflow ID when trying another
-run. To connect the example worker to a different server, set
-`TEMPORAL_ADDRESS` before starting it.
+The result contains `hello world!`. Choose a fresh workflow ID for another run.
+`TEMPORAL_ADDRESS` changes the example worker's server address.
 
-For more examples, follow the
-[samples setup guide](https://github.com/mfateev/samples-go-poc/blob/task/modify-go-runtime-for-isolates/README.md).
+## Use from another module
 
-### Add the SDK to your application
-
-From your application's Go module, use these dependency versions together:
+Keep a matching host SDK checkout and replace its module in the application:
 
 ```sh
 tgo mod edit -replace=go.temporal.io/sdk=/absolute/path/to/temporal-go-sdk
 tgo get github.com/mfateev/sdk-go-poc@task/modify-go-runtime-for-isolates
+tgo mod tidy
 ```
 
-Use this SDK's packages for workflows, workers, and workflow tests:
+Import this module's `workflow`, `worker`, `testsuite`, `interceptor` and native
+contrib packages as needed. Use ordinary Temporal SDK packages for clients,
+activities, shared options, converters and errors. In the samples workspace,
+`go.work` selects the sibling SDK and host SDK directly.
 
-```go
-import (
-    "github.com/mfateev/sdk-go-poc/workflow"
-    "github.com/mfateev/sdk-go-poc/worker"
-    "github.com/mfateev/sdk-go-poc/testsuite"
-)
-```
+## Execution rules
 
-Choose the imports your application needs. Continue using `go.temporal.io/sdk`
-packages for clients, activities, and common Temporal options and errors. After
-updating imports, run `tgo mod tidy`.
+| Concern | Native POC |
+| --- | --- |
+| Concurrency | `go`, native channels/select and sync primitives |
+| Time | `time.Now`, Sleep/NewTimer/After/AfterFunc and context deadlines use history time/durable waits |
+| Signals | `workflow.GetSignalChannel[T]` returns a native receive channel |
+| Future selection | `Future.Get(ctx, &value)` or `ToChannel()` |
+| State | Fresh selected package globals and owned allocation per execution |
+| External effects | Host activities or explicit durable SDK operations |
+| Queries/validators | Read-only workflow state plus writable scratch allocations |
+| Serialization | Local default/custom converter; host codecs; private Google protobuf |
+| Testing | Native `testsuite.TestWorkflowEnvironment` through `tgo test` |
 
-Build workers with `tgo build` and run tests with `tgo test`. You can continue
-using standard `go` for other projects and development tools.
+Do not share mutable application objects with host/peers. Pass configuration as
+input/copied factory bytes; environment/files/network belong on the host.
+Ownership/effect/resource faults permanently revoke an instance and fail its
+Workflow Task. Ordinary returned application errors remain workflow results.
+Timers suppress stale local delivery on Stop/Reset but do not cancel an already
+emitted host timer. Supported map iteration is canonical; unsupported key kinds
+reject. Random output is replay seeded and predictable, including crypto-named
+APIs: generate secrets in host code.
 
-## Differences from sdk-go
+## Documentation
 
-Compared with the standard [Temporal Go SDK](https://github.com/temporalio/sdk-go),
-this SDK lets workflow code use ordinary Go concurrency and time APIs.
-
-| Area | Standard Temporal Go SDK | This SDK |
-| --- | --- | --- |
-| Build and test | `go build`, `go test` | `tgo build`, `tgo test` |
-| Workflow context | `workflow.Context` | `context.Context` |
-| Workflow declaration | Register a workflow function | Add `//temporal:workflow` above the function, then register it |
-| Goroutines | `workflow.Go` | `go` |
-| Channels | `workflow.NewChannel` and SDK channel methods | `make(chan T)`, sends, and receives |
-| Selecting events | `workflow.NewSelector` | Go's `select` |
-| Time | `workflow.Now`, `workflow.Sleep`, `workflow.NewTimer` | `time.Now`, `time.Sleep`, `time.NewTimer`; `workflow.Sleep` is also available |
-| Cancellation | SDK workflow contexts | Standard `context` cancellation and `ctx.Done()` |
-| Signals | SDK signal channels | `workflow.GetSignalChannel[T]` returns a Go receive channel |
-| Workflow tests | `go.temporal.io/sdk/testsuite` | `github.com/mfateev/sdk-go-poc/testsuite`, using `tgo test` |
-
-### What stays familiar
-
-Keep using activities for external work, activity options and futures, child
-workflows, signals, queries, updates, retries, and Continue-As-New. Worker
-registration still uses `RegisterWorkflow` and `RegisterActivity`.
-
-Use this SDK's `worker` package to register native Go workflows. A worker can
-also register existing standard SDK workflows, which keep their original
-`workflow.Context` signatures. When starting a native workflow through the
-standard Temporal client, pass its registered name as a string.
-
-### Rules for workflow code
-
-- Mark each workflow entry function with `//temporal:workflow`. Use a top-level
-  function; workflow entries cannot be methods, generic functions, or variadic
-  functions.
-- Use `context.Context` as the first argument when the workflow needs a context.
-- Keep file access, network calls, environment reads, and other external work
-  in activities. Pass configuration as workflow input.
-- Each workflow execution has its own package variables. Use activities,
-  signals, or workflow inputs to exchange data with other executions or worker
-  code.
-- Use `tgo build` to create worker executables. Use `tgo run` for clients and
-  starters; workflow workers need the build step.
-- Continue following Temporal's workflow versioning practices when changing
-  existing workflows. Migrating from the standard SDK requires review and
-  replay checks; changing imports alone is not sufficient.
-
-### Deterministic randomness and security
-
-Workflow code can use `math/rand`, `math/rand/v2`, supported `crypto/rand`
-functions, and UUID v4 helpers. Values repeat during replay. They are
-predictable and must not be used for passwords, encryption keys, or other
-secrets; generate secrets in activities.
-
-For more usage examples, browse [the examples](example/). For advanced
-configuration and detailed behavior, see [the SDK reference](SDK_REFERENCE.md)
-and [interceptors and observability](INTERCEPTORS.md).
+- [SDK reference](SDK_REFERENCE.md): exact APIs, cancellation, options and examples.
+- [Implementation guide](IMPLEMENTATION.md): construction order, graph policy,
+  owner boundaries, task phases, handlers and host SDK bindings.
+- [Transport](TRANSPORT.md): operation numbers, startup header and full binary schema.
+- [Interceptors](INTERCEPTORS.md): private chains, headers, metrics and tracing.
+- [Compatibility scope](COMPATIBILITY.md): implemented behavior and explicit limits.
+- [Testing](TESTING.md): package/race, compiled fixtures, replay and live checks.
+- [Go core design](https://github.com/mfateev/golang-go/blob/task/modify-go-runtime-for-isolates/doc/isolates/README.md):
+  compiler/runtime reimplementation, ownership, determinism and lifecycle.
+- [Samples](https://github.com/mfateev/samples-go-poc/blob/task/modify-go-runtime-for-isolates/README.md):
+  complete workspace setup and runnable applications.
